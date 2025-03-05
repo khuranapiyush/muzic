@@ -54,6 +54,13 @@ react {
     autolinkLibrariesWithApp()
 }
 
+// Import the react-native-config plugin
+project.ext.envConfigFiles = [
+    debug: ".env",
+]
+
+apply from: project(':react-native-config').projectDir.getPath() + "/dotenv.gradle"
+
 /**
  * Set this to true to Run Proguard on Release builds to minify the Java bytecode.
  */
@@ -84,6 +91,9 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        
+        // Make env variables available to BuildConfig
+        resValue "string", "build_config_package", "com.muzic"
     }
     signingConfigs {
         debug {
@@ -110,6 +120,9 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+    
+    // Explicitly include react-native-config
+    implementation project(':react-native-config')
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
