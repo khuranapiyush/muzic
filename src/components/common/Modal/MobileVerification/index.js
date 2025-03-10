@@ -215,8 +215,9 @@ const MobileVerification = ({
             handleVerifyOtp={handleVerifyOtp}
             header={{
               label: 'Otp verification',
-              description: `Enter the otp sent to +${
-                watch('phoneCountryCode').callingCode[0]
+              description: `Enter the otp sent to ${
+                `+${watch('phoneCountryCode').callingCode[0]}` ||
+                watch('phoneCountryCode').dial_code
               }${watch('mobile')}`,
             }}
             isLoading={isLoading.optVerification}

@@ -3,12 +3,12 @@ import React, {useEffect, useState} from 'react';
 import {Image, Platform, TouchableOpacity} from 'react-native';
 import {getHash, startOtpListener} from 'react-native-otp-verify';
 import useTimer from '../../../hooks/useTimer';
-import CButton from '../core/Button';
 import CText from '../core/Text';
 import CView from '../core/View';
 import appImages from '../../../resource/images';
 import getStyles from './styles';
 import {useTheme} from '@react-navigation/native';
+import LinearGradient from 'react-native-linear-gradient';
 
 const OtpInput = ({
   pinCount = 4,
@@ -26,7 +26,7 @@ const OtpInput = ({
   isLoading,
   customStyles = {},
   config = {showEditMobile: true},
-  countryCode = '91',
+  countryCode = '+91',
   phone = '',
 }) => {
   const {mode} = useTheme();
@@ -35,7 +35,7 @@ const OtpInput = ({
   const [otp, setOtp] = useState('');
 
   useEffect(() => {
-    if (withAutoOtp && Platform.OS != 'ios') {
+    if (withAutoOtp && Platform.OS !== 'ios') {
       getHash().then(hash => {
         startOtpListener(hash, message => {
           const otpCode = /(\d{4})/.exec(message)[1];
@@ -75,11 +75,12 @@ const OtpInput = ({
   return (
     <CView style={styles.container}>
       {!!header.label && <CText style={styles.label}>{header.label}</CText>}
-      {!!header.description && countryCode == '91' && (
-        <CText style={styles.description}>{header.description}</CText>
-      )}
+      {!!header.description &&
+        (countryCode === '+91' || countryCode === '91') && (
+          <CText style={styles.description}>{header.description}</CText>
+        )}
 
-      {countryCode != '91' && (
+      {countryCode !== '+91' && (
         <CView row centered style={styles.description}>
           <CText>Enter the otp sent to WhatsApp </CText>
           <Image
@@ -130,15 +131,23 @@ const OtpInput = ({
       </CView>
 
       <CView style={styles.submitBtnContainer}>
-        <CButton
-          size="large"
-          buttonType="primary"
-          text="Submit"
+        <TouchableOpacity
           onPress={() => handleSubmitOtp(otp)}
           customStyles={styles.submitBtn}
           disabled={otp.length !== pinCount}
-          isLoading={isLoading}
-        />
+          style={{
+            ...styles.createButton,
+            opacity: otp.length !== pinCount ? 0.6 : 1,
+          }}
+          isLoading={isLoading}>
+          <LinearGradient
+            colors={['#F4A460', '#DEB887']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={styles.gradient}>
+            <CText style={styles.createButtonText}>Submit</CText>
+          </LinearGradient>
+        </TouchableOpacity>
       </CView>
     </CView>
   );

@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../Colors'
+import {StyleSheet} from 'react-native';
+import Colors from '../Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -10,30 +10,31 @@ const getStyles = theme => {
       borderRadius: 12,
       borderWidth: 1,
       borderColor: Colors[theme]?.cardBorderColor,
-      backgroundColor: Colors[theme]?.appBg
+      backgroundColor: Colors[theme]?.appBg,
     },
     dropdownHeader: {
+      height: 44,
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'space-between',
+      justifyContent: 'center',
       paddingHorizontal: 10,
-      paddingTop: 2,
-      background: 'red'
+      borderRadius: 12,
     },
     flag: {
       width: 24,
       height: 24,
-      marginRight: 10
+      marginRight: 10,
     },
     selectedCountryText: {
       flex: 1,
-      fontSize: 16
+      fontSize: 16,
     },
     arrowIcon: {
       tintColor: Colors[theme]?.white,
       width: 16,
-      height: 16
-    }
-  })
-}
-export default getStyles
+      height: 16,
+    },
+    flagIcon: {fontSize: 20, marginHorizontal: 10},
+  });
+};
+export default getStyles;

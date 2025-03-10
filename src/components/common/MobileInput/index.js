@@ -25,6 +25,7 @@ const MobileInput = ({
       }}
       keyboardType="numeric"
       placeholder="Enter your mobile number"
+      placeholderTextColor={'white'}
       value={mobileNumber}
       onChangeText={handleMobileNumberChange}
       maxLength={14}

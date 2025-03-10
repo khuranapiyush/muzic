@@ -1,14 +1,14 @@
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import CheckBox from '../../core/Checkbox'
+import React from 'react';
+import {Controller} from 'react-hook-form';
+import CheckBox from '../../core/Checkbox';
 
-const CheckBoxFC = ({ control, name, rules, ...rest }) => {
+const CheckBoxFC = ({control, name, rules, ...rest}) => {
   return (
     <Controller
       control={control}
       name={name}
       rules={rules}
-      render={({ field }) => (
+      render={({field}) => (
         <CheckBox
           checked={field.value}
           onPress={() => field.onChange(!field.value)}
@@ -16,7 +16,7 @@ const CheckBoxFC = ({ control, name, rules, ...rest }) => {
         />
       )}
     />
-  )
-}
+  );
+};
 
-export default CheckBoxFC
+export default CheckBoxFC;

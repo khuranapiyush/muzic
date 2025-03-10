@@ -122,7 +122,6 @@ const CoverCreationScreen = () => {
 
   const VocalCard = ({recording}) => {
     const isSelected = selectedVoiceId === recording.id;
-
     return (
       <TouchableOpacity
         activeOpacity={0.7}

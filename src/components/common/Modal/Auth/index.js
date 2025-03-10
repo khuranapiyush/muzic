@@ -31,6 +31,7 @@ import VerifyOtp from '../../../feature/auth/verifyOtp';
 import Toaster from '../../Toaster';
 import CView from '../../core/View';
 import getStyles from './style';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
 
 const getFormSchema = (authMode, formData = {}) => {
   switch (authMode) {
@@ -173,7 +174,7 @@ const AuthModal = ({
       // })
       navigationData?.redirectToPath
         ? navigator.navigate(navigationData?.redirectToPath)
-        : navigator.navigate('Home');
+        : navigator.navigate(ROUTE_NAME.Home);
     },
     onError: err => {
       showToaster({
@@ -229,7 +230,7 @@ const AuthModal = ({
 
       navigationData?.redirectToPath
         ? navigator.navigate(navigationData?.redirectToPath)
-        : navigator.navigate('Home');
+        : navigator.navigate(ROUTE_NAME.Home);
     },
     onError: err => {
       showToaster({
@@ -258,7 +259,7 @@ const AuthModal = ({
 
       navigationData?.redirectToPath
         ? navigator.navigate(navigationData?.redirectToPath)
-        : navigator.navigate('Home');
+        : navigator.navigate(ROUTE_NAME.Home);
     },
     onError: err => {
       showToaster({
@@ -292,7 +293,7 @@ const AuthModal = ({
 
       navigationData?.redirectToPath
         ? navigator.navigate(navigationData?.redirectToPath)
-        : navigator.navigate('Home');
+        : navigator.navigate(ROUTE_NAME.Home);
     },
     onError: err => {
       showToaster({
@@ -314,7 +315,9 @@ const AuthModal = ({
         getValues();
       const data = {
         mobile,
-        phoneCountryCode: `+${phoneCountryCode.callingCode[0]}`,
+        phoneCountryCode:
+          `+${phoneCountryCode.callingCode[0]}` ||
+          `${phoneCountryCode.dial_code}`,
         userId: userId,
         ...(isReferralCode && {referralCode}),
       };
@@ -351,7 +354,9 @@ const AuthModal = ({
 
     const data = {
       mobile,
-      phoneCountryCode: `+${phoneCountryCode.callingCode[0]}`,
+      phoneCountryCode:
+        `+${phoneCountryCode.callingCode[0]}` ||
+        `${phoneCountryCode.dial_code}`,
       otp,
     };
     verifyOtpApi(data);
@@ -467,13 +472,18 @@ const AuthModal = ({
                 header={{
                   label: 'Otp verification',
                   description: `Enter the otp sent to +${
-                    watch('phoneCountryCode').callingCode[0]
+                    `+${watch('phoneCountryCode').callingCode[0]}` ||
+                    watch('phoneCountryCode').dial_code
                   }${watch('mobile')}`,
                 }}
-                countryCode={watch('phoneCountryCode').callingCode[0]}
-                phone={`+${watch('phoneCountryCode').callingCode[0]}${watch(
-                  'mobile',
-                )}`}
+                countryCode={
+                  `+${watch('phoneCountryCode').callingCode[0]}` ||
+                  watch('phoneCountryCode').dial_code
+                }
+                phone={`+${
+                  `+${watch('phoneCountryCode').callingCode[0]}` ||
+                  watch('phoneCountryCode').dial_code
+                }${watch('mobile')}`}
                 isLoading={isLoading.optVerification}
               />
             )}

@@ -91,9 +91,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
-        
-        // Make env variables available to BuildConfig
-        resValue "string", "build_config_package", "com.muzic"
+        missingDimensionStrategy 'store', 'play'
+        multiDexEnabled true
     }
     signingConfigs {
         debug {
@@ -123,6 +122,8 @@ dependencies {
     
     // Explicitly include react-native-config
     implementation project(':react-native-config')
+    implementation(project(':react-native-iap'))
+
 
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

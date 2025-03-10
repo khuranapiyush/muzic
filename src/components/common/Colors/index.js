@@ -11,8 +11,8 @@ const commonColor = {
   popupTextColor: '#000000',
   buttonBackground: '#6B61FF',
   lightGrayText: '#626262',
-  trackColor: '#AFAFAF'
-}
+  trackColor: '#AFAFAF',
+};
 
 const light = {
   white: '#000000',
@@ -46,8 +46,8 @@ const light = {
   earnCoinLvLBorder: '#4A4A4A',
   earnCoinLvLBG: '#0C0C0C',
 
-  ...commonColor
-}
+  ...commonColor,
+};
 
 const dark = {
   white: '#FFFFFF',
@@ -59,7 +59,7 @@ const dark = {
   categoryBg: 'rgba(196, 196, 196, 0.15)',
   cardBg: '#353535',
   iconBg: '#1E1E1E',
-  cardBorderColor: '#2F2C3C',
+  cardBorderColor: '#DADADA',
   borderColor: 'rgba(255, 255, 255, 0.20)',
   inputBg: '#2F2D3C',
   footerBG: '#0F0F0F',
@@ -84,7 +84,7 @@ const dark = {
 
   brandNewPink: '#FE9BF3',
 
-  ...commonColor
-}
+  ...commonColor,
+};
 
-export default { light, dark }
+export default {light, dark};

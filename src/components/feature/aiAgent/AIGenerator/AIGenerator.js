@@ -89,11 +89,12 @@ const AIGenerator = ({pageHeading}) => {
 
   const handleSubmit = () => {
     Keyboard?.dismiss();
-    // const promptText = getValues().promptText
-    // generateVideo(promptText)
-    // setPrompt('')
+    const promptText = getValues().promptText;
+    generateVideo(promptText);
+    setPrompt('');
 
-    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+    // Handle the case when the user has no credits
+    // navigation.navigate(ROUTE_NAME.SubscriptionScreen);
   };
 
   const handleInputChange = text => {
@@ -173,7 +174,8 @@ const AIGenerator = ({pageHeading}) => {
   const checkIfModalShown = async () => {
     try {
       const hasShown = await AsyncStorage.getItem('promoModalShown');
-      if (hasShown !== 'true') {
+      // if (hasShown !== 'true') {
+      if (hasShown === 'true') {
         setModalVisible(true);
       }
     } catch (error) {
@@ -202,7 +204,7 @@ const AIGenerator = ({pageHeading}) => {
           <TextInputFC
             control={control}
             name={'promptText'}
-            autoComplete="off"
+            autoComplete={'off'}
             autoCorrect={false}
             placeholder={getRenderDetail(pageHeading).placeholderText}
             multiline={true}
@@ -241,8 +243,7 @@ const AIGenerator = ({pageHeading}) => {
             onPress={() => {
               handleSubmit();
             }}
-            // disabled={!prompt}
-          >
+            disabled={!prompt}>
             <LinearGradient
               colors={['#F4A460', '#DEB887']}
               start={{x: 0, y: 0}}

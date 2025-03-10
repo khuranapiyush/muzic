@@ -8,7 +8,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-// import * as RNIap from 'react-native-iap';
+import * as RNIap from 'react-native-iap';
 
 const SubscriptionScreen = () => {
   const [credits, setCredits] = useState(20);
@@ -19,8 +19,8 @@ const SubscriptionScreen = () => {
     const initializeIAP = async () => {
       try {
         console.log('Initializing IAP connection...');
-        // const result = await RNIap.initConnection();
-        // console.log('IAP connection result:', result);
+        const result = await RNIap.initConnection();
+        console.log('IAP connection result:', result);
 
         const productIds = ['subscription_1']; // Make sure this matches your App Store product ID
         console.log('Requesting products with IDs:', productIds);
@@ -29,18 +29,18 @@ const SubscriptionScreen = () => {
 
         getCurrentPurchases();
         getPurchaseInfo();
-        // const products = await RNIap.getProducts(productIds)
-        // console.log('Available products:', products)
+        const products = await RNIap.getProducts(productIds);
+        console.log('Available products:', products);
 
-        // if (products.length === 0) {
-        //   console.warn('No products available from the App Store')
-        // } else {
-        //   setProducts(products)
-        // }
+        if (products.length === 0) {
+          console.log('No products available from the App Store');
+        } else {
+          setProducts(products);
+        }
       } catch (err) {
-        console.error('Error initializing IAP:', err);
-        console.error('Error message:', err.message);
-        console.error('Error stack:', err.stack);
+        console.log('Error initializing IAP:', err);
+        console.log('Error message:', err.message);
+        console.log('Error stack:', err.stack);
       }
     };
 
@@ -54,21 +54,21 @@ const SubscriptionScreen = () => {
   const getPurchaseInfo = async () => {
     try {
       const productIds = ['subscription_1'];
-      // const productsInfo = await RNIap.getProducts({skus: productIds});
-      // console.log('SETTING THE PRODCUTS', productsInfo);
-      // setProducts(productsInfo);
+      const productsInfo = await RNIap.getProducts({skus: productIds});
+      console.log('SETTING THE PRODCUTS', productsInfo);
+      setProducts(productsInfo);
     } catch (err) {
-      console.error('Error fetching products: ', err);
+      console.log('Error fetching products: ', err);
     }
   };
 
   const getCurrentPurchases = async () => {
     try {
-      // const item = await RNIap.getAvailablePurchases();
-      // let data = {productId: item?.productId, date: item?.transactionDate};
-      // Alert.alert('Success', JSON.stringify(data))
+      const item = await RNIap.getAvailablePurchases();
+      let data = {productId: item?.productId, date: item?.transactionDate};
+      Alert.alert('Success', JSON.stringify(data));
     } catch (error) {
-      console.error('Error getting purchases:', error);
+      console.log('Error getting purchases:', error);
     }
   };
 
@@ -81,11 +81,11 @@ const SubscriptionScreen = () => {
       console.log('Before Attempting to subscribe to');
       const productId = products[0].productId; // Assuming you only have one product
       console.log('Attempting to subscribe to:', productId);
-      // const purchase = await RNIap.requestSubscription(productId);
-      // console.log('Purchase successful', purchase);
+      const purchase = await RNIap.requestSubscription(productId);
+      console.log('Purchase successful', purchase);
       // Handle successful purchase
     } catch (err) {
-      console.warn('Subscription error:', err);
+      console.log('Subscription error:', err);
       Alert.alert('Error', `Failed to process subscription. ${err.message}`);
     }
   };

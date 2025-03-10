@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React from 'react';
-import {Image} from 'react-native';
+import {Image, StyleSheet, Text} from 'react-native';
 import {useSelector} from 'react-redux';
 import CustomHeader from '../components/common/Header';
 import appImages from '../resource/images';
@@ -11,7 +11,6 @@ import CView from '../components/common/core/View';
 import AIGenerator from '../components/feature/aiAgent/AIGenerator/AIGenerator';
 import CoverCreationScreen from '../components/feature/aiAgent/AIGenerator/AiCover';
 import LibraryScreen from '../components/feature/library';
-import Colors from '../components/common/Colors';
 // import AddFund from '../components/feature/wallet/AddFund'
 
 const Tab = createBottomTabNavigator();
@@ -21,59 +20,58 @@ const HomeStackNavigator = () => {
 
   const {mode} = useTheme();
 
+  const renderTabIcon = (iconSource, focused) => {
+    return (
+      <CView
+        style={[
+          styles.iconContainer,
+          focused ? styles.focusedIcon : styles.unfocusedIcon,
+        ]}>
+        <Image
+          source={iconSource}
+          style={[styles.iconImage, {tintColor: focused ? '#000' : '#A5A5A5'}]}
+        />
+      </CView>
+    );
+  };
+
+  const renderTabLabel = (label, focused) => {
+    return (
+      <Text
+        style={[
+          styles.tabLabel,
+          focused ? styles.focusedLabel : styles.unfocusedLabel,
+        ]}>
+        {label}
+      </Text>
+    );
+  };
+
   return (
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          height: '8%',
-          marginTop: 10,
+          height: 70,
           paddingBottom: 10,
-          paddingTop: 2,
-          marginBottom: 15,
+          paddingTop: 10,
           backgroundColor: '#000',
+          borderTopWidth: 0,
         },
         headerShown: false,
         header: props => {
           return <CustomHeader {...props} />;
         },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontFamily: 'Nohemi',
-          textAlign: 'center',
-          fontWeight: '400',
-          lineHeight: 14.4,
-          letterSpacing: 0.24,
-          color: Colors[mode].similarSongTabColor,
-        },
+        tabBarActiveTintColor: '#FFD5A9',
+        tabBarInactiveTintColor: '#A5A5A5',
       }}>
       <Tab.Screen
         name={'Create'}
         component={AIGenerator}
         options={{
-          tabBarLabel: 'Create',
           headerShown: true,
-          tabBarIcon: ({focused, color, size}) => {
-            return (
-              <CView
-                style={{
-                  padding: 5,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderRadius: 58,
-                  backgroundColor: focused ? '#FFD5A9' : '#1E1E1E',
-                }}>
-                <Image
-                  source={appImages.createIcon}
-                  style={{
-                    width: 25,
-                    height: 25,
-                    overflow: 'hidden',
-                    tintColor: focused ? '#000' : '#A5A5A5',
-                  }}
-                />
-              </CView>
-            );
-          },
+          tabBarIcon: ({focused}) =>
+            renderTabIcon(appImages.createIcon, focused),
+          tabBarLabel: ({focused}) => renderTabLabel('Create', focused),
         }}
       />
       <Tab.Screen
@@ -82,29 +80,9 @@ const HomeStackNavigator = () => {
         options={{
           headerShown: !isPlayerFullScreen ? true : false,
           ...(isPlayerFullScreen && {tabBarStyle: {display: 'none'}}),
-          tabBarLabel: 'Discover',
-          tabBarIcon: ({focused, color, size}) => {
-            return (
-              <CView
-                style={{
-                  padding: 5,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderRadius: 58,
-                  backgroundColor: focused ? '#FFD5A9' : '#1E1E1E',
-                }}>
-                <Image
-                  source={appImages.discoverIcon}
-                  style={{
-                    width: 25,
-                    height: 25,
-                    overflow: 'hidden',
-                    tintColor: focused ? '#000' : '#A5A5A5',
-                  }}
-                />
-              </CView>
-            );
-          },
+          tabBarIcon: ({focused}) =>
+            renderTabIcon(appImages.discoverIcon, focused),
+          tabBarLabel: ({focused}) => renderTabLabel('Discover', focused),
         }}
       />
 
@@ -113,28 +91,9 @@ const HomeStackNavigator = () => {
         component={CoverCreationScreen}
         options={{
           headerShown: true,
-          tabBarIcon: ({focused, color, size}) => {
-            return (
-              <CView
-                style={{
-                  padding: 5,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderRadius: 58,
-                  backgroundColor: focused ? '#FFD5A9' : '#1E1E1E',
-                }}>
-                <Image
-                  source={appImages.aiCoverIcon}
-                  style={{
-                    width: 25,
-                    height: 25,
-                    overflow: 'hidden',
-                    tintColor: focused ? '#000' : '#A5A5A5',
-                  }}
-                />
-              </CView>
-            );
-          },
+          tabBarIcon: ({focused}) =>
+            renderTabIcon(appImages.aiCoverIcon, focused),
+          tabBarLabel: ({focused}) => renderTabLabel('AI Cover', focused),
         }}
       />
 
@@ -145,32 +104,52 @@ const HomeStackNavigator = () => {
         options={{
           headerShown: !isPlayerFullScreen ? true : false,
           ...(isPlayerFullScreen && {tabBarStyle: {display: 'none'}}),
-          tabBarIcon: ({focused, color, size}) => {
-            return (
-              <CView
-                style={{
-                  padding: 5,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderRadius: 58,
-                  backgroundColor: focused ? '#FFD5A9' : '#1E1E1E',
-                }}>
-                <Image
-                  source={appImages.libraryIcon}
-                  style={{
-                    width: 25,
-                    height: 25,
-                    overflow: 'hidden',
-                    tintColor: focused ? '#000' : '#A5A5A5',
-                  }}
-                />
-              </CView>
-            );
-          },
+          tabBarIcon: ({focused}) =>
+            renderTabIcon(appImages.libraryIcon, focused),
+          tabBarLabel: ({focused}) => renderTabLabel('Library', focused),
         }}
       />
     </Tab.Navigator>
   );
 };
+
+const styles = StyleSheet.create({
+  iconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    overflow: 'hidden',
+    marginBottom: 15,
+  },
+  focusedIcon: {
+    backgroundColor: '#FFD5A9',
+  },
+  unfocusedIcon: {
+    backgroundColor: '#1E1E1E',
+  },
+  iconImage: {
+    width: 22,
+    height: 22,
+    resizeMode: 'contain',
+  },
+  tabLabel: {
+    fontSize: 12,
+    fontFamily: 'Nohemi',
+    textAlign: 'center',
+    fontWeight: '400',
+    lineHeight: 14.4,
+    letterSpacing: 0.24,
+    marginTop: 4,
+  },
+  focusedLabel: {
+    color: '#FFD5A9',
+    fontWeight: '600',
+  },
+  unfocusedLabel: {
+    color: '#A5A5A5',
+  },
+});
 
 export default HomeStackNavigator;

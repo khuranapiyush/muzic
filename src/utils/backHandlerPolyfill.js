@@ -1,17 +1,35 @@
 import {BackHandler} from 'react-native';
 
-// Only add this if you're having issues with third-party libraries
-// that you can't directly modify
-if (BackHandler && !BackHandler.removeEventListener) {
-  // Add a polyfill for the old removeEventListener method
+// Store the original addEventListener method
+const originalAddEventListener = BackHandler.addEventListener;
+
+// Override the addEventListener method to return an object with a remove method
+BackHandler.addEventListener = (eventName, handler) => {
+  // Call the original method and get the subscription
+  const subscription = originalAddEventListener(eventName, handler);
+
+  // Return an object with a remove method that calls subscription.remove()
+  return {
+    remove: () => {
+      if (typeof subscription === 'function') {
+        // Handle older versions where addEventListener returns a function
+        subscription();
+      } else if (subscription && typeof subscription.remove === 'function') {
+        // Handle newer versions where addEventListener returns an object with remove method
+        subscription.remove();
+      }
+    },
+  };
+};
+
+// Define removeEventListener as a no-op function to prevent errors
+if (BackHandler.removeEventListener === undefined) {
   BackHandler.removeEventListener = (eventName, handler) => {
     console.warn(
-      'BackHandler.removeEventListener is deprecated. ' +
-        'Please use the remove() method on the event subscription returned by addEventListener.',
+      'BackHandler.removeEventListener is deprecated. Please use the remove() method on the event subscription returned by addEventListener.',
     );
-
-    // This is a no-op function since we can't actually remove the listener
-    // without the subscription object
-    return true;
+    // This is a no-op function, as the actual cleanup should be done using the remove() method
   };
 }
+
+export default BackHandler;

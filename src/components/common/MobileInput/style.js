@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../Colors'
+import {StyleSheet} from 'react-native';
+import Colors from '../Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -12,8 +12,8 @@ const getStyles = theme => {
       fontSize: 14,
       height: 44,
       width: 235,
-      paddingHorizontal: 20
-    }
-  })
-}
-export default getStyles
+      paddingHorizontal: 20,
+    },
+  });
+};
+export default getStyles;

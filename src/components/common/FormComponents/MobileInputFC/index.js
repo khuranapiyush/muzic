@@ -1,8 +1,8 @@
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import MobileInput from '../../MobileInput'
+import React from 'react';
+import {Controller} from 'react-hook-form';
+import MobileInput from '../../MobileInput';
 
-const MobileInputFC = ({ control, name, rules, customStyles, ...rest }) => {
+const MobileInputFC = ({control, name, rules, customStyles, ...rest}) => {
   return (
     <Controller
       control={control}
@@ -10,19 +10,19 @@ const MobileInputFC = ({ control, name, rules, customStyles, ...rest }) => {
       rules={{
         pattern: {
           value: /^\d+$/,
-          message: 'Invalid phone number'
+          message: 'Invalid phone number',
         },
         minLength: {
           value: 6,
-          message: 'Phone number must be at least 6 digits'
+          message: 'Phone number must be at least 6 digits',
         },
         maxLength: {
           value: 14,
-          message: 'Phone number must be at most 14 digits'
+          message: 'Phone number must be at most 14 digits',
         },
-        ...rules
+        ...rules,
       }}
-      render={({ field }) => (
+      render={({field}) => (
         <MobileInput
           mobileNumber={field.value}
           setMobileNumber={field.onChange}
@@ -31,7 +31,7 @@ const MobileInputFC = ({ control, name, rules, customStyles, ...rest }) => {
         />
       )}
     />
-  )
-}
+  );
+};
 
-export default MobileInputFC
+export default MobileInputFC;

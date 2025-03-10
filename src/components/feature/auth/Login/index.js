@@ -5,10 +5,10 @@ import appImages from '../../../../resource/images';
 import CheckBoxFC from '../../../common/FormComponents/CheckBoxFC';
 import CountryPickerDropdownFC from '../../../common/FormComponents/CountryPickerDropdownFC';
 import MobileInputFC from '../../../common/FormComponents/MobileInputFC';
-import CButton from '../../../common/core/Button';
 import CText from '../../../common/core/Text';
 import CView from '../../../common/core/View';
 import styles from './style';
+import LinearGradient from 'react-native-linear-gradient';
 
 const Login = ({
   handleLogin,
@@ -22,17 +22,17 @@ const Login = ({
 }) => {
   const countryCode = useWatch({control, name: 'phoneCountryCode'});
 
-  const handleEmailLogin = () => {
-    !!propsHandleModeChange && propsHandleModeChange('emailLogin');
-  };
+  // const handleEmailLogin = () => {
+  //   !!propsHandleModeChange && propsHandleModeChange('emailLogin');
+  // };
 
-  const handleGoogleLogin = () => {
-    !!propsHandleGoogleLogin && propsHandleGoogleLogin();
-  };
+  // const handleGoogleLogin = () => {
+  //   !!propsHandleGoogleLogin && propsHandleGoogleLogin();
+  // };
 
-  const handleAppleLogin = () => {
-    !!propsHandleAppleLogin && propsHandleAppleLogin();
-  };
+  // const handleAppleLogin = () => {
+  //   !!propsHandleAppleLogin && propsHandleAppleLogin();
+  // };
 
   return (
     <CView style={styles.container}>
@@ -44,7 +44,9 @@ const Login = ({
       </CView>
 
       <CView style={styles.mobileTextContainer}>
-        <CText size="mediumBold">Mobile number</CText>
+        <CText size="mediumBold" style={{color: 'white'}}>
+          Mobile number
+        </CText>
       </CView>
 
       <CView row="row" style={styles.mobileContainer}>
@@ -61,25 +63,30 @@ const Login = ({
         </CView>
       </CView>
 
-      {countryCode?.name != 'India' && (
-        <CView style={styles.msgContainer}>
-          <CText size="normalBold" color="commonWhite">
-            OTP will be sent on your WhatsApp
-          </CText>
-        </CView>
-      )}
+      {countryCode?.callingCode[0] !== '+91' ||
+        (countryCode?.dial_code !== '91' && (
+          <CView style={styles.msgContainer}>
+            <CText size="normalBold" color="commonWhite">
+              OTP will be sent on your WhatsApp
+            </CText>
+          </CView>
+        ))}
 
       <CView style={styles.btnContainer}>
-        <CButton
-          size="large"
-          buttonType="primary"
-          text="Continue"
-          // isGradientButton
+        <TouchableOpacity
+          style={styles.createButton}
           onPress={handleLogin}
           customStyles={styles.submitBtn}
           disabled={!isValid}
-          isLoading={isLoading}
-        />
+          isLoading={isLoading}>
+          <LinearGradient
+            colors={['#F4A460', '#DEB887']}
+            start={{x: 0, y: 0}}
+            end={{x: 1, y: 1}}
+            style={{...styles.gradient, opacity: !isValid ? 0.6 : 1}}>
+            <CText style={styles.createButtonText}>Continue</CText>
+          </LinearGradient>
+        </TouchableOpacity>
       </CView>
 
       <CView row style={styles.termsContainer}>
@@ -92,14 +99,14 @@ const Login = ({
           }}
         />
         <CView style={styles.termsTextContainer}>
-          <CText size="smallBold">
+          <CText size="smallBold" style={{color: 'white'}}>
             By proceeding you agree to the Terms & Conditions and Privacy Policy
             of Muzic
           </CText>
         </CView>
       </CView>
 
-      <CView style={styles.socialAuthContainer}>
+      {/* <CView style={styles.socialAuthContainer}>
         <CView row style={styles.signInContainer}>
           <CText style={styles.signInText}>or signin with</CText>
         </CView>
@@ -121,7 +128,7 @@ const Login = ({
             <Image source={appImages.appleLogoIcon} style={styles.emailIcon} />
           </TouchableOpacity>
         </CView>
-      </CView>
+      </CView> */}
     </CView>
   );
 };

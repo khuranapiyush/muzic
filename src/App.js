@@ -45,10 +45,15 @@ const App = () => {
   };
 
   const fetchStoredTheme = async () => {
-    await setTimeout(() => {
-      SplashScreen.hide();
+    try {
+      const timer = setTimeout(() => {
+        SplashScreen.hide();
+      }, 100);
       StatusBar.setBarStyle('dark-content');
-    }, 500);
+      return () => clearTimeout(timer);
+    } catch (error) {
+      console.error('Error hiding splash screen:', error);
+    }
   };
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
@@ -63,7 +68,7 @@ const App = () => {
 
   useEffect(() => {
     fetchStoredTheme();
-  }, [theme?.mode]);
+  }, []);
 
   return (
     <Provider store={store}>
