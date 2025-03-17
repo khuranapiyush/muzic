@@ -12,7 +12,8 @@ import {Provider} from 'react-redux';
 import {BottomSheetModalProvider} from '@gorhom/bottom-sheet';
 import {ThemeContext} from './context/ThemeContext';
 import AppNavigator from './navigator/AppNavigator';
-import store from './stores';
+import {persistor, store} from './stores';
+import {PersistGate} from 'redux-persist/integration/react';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,15 +74,17 @@ const App = () => {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <ThemeContext.Provider value={appThemeProviderValue}>
-          <GestureHandlerRootView style={{flex: 1}}>
-            <SafeAreaProvider initialMetrics={initialWindowMetrics}>
-              <BottomSheetModalProvider>
-                <AppNavigator />
-              </BottomSheetModalProvider>
-            </SafeAreaProvider>
-          </GestureHandlerRootView>
-        </ThemeContext.Provider>
+        <PersistGate loading={null} persistor={persistor}>
+          <ThemeContext.Provider value={appThemeProviderValue}>
+            <GestureHandlerRootView style={{flex: 1}}>
+              <SafeAreaProvider initialMetrics={initialWindowMetrics}>
+                <BottomSheetModalProvider>
+                  <AppNavigator />
+                </BottomSheetModalProvider>
+              </SafeAreaProvider>
+            </GestureHandlerRootView>
+          </ThemeContext.Provider>
+        </PersistGate>
       </QueryClientProvider>
     </Provider>
   );

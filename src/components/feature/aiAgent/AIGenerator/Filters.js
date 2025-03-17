@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unstable-nested-components */
 import React, {useEffect, useState} from 'react';
 import {
   View,
@@ -6,23 +7,35 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-  ScrollView,
   SafeAreaView,
 } from 'react-native';
 import {Svg, Path} from 'react-native-svg';
 import axios from 'axios';
 import config from 'react-native-config';
+import CText from '../../../common/core/Text';
 
 const {width} = Dimensions.get('window');
 const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
 const GENRE_ITEM_WIDTH = (width - 48 - 32) / 5; // For larger screens
 
-const GenreSelectionScreen = () => {
+const GenreSelectionScreen = ({
+  onGenreSelect,
+  onVoiceSelect,
+  resetSelections,
+}) => {
   const {API_BASE_URL} = config;
   const [genreList, setGenreList] = useState(null);
   const [filterList, setFilterList] = useState(null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedSingerType, setSelectedSingerType] = useState(null);
+
+  // Reset selections when resetSelections changes
+  useEffect(() => {
+    if (resetSelections) {
+      setSelectedGenre(null);
+      setSelectedSingerType(null);
+    }
+  }, [resetSelections]);
 
   const CheckMarkIcon = () => (
     <View style={styles.checkmark}>
@@ -37,28 +50,64 @@ const GenreSelectionScreen = () => {
     </View>
   );
 
-  const getGenres = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/v1/genres`);
-      setGenreList(response.data.data);
-    } catch (error) {
-      throw error;
-    }
-  };
-
-  const getFilters = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/v1/filters`);
-      setFilterList(response.data.data);
-    } catch (error) {
-      throw error;
-    }
-  };
-
   useEffect(() => {
+    const getGenres = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/v1/genres`);
+        setGenreList(response.data.data);
+      } catch (error) {
+        console.error('Error fetching genres:', error);
+      }
+    };
+
+    const getFilters = async () => {
+      try {
+        const response = await axios.get(`${API_BASE_URL}/v1/filters`);
+        setFilterList(response.data.data);
+      } catch (error) {
+        console.error('Error fetching filters:', error);
+      }
+    };
+
     getGenres();
     getFilters();
-  }, []);
+  }, [API_BASE_URL]);
+
+  // Handle genre selection and notify parent component
+  const handleGenreSelect = (genreId, genreName) => {
+    const newSelectedGenre = selectedGenre === genreId ? null : genreId;
+    setSelectedGenre(newSelectedGenre);
+
+    // Find the selected genre name if a genre is selected
+    let selectedGenreName = null;
+    if (newSelectedGenre && genreList) {
+      const genre = genreList.find(item => item._id === newSelectedGenre);
+      selectedGenreName = genre ? genre.name.toLowerCase() : null;
+    }
+
+    // Notify parent component
+    if (onGenreSelect) {
+      onGenreSelect(selectedGenreName);
+    }
+  };
+
+  // Handle singer type selection and notify parent component
+  const handleSingerSelect = (singerId, singerName) => {
+    const newSelectedSinger = selectedSingerType === singerId ? null : singerId;
+    setSelectedSingerType(newSelectedSinger);
+
+    // Find the selected singer type if a singer is selected
+    let selectedVoiceType = null;
+    if (newSelectedSinger && filterList) {
+      const singer = filterList.find(item => item._id === newSelectedSinger);
+      selectedVoiceType = singer ? singer.name.toLowerCase() : null;
+    }
+
+    // Notify parent component
+    if (onVoiceSelect) {
+      onVoiceSelect(selectedVoiceType);
+    }
+  };
 
   const GenreItem = ({item}) => {
     const isSelected = selectedGenre === item._id;
@@ -66,7 +115,7 @@ const GenreSelectionScreen = () => {
     return (
       <TouchableOpacity
         style={[styles.genreItem, isSelected && styles.selectedItem]}
-        onPress={() => setSelectedGenre(isSelected ? null : item._id)}
+        onPress={() => handleGenreSelect(item._id, item.name)}
         activeOpacity={0.7}>
         <View style={styles.imageContainer}>
           <Image source={{uri: item.imageUrl}} style={styles.image} />
@@ -92,7 +141,7 @@ const GenreSelectionScreen = () => {
     return (
       <TouchableOpacity
         style={[styles.singerItem, isSelected && styles.selectedItem]}
-        onPress={() => setSelectedSingerType(isSelected ? null : item._id)}
+        onPress={() => handleSingerSelect(item._id, item.name)}
         activeOpacity={0.7}>
         <View style={styles.imageContainer}>
           <Image source={{uri: item.imageUrl}} style={styles.image} />
@@ -110,31 +159,35 @@ const GenreSelectionScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <View style={styles.content}>
-          {/* Genre Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Genre</Text>
-            <View style={styles.genreGrid}>
-              {genreList?.map(item => (
-                <GenreItem key={item._id} item={item} />
-              ))}
-            </View>
-          </View>
-
-          {/* Singer Type Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Singer</Text>
-            <View style={styles.singerGrid}>
-              {filterList
-                ?.filter(item => item.type === 'singer')
-                ?.map(item => (
-                  <SingerTypeItem key={item._id} item={item} />
-                ))}
-            </View>
+      {/* <ScrollView style={styles.scrollView}> */}
+      <View style={styles.content}>
+        {/* Genre Section */}
+        <View style={styles.section}>
+          <CText size="largeBold" style={styles.sectionTitle}>
+            Genre
+          </CText>
+          <View style={styles.genreGrid}>
+            {genreList?.map(item => (
+              <GenreItem key={item._id} item={item} />
+            ))}
           </View>
         </View>
-      </ScrollView>
+
+        {/* Singer Type Section */}
+        <View style={styles.section}>
+          <CText size="largeBold" style={styles.sectionTitle}>
+            Select Singer
+          </CText>
+          <View style={styles.singerGrid}>
+            {filterList
+              ?.filter(item => item.type === 'singer')
+              ?.map(item => (
+                <SingerTypeItem key={item._id} item={item} />
+              ))}
+          </View>
+        </View>
+      </View>
+      {/* </ScrollView> */}
     </SafeAreaView>
   );
 };
@@ -154,10 +207,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
     color: '#fff',
     marginBottom: 16,
+    fontSize: 16,
   },
   genreGrid: {
     flexDirection: 'row',
@@ -199,7 +251,7 @@ const styles = StyleSheet.create({
     transform: [{scale: 1.05}],
   },
   itemText: {
-    fontSize: 18,
+    fontSize: 12,
     color: '#fff',
     textAlign: 'left',
   },

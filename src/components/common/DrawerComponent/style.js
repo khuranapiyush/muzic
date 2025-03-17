@@ -1,5 +1,4 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../Colors'
+import {StyleSheet} from 'react-native';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -8,15 +7,16 @@ const getStyles = theme => {
       borderColor: '#DBDBDE',
       marginTop: 16,
       marginBottom: 8,
-      marginHorizontal: -16
+      marginHorizontal: -16,
     },
     drawerComponentWrapper: {
-      backgroundColor: Colors[theme].appBg,
+      backgroundColor: '#000',
       flex: 1,
       justifyContent: 'center',
-      paddingHorizontal: 16
-    }
-  })
-}
+      paddingHorizontal: 16,
+      paddingTop: 25,
+    },
+  });
+};
 
-export default getStyles
+export default getStyles;

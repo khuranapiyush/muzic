@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {combineReducers} from 'redux';
-
+import {persistReducer} from 'redux-persist';
 import app from './slices/app';
 import auth from './slices/auth';
 import home from './slices/home';
@@ -12,11 +13,29 @@ import trade from './slices/trade';
 import community from './slices/community';
 import shortiePlayer from './slices/shortiePlayer';
 
-// Combine all reducers without persistence
+const authPersistConfig = {
+  key: 'auth',
+  storage: AsyncStorage,
+};
+
+const userPersistConfig = {
+  key: 'user',
+  storage: AsyncStorage,
+};
+
+const appPersistConfig = {
+  key: 'app',
+  storage: AsyncStorage,
+};
+
+const persistedReducers = {
+  auth: persistReducer(authPersistConfig, auth),
+  user: persistReducer(userPersistConfig, user),
+  app: persistReducer(appPersistConfig, app),
+};
+
 const rootReducer = combineReducers({
-  auth,
-  user,
-  app,
+  ...persistedReducers,
   home,
   player,
   watch,

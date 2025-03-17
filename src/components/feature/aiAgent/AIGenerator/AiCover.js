@@ -1,6 +1,7 @@
+/* eslint-disable react/no-unstable-nested-components */
 /* eslint-disable react-native/no-inline-styles */
 import {useNavigation} from '@react-navigation/native';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -27,12 +28,18 @@ const CoverCreationScreen = () => {
   const [link, setLink] = useState('');
   const [sampleVoice, setSampleVoice] = useState([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState(null);
-  const [isRecordVoiceSelected, setIsRecordVoiceSelected] = useState(false);
+  // const [isRecordVoiceSelected, setIsRecordVoiceSelected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add pagination states
+  const [page, setPage] = useState(1);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const PAGE_SIZE = 9; // Number of items to load per page
 
   const createVoiceConversion = async () => {
     console.log(selectedVoiceId, 'id');
-    if (!selectedVoiceId && !isRecordVoiceSelected) {
+    if (!selectedVoiceId) {
       Alert.alert('Error', 'Please select a voice first');
       return;
     }
@@ -48,19 +55,19 @@ const CoverCreationScreen = () => {
       const formData = new FormData();
       formData.append('voiceModelId', selectedVoiceId);
 
-      // If it's a recorded voice, append the sound file
-      if (isRecordVoiceSelected) {
-        // Assuming you have the recorded file path from navigation params
-        // const recordingInfo = route.params?.recordingInfo
-        // if (recordingInfo?.path) {
-        formData.append('soundFile', {
-          //   uri: selectedVoiceId,
-          voiceModelId: selectedVoiceId,
-          type: 'audio/mpeg',
-          soundFile: link,
-        });
-        // }
-      }
+      // // If it's a recorded voice, append the sound file
+      // if (isRecordVoiceSelected) {
+      //   // Assuming you have the recorded file path from navigation params
+      //   // const recordingInfo = route.params?.recordingInfo
+      //   // if (recordingInfo?.path) {
+      //   formData.append('soundFile', {
+      //     // uri: selectedVoiceId,
+      //     voiceModelId: selectedVoiceId,
+      //     type: 'audio/mpeg',
+      //     soundFile: link,
+      //   });
+      //   // }
+      // }
 
       const response = await axios.post(
         'https://arpeggi.io/api/kits/v1/voice-conversions',
@@ -99,25 +106,55 @@ const CoverCreationScreen = () => {
 
   const API_TOKEN = 'w8TOqTQD.HDIa0GVr6XlSFBbp4HIztEGj';
 
-  const getVoiceSamples = async () => {
+  const getVoiceSamples = async (pageNum = 1, shouldAppend = false) => {
     try {
+      setIsLoadingMore(true);
+
+      // Add pagination parameters to the API call
       const response = await axios.get(
-        'https://arpeggi.io/api/kits/v1/voice-models',
+        `https://arpeggi.io/api/kits/v1/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
         {
           headers: {
             Authorization: `Bearer ${API_TOKEN}`,
           },
         },
       );
-      setSampleVoice(response.data.data);
+
+      const newData = response.data.data || [];
+
+      // Check if we have more data to load
+      if (newData.length < PAGE_SIZE) {
+        setHasMoreData(false);
+      }
+
+      // Update state based on whether we're appending or replacing
+      if (shouldAppend) {
+        setSampleVoice(prevData => [...prevData, ...newData]);
+      } else {
+        setSampleVoice(newData);
+      }
+
       return response.data;
     } catch (error) {
-      throw new Error('Failed to fetch voice samples');
+      console.error('Failed to fetch voice samples:', error);
+      Alert.alert('Error', 'Failed to fetch voice samples');
+    } finally {
+      setIsLoadingMore(false);
     }
   };
 
+  // Load more data when user reaches end of list
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMoreData) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      getVoiceSamples(nextPage, true);
+    }
+  }, [isLoadingMore, hasMoreData, page]);
+
+  // Initial data load
   useEffect(() => {
-    getVoiceSamples();
+    getVoiceSamples(1, false);
   }, []);
 
   const VocalCard = ({recording}) => {
@@ -130,7 +167,7 @@ const CoverCreationScreen = () => {
             setSelectedVoiceId(null);
           } else {
             setSelectedVoiceId(recording.id);
-            setIsRecordVoiceSelected(false);
+            // setIsRecordVoiceSelected(false);
           }
         }}>
         <View
@@ -178,20 +215,17 @@ const CoverCreationScreen = () => {
         <TouchableOpacity
           activeOpacity={0.7}
           onPress={() => {
-            if (isRecordVoiceSelected) {
-              setIsRecordVoiceSelected(false);
-            } else {
-              setIsRecordVoiceSelected(true);
-              setSelectedVoiceId(null);
-              navigation.navigate(ROUTE_NAME.VoiceRecord);
-            }
+            // if (isRecordVoiceSelected) {
+            //   setIsRecordVoiceSelected(false);
+            // } else {
+            //   setIsRecordVoiceSelected(true);
+            //   setSelectedVoiceId(null);
+            //   navigation.navigate(ROUTE_NAME.VoiceRecord);
+            // }
+            navigation.navigate(ROUTE_NAME.VoiceRecord);
           }}
           style={{width: CARD_WIDTH}}>
-          <View
-            style={[
-              styles.vocalCardContainer,
-              isRecordVoiceSelected && styles.selectedCardContainer,
-            ]}>
+          <View style={styles.vocalCardContainer}>
             <View style={styles.topBorder} />
             <LinearGradient
               colors={['#18181B', '#231F1F', '#3A2F28']}
@@ -203,18 +237,10 @@ const CoverCreationScreen = () => {
               <View style={styles.plusContainer}>
                 <CText style={styles.plusIcon}>+</CText>
               </View>
-              {isRecordVoiceSelected && (
-                <View style={styles.checkmarkContainer}>
-                  <Text style={styles.checkmark}>✓</Text>
-                </View>
-              )}
+              {/* Removed the checkmark indicator */}
             </LinearGradient>
           </View>
-          <Text
-            style={[
-              styles.cardText,
-              isRecordVoiceSelected && styles.selectedCardText,
-            ]}>
+          <Text style={styles.cardText}>
             {'Add Your Vocals'.replace(/ /, '\n')}
           </Text>
         </TouchableOpacity>
@@ -224,6 +250,20 @@ const CoverCreationScreen = () => {
           </Text>
         </View>
       </>
+    );
+  };
+
+  // Footer component to show loading indicator when loading more data
+  const ListFooter = () => {
+    if (!isLoadingMore) {
+      return null;
+    }
+
+    return (
+      <View style={styles.footerLoader}>
+        <ActivityIndicator size="small" color="#F4A460" />
+        <Text style={styles.loadingMoreText}>Loading more voices...</Text>
+      </View>
     );
   };
 
@@ -251,13 +291,17 @@ const CoverCreationScreen = () => {
         </View>
 
         {/* Vocals Section */}
-        {!sampleVoice ? (
-          <ActivityIndicator />
+        {sampleVoice.length === 0 && !isLoadingMore ? (
+          <View style={styles.loaderContainer}>
+            <ActivityIndicator size="large" color="#F4A460" />
+            <Text style={styles.loadingText}>Loading voices...</Text>
+          </View>
         ) : (
           <View style={styles.section}>
             <FlatList
-              data={sampleVoice.slice(0, 9)}
+              data={sampleVoice}
               ListHeaderComponent={RecordVocalCard}
+              ListFooterComponent={ListFooter}
               renderItem={({item}) => <VocalCard recording={item} />}
               keyExtractor={item => item.id.toString()}
               numColumns={3}
@@ -270,9 +314,7 @@ const CoverCreationScreen = () => {
                 index,
               })}
               onEndReachedThreshold={0.5}
-              onEndReached={() => {
-                // Handle loading more if needed
-              }}
+              onEndReached={handleLoadMore}
             />
           </View>
         )}
@@ -280,7 +322,8 @@ const CoverCreationScreen = () => {
         <TouchableOpacity
           style={[styles.createButton]}
           activeOpacity={0.8}
-          disabled={isLoading || (!selectedVoiceId && !isRecordVoiceSelected)}
+          // disabled={isLoading || (!selectedVoiceId && !isRecordVoiceSelected)}
+          disabled={isLoading || !selectedVoiceId}
           onPress={createVoiceConversion}>
           <LinearGradient
             colors={['#F4A460', '#DEB887']}
@@ -290,8 +333,9 @@ const CoverCreationScreen = () => {
             <CText
               style={[
                 styles.createButtonText,
-                (isLoading || (!selectedVoiceId && !isRecordVoiceSelected)) &&
-                  styles.disabledButtonText,
+                // (isLoading || (!selectedVoiceId && !isRecordVoiceSelected)) &&
+                //   styles.disabledButtonText,
+                (isLoading || !selectedVoiceId) && styles.disabledButtonText,
               ]}>
               {isLoading ? 'Creating...' : 'Create Cover'}
             </CText>
@@ -406,7 +450,7 @@ const styles = StyleSheet.create({
   },
   createButton: {
     position: 'absolute',
-    bottom: 10,
+    bottom: 20,
     left: 16,
     right: 16,
     height: 56,

@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import {StyleSheet} from 'react-native';
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -9,7 +9,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   loadingContainer: {
     position: 'absolute',
@@ -19,14 +19,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(53, 53, 53, 0.4)',
-    zIndex: 1
+    zIndex: 1,
+    opacity: 1,
   },
   loadingText: {
     position: 'relative',
     bottom: 10,
     width: '100%',
-    paddingVertical: 10
-  }
-})
+    paddingVertical: 10,
+  },
+});
 
-export default styles
+export default styles;

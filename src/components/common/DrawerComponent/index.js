@@ -1,24 +1,24 @@
-import { DrawerContentScrollView } from '@react-navigation/drawer'
-import React from 'react'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useSelector } from 'react-redux'
+import {DrawerContentScrollView} from '@react-navigation/drawer';
+import React from 'react';
+import {SafeAreaView} from 'react-native-safe-area-context';
+import {useSelector} from 'react-redux';
 // import appImages from '../../../resource/images'
-import { useAuthUser } from '../../../stores/selector'
-import Divider from '../core/Divider'
-import CView from '../core/View'
-import DrawerFooter from './DrawerFooter'
-import DrawerHeader from './DrawerHeader'
+import {useAuthUser} from '../../../stores/selector';
+import Divider from '../core/Divider';
+import CView from '../core/View';
+import DrawerFooter from './DrawerFooter';
+import DrawerHeader from './DrawerHeader';
 // import CustomDrawerItem from './DrawerItem'
 // import ROUTE_NAME from '../../../navigator/config/routeName'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import getStyles from './style';
+import {useTheme} from '@react-navigation/native';
 
 const CustomDrawerComponent = props => {
-  const { isGuest, isLoggedIn } = useSelector(useAuthUser)
+  const {isGuest, isLoggedIn} = useSelector(useAuthUser);
   // const { isShowFeature } = useSelector(state => state.app)
   // const { showDashboard = false } = useSelector(state => state.user)
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const {mode} = useTheme();
+  const styles = getStyles(mode);
 
   // const handleProfile = () => {
   //   props.navigation.closeDrawer()
@@ -69,11 +69,11 @@ const CustomDrawerComponent = props => {
       <Divider customStyle={styles.dividerStyle} />
       <DrawerContentScrollView
         {...props}
-        contentContainerStyle={{ paddingTop: 0 }}>
+        contentContainerStyle={{paddingTop: 0}}>
         {!isGuest && !!isLoggedIn && <DrawerFooter />}
       </DrawerContentScrollView>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default CustomDrawerComponent
+export default CustomDrawerComponent;

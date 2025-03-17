@@ -33,8 +33,9 @@ const styles = StyleSheet.create({
   },
   mobileTextContainer: {marginBottom: 10},
   mobileContainer: {
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     alignItems: 'center',
+    marginHorizontal: 15,
   },
   msgContainer: {
     marginTop: 15,

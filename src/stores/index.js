@@ -1,4 +1,5 @@
 import {configureStore} from '@reduxjs/toolkit';
+import {persistStore} from 'redux-persist';
 import rootReducer from './reducers';
 
 export const store = configureStore({
@@ -9,10 +10,4 @@ export const store = configureStore({
     }),
 });
 
-// Remove redux-persist
-// If you still need persistence functionality, consider using:
-// 1. @reduxjs/toolkit's createListenerMiddleware for selective state persistence
-// 2. AsyncStorage directly in your app for manual persistence
-// 3. Redux Toolkit Query's cache persistence
-
-export default store;
+export const persistor = persistStore(store);

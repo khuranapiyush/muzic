@@ -155,6 +155,7 @@ const appImages = {
   promoBanner: require('../../../assets/images/icons/promoBannerBg.png'),
   aiCoverIcon: require('../../../assets/images/icons/aiCoverIcon.png'),
   libraryIcon: require('../../../assets/images/icons/libraryIcon.png'),
+  micIcon: require('../../../assets/images/icons/micIcon.png'),
 };
 
 export default appImages;

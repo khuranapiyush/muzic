@@ -1,6 +1,6 @@
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import CTextInput from '../../CTextInput'
+import React from 'react';
+import {Controller} from 'react-hook-form';
+import CTextInput from '../../CTextInput';
 
 const TextInputFC = ({
   control,
@@ -15,7 +15,7 @@ const TextInputFC = ({
       control={control}
       name={name}
       rules={rules}
-      render={({ field }) => (
+      render={({field}) => (
         <CTextInput
           text={field.value}
           setText={field.onChange}
@@ -25,7 +25,7 @@ const TextInputFC = ({
         />
       )}
     />
-  )
-}
+  );
+};
 
-export default TextInputFC
+export default TextInputFC;

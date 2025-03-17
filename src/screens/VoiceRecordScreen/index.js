@@ -354,7 +354,7 @@ const VoiceRecordScreen = ({navigation}) => {
               }
               style={styles.recordButtonGradient}>
               <View style={styles.micIconContainer}>
-                <Text style={styles.micIcon}>🎤</Text>
+                <Image source={appImages.micIcon} style={styles.micIcon} />
               </View>
             </LinearGradient>
           </TouchableOpacity>
@@ -383,6 +383,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   backButton: {
+    marginTop: 40,
     padding: 2,
     marginBottom: 12,
   },
@@ -402,9 +403,9 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   textContainer: {
-    backgroundColor: 'rgba(40, 40, 40, 0.6)',
+    // backgroundColor: 'rgba(40, 40, 40, 0.6)',
     borderRadius: 12,
-    padding: 12,
+    padding: 16,
     marginBottom: 10,
   },
   headerText: {
@@ -414,6 +415,9 @@ const styles = StyleSheet.create({
   },
   paragraphText: {
     color: '#787878',
+    textAlign: 'justify',
+    fontWeight: 400,
+    linHeight: 18,
   },
   recordingContainer: {
     alignItems: 'center',
@@ -441,7 +445,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   micIcon: {
-    fontSize: 24,
+    height: 64,
+    width: 64,
   },
   recordingStatusContainer: {
     padding: 8,
@@ -474,10 +479,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   vocalGradient: {
-    width: '100%',
+    // width: '100%',
     borderRadius: 12,
     overflow: 'hidden',
-    padding: 2,
+    marginHorizontal: 12,
     marginBottom: 20,
   },
 });

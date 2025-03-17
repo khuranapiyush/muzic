@@ -2,7 +2,6 @@ import {useNavigation} from '@react-navigation/native';
 import React, {memo} from 'react';
 import {Image, Pressable} from 'react-native';
 import appImages from '../../../../resource/images';
-import Colors from '../../Colors';
 import CView from '../../core/View';
 import getStyles from './style';
 
@@ -18,13 +17,7 @@ const HeaderRight = ({mode}) => {
     <CView row style={styles.wrapper}>
       <CView style={styles.searchWrapper}>
         <Pressable onPress={openDrawer}>
-          <Image
-            source={appImages.settingIcon}
-            style={{
-              ...styles.searchIcon,
-              tintColor: 'white',
-            }}
-          />
+          <Image source={appImages.settingIcon} style={styles.searchIcon} />
         </Pressable>
       </CView>
     </CView>
