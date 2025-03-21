@@ -20,6 +20,7 @@ import axios from 'axios';
 import {FlatList} from 'react-native-gesture-handler';
 import CText from '../../../common/core/Text';
 import Clipboard from 'react-native';
+import useMusicPlayer from '../../../../hooks/useMusicPlayer';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
@@ -30,6 +31,10 @@ const CoverCreationScreen = () => {
   const [selectedVoiceId, setSelectedVoiceId] = useState(null);
   // const [isRecordVoiceSelected, setIsRecordVoiceSelected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add global music player hook
+  const {play, isPlaying, currentSong, togglePlayPause} =
+    useMusicPlayer('AICoverScreen');
 
   // Add pagination states
   const [page, setPage] = useState(1);
@@ -157,8 +162,38 @@ const CoverCreationScreen = () => {
     getVoiceSamples(1, false);
   }, []);
 
+  // Handler for playing voice samples
+  const handlePlaySample = sample => {
+    if (!sample || !sample.previewUrl) {
+      Alert.alert('Error', 'No preview available for this voice sample');
+      return;
+    }
+
+    // Format the sample for the global player
+    const formattedSample = {
+      id: sample.id,
+      title: sample.title || 'Voice Sample',
+      artist: sample.artist || 'AI Voice',
+      uri: sample.previewUrl,
+      thumbnail: sample.imageUrl || 'https://via.placeholder.com/150',
+      poster: sample.imageUrl || 'https://via.placeholder.com/300',
+      duration: 30, // Assuming samples are around 30 seconds
+    };
+
+    // If the same sample is playing, toggle play/pause
+    if (currentSong && currentSong.id === sample.id) {
+      togglePlayPause();
+    } else {
+      // Otherwise play the new sample
+      play(formattedSample);
+    }
+  };
+
   const VocalCard = ({recording}) => {
     const isSelected = selectedVoiceId === recording.id;
+    const isCurrentlyPlaying =
+      currentSong && currentSong.id === recording.id && isPlaying;
+
     return (
       <TouchableOpacity
         activeOpacity={0.7}
@@ -168,6 +203,11 @@ const CoverCreationScreen = () => {
           } else {
             setSelectedVoiceId(recording.id);
             // setIsRecordVoiceSelected(false);
+          }
+
+          // If the recording has a preview URL, play it
+          if (recording.previewUrl) {
+            handlePlaySample(recording);
           }
         }}>
         <View
@@ -189,6 +229,14 @@ const CoverCreationScreen = () => {
                 source={{uri: recording?.imageUrl}}
                 style={{width: '100%', height: '100%'}}
               />
+              {isCurrentlyPlaying && (
+                <View style={styles.playingOverlay}>
+                  <Image
+                    // source={require('../../../../resource/images/playing.gif')}
+                    style={styles.playingIcon}
+                  />
+                </View>
+              )}
             </View>
             {isSelected && (
               <View style={styles.checkmarkContainer}>
@@ -536,6 +584,21 @@ const styles = StyleSheet.create({
   },
   disabledButtonText: {
     opacity: 0.5,
+  },
+  playingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  playingIcon: {
+    width: 24,
+    height: 24,
   },
 });
 

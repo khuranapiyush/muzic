@@ -23,11 +23,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PromoModal from './PromoBanner';
 // import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {useSelector} from 'react-redux';
-import axios from 'axios';
+import fetcher from '../../../../dataProvider';
 import {useTheme} from '@react-navigation/native';
+import {
+  getAuthToken,
+  makeAuthenticatedRequest,
+} from '../../../../utils/authUtils';
 
 const AIGenerator = ({pageHeading}) => {
   const {user} = useSelector(state => state.user);
+  const authState = useSelector(state => state.auth);
   const {API_BASE_URL} = config;
   const {mode} = useTheme();
   const {showToaster} = useToaster();
@@ -85,17 +90,29 @@ const AIGenerator = ({pageHeading}) => {
 
     console.log('Sending request with payload:', requestPayload);
 
-    try {
-      const response = await axios.post(
+    // Make authenticated request with automatic token refresh
+    return await makeAuthenticatedRequest(async () => {
+      // Get the current auth token
+      const token = await getAuthToken();
+
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+
+      // Add authorization header if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      // Make the API call
+      const response = await fetcher.post(
         `${API_BASE_URL}/v1/generate-song`,
         requestPayload,
-        {headers: {'Content-Type': 'application/json'}},
+        {headers},
       );
+
       return response.data;
-    } catch (error) {
-      console.error('API call failed:', error);
-      throw error;
-    }
+    });
   };
 
   // Inside useMutation

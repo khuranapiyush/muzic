@@ -11,29 +11,26 @@ import {
 import config from 'react-native-config';
 import fetcher from '../../dataProvider';
 import {useMutation} from '@tanstack/react-query';
-import Sound from 'react-native-sound';
 import {formatTime} from '../../utils/common';
 import getStyles from './Home.style';
 import {useTheme} from '@react-navigation/native';
-import AudioPlayer from './AudioPlayer';
 import LinearGradient from 'react-native-linear-gradient';
-
-Sound.setCategory('Playback');
+import useMusicPlayer from '../../hooks/useMusicPlayer';
 
 const SongCard = ({
   title,
   duration,
   audioUrl,
+  imageUrl,
   onPress,
   isPlaying,
-  imageUrl,
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
   return (
     <TouchableOpacity
       style={styles.songCard}
-      onPress={() => onPress(audioUrl, title, duration, imageUrl)}>
+      onPress={() => onPress({audioUrl, title, duration, imageUrl})}>
       <View style={styles.songThumbnail}>
         <Image source={{uri: imageUrl}} style={styles.thumbnailImage} />
         <View style={[styles.playButton, isPlaying && styles.playButtonActive]}>
@@ -66,7 +63,7 @@ const SectionHeader = ({title}) => {
 };
 
 // Song Section Component
-const SongSection = ({title, data, onSongPress, currentTrack}) => {
+const SongSection = ({title, data, onSongPress, currentSongId}) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
 
@@ -85,9 +82,9 @@ const SongSection = ({title, data, onSongPress, currentTrack}) => {
             title={item.title}
             duration={item.duration}
             audioUrl={item.audioUrl}
-            onPress={onSongPress}
-            isPlaying={currentTrack?.audioUrl === item.audioUrl}
             imageUrl={item.imageUrl}
+            onPress={onSongPress}
+            isPlaying={currentSongId === item.audioUrl}
           />
         )}
         showsHorizontalScrollIndicator={false}
@@ -96,14 +93,15 @@ const SongSection = ({title, data, onSongPress, currentTrack}) => {
   );
 };
 
-export default function App() {
+export default function HomeScreen() {
   const {API_BASE_URL} = config;
-  const [currentTrack, setCurrentTrack] = useState(null);
   const [audioList, setAudioList] = useState([]);
-  const [sound, setSound] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const {mode} = useTheme();
   const styles = getStyles(mode);
+
+  // Use our custom music player hook
+  const {play, isPlaying, currentSong, isActiveSource, togglePlayPause} =
+    useMusicPlayer('HomeScreen');
 
   // Fetch audio list mutation
   const {mutate: fetchAudioList, isLoading: isListLoading} = useMutation(
@@ -122,70 +120,26 @@ export default function App() {
 
   useEffect(() => {
     fetchAudioList();
-    return () => {
-      if (sound) {
-        sound.release(); // Properly release the sound resource
-      }
+  }, [fetchAudioList]);
+
+  const handleSongPress = song => {
+    // Format the song to match the expected format for the global player
+    const formattedSong = {
+      id: song.audioUrl, // Use audioUrl as unique ID
+      title: song.title,
+      artist: 'Artist', // Add a default artist or get it from your data
+      uri: song.audioUrl,
+      thumbnail: song.imageUrl,
+      poster: song.imageUrl,
+      duration: song.duration,
     };
-  }, [fetchAudioList, sound]);
 
-  const handlePlayPause = () => {
-    if (sound) {
-      if (isPlaying) {
-        sound.pause(() => {
-          setIsPlaying(false);
-        });
-      } else {
-        sound.play(success => {
-          if (!success) {
-            console.log('Sound playback failed');
-          }
-        });
-        setIsPlaying(true);
-      }
-    }
-  };
-
-  const handleSongPress = (audioUrl, title, duration, imageUrl) => {
-    try {
-      // If the same song is clicked
-      if (currentTrack?.audioUrl === audioUrl) {
-        handlePlayPause();
-        return;
-      }
-
-      // Release previous sound if exists
-      if (sound) {
-        sound.release();
-      }
-
-      // Initialize new sound
-      const newSound = new Sound(audioUrl, null, error => {
-        if (error) {
-          console.log('Failed to load sound', error);
-          return;
-        }
-
-        // Sound loaded successfully
-        setSound(newSound);
-        setCurrentTrack({audioUrl, title, duration, imageUrl});
-
-        // Play the sound
-        newSound.play(success => {
-          if (!success) {
-            console.log('Sound playback failed');
-          }
-        });
-        setIsPlaying(true);
-
-        // Setup completion callback
-        newSound.setNumberOfLoops(0); // Play once
-        newSound.onEnded = () => {
-          setIsPlaying(false);
-        };
-      });
-    } catch (error) {
-      console.error('Error playing sound:', error);
+    // If the same song is playing, toggle play/pause
+    if (currentSong && currentSong.uri === song.audioUrl) {
+      togglePlayPause();
+    } else {
+      // Otherwise play the new song
+      play(formattedSong);
     }
   };
 
@@ -209,16 +163,10 @@ export default function App() {
             title={section.title}
             data={section.data}
             onSongPress={handleSongPress}
-            currentTrack={currentTrack}
+            currentSongId={currentSong?.uri}
           />
         ))}
       </ScrollView>
-
-      <AudioPlayer
-        currentTrack={currentTrack}
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-      />
     </SafeAreaView>
   );
 }

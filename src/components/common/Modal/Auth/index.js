@@ -313,8 +313,9 @@ const AuthModal = ({
     if (authMode === 'mobile') {
       const {mobile, phoneCountryCode, referralCode, isReferralCode} =
         getValues();
+      console.log(mobile, 'mobile');
       const data = {
-        mobile,
+        phoneNumber: mobile,
         phoneCountryCode:
           `+${phoneCountryCode.callingCode[0]}` ||
           `${phoneCountryCode.dial_code}`,

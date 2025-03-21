@@ -10,9 +10,14 @@ import {
   SafeAreaView,
 } from 'react-native';
 import {Svg, Path} from 'react-native-svg';
-import axios from 'axios';
+import fetcher from '../../../../dataProvider';
 import config from 'react-native-config';
 import CText from '../../../common/core/Text';
+import {useSelector} from 'react-redux';
+import {
+  getAuthToken,
+  makeAuthenticatedRequest,
+} from '../../../../utils/authUtils';
 
 const {width} = Dimensions.get('window');
 const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
@@ -28,6 +33,7 @@ const GenreSelectionScreen = ({
   const [filterList, setFilterList] = useState(null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedSingerType, setSelectedSingerType] = useState(null);
+  const authState = useSelector(state => state.auth);
 
   // Reset selections when resetSelections changes
   useEffect(() => {
@@ -36,6 +42,44 @@ const GenreSelectionScreen = ({
       setSelectedSingerType(null);
     }
   }, [resetSelections]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        await makeAuthenticatedRequest(async () => {
+          // Get the current auth token
+          const token = await getAuthToken();
+
+          const headers = {
+            'Content-Type': 'application/json',
+          };
+
+          // Add authorization header if token exists
+          if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+          }
+
+          // Fetch genres
+          const genresResponse = await fetcher.get(
+            `${API_BASE_URL}/v1/genres`,
+            {headers},
+          );
+          setGenreList(genresResponse.data.data);
+
+          // Fetch filters
+          const filtersResponse = await fetcher.get(
+            `${API_BASE_URL}/v1/filters`,
+            {headers},
+          );
+          setFilterList(filtersResponse.data.data);
+        });
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, [API_BASE_URL, authState]);
 
   const CheckMarkIcon = () => (
     <View style={styles.checkmark}>
@@ -49,29 +93,6 @@ const GenreSelectionScreen = ({
       </Svg>
     </View>
   );
-
-  useEffect(() => {
-    const getGenres = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/v1/genres`);
-        setGenreList(response.data.data);
-      } catch (error) {
-        console.error('Error fetching genres:', error);
-      }
-    };
-
-    const getFilters = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}/v1/filters`);
-        setFilterList(response.data.data);
-      } catch (error) {
-        console.error('Error fetching filters:', error);
-      }
-    };
-
-    getGenres();
-    getFilters();
-  }, [API_BASE_URL]);
 
   // Handle genre selection and notify parent component
   const handleGenreSelect = (genreId, genreName) => {

@@ -2,7 +2,8 @@ import config from 'react-native-config';
 import fetcher from '../../dataProvider';
 
 export const authLoginSignup = async data => {
-  return fetcher.post(`${config.API_URL}/v1/auth/login-signup`, data);
+  console.log(data, 'data');
+  return fetcher.post(`${config.API_BASE_URL}/v1/phone/send-code`, data);
 };
 
 export const authEmailSignup = async data => {
@@ -22,10 +23,7 @@ export const authLogin = async data => {
 };
 
 export const authVerifyOtp = async data => {
-  return fetcher.post(
-    `${config.API_URL}/v1/auth/login-signup-verify-otp`,
-    data,
-  );
+  return fetcher.post(`${config.API_BASE_URL}/v1/phone/verify-code`, data);
 };
 
 export const guestAuthLogin = async data => {

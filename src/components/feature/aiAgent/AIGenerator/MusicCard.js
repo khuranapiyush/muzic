@@ -1,36 +1,61 @@
 /* eslint-disable react-native/no-inline-styles */
-import { Image } from 'react-native'
-import React, { useMemo, useRef, useState } from 'react'
-import CView from '../../../common/core/View'
-import { TouchableOpacity } from 'react-native'
-import Popover from 'react-native-popover-view'
-import { AuthShareButton } from '../../../common/Button/ShareButton'
-import { useTheme } from '@react-navigation/native'
-import getStyles from './AIGenerator.styles'
-import appImages from '../../../../resource/images'
-import CText from '../../../common/core/Text'
-import { formatTime } from '../../../../utils/common'
+import {Image, View} from 'react-native';
+import React, {useMemo, useRef, useState} from 'react';
+import CView from '../../../common/core/View';
+import {TouchableOpacity} from 'react-native';
+import Popover from 'react-native-popover-view';
+import {AuthShareButton} from '../../../common/Button/ShareButton';
+import {useTheme} from '@react-navigation/native';
+import getStyles from './AIGenerator.styles';
+import appImages from '../../../../resource/images';
+import CText from '../../../common/core/Text';
+import {formatTime} from '../../../../utils/common';
+import useMusicPlayer from '../../../../hooks/useMusicPlayer';
 
-const MusicCard = ({ item, index, handlePlayPause }) => {
-  const { mode } = useTheme()
-  const touchable = useRef()
-  const styles = getStyles(mode)
-  const [showPopover, setShowPopover] = useState(false)
+const MusicCard = ({item, index}) => {
+  const {mode} = useTheme();
+  const touchable = useRef();
+  const styles = getStyles(mode);
+  const [showPopover, setShowPopover] = useState(false);
+
+  // Use our custom music player hook
+  const {play, isPlaying, currentSong, togglePlayPause} =
+    useMusicPlayer('AIGeneratorScreen');
 
   const shareOptions = useMemo(
     () => ({
       title: 'AI Generated Muzic',
-      url: item?.audioUrl
+      url: item?.audioUrl,
     }),
-    [item]
-  )
+    [item],
+  );
 
   const handleSongPress = () => {
     if (item) {
-      handlePlayPause(item.audioUrl, item.title, item.duration, item.imageUrl)
-      return
+      // Format the song to match the expected format for the global player
+      const formattedSong = {
+        id: item.audioUrl, // Use audioUrl as unique ID
+        title: item.title,
+        artist: item.subHeading || 'AI Generated',
+        uri: item.audioUrl,
+        thumbnail: item.imageUrl,
+        poster: item.imageUrl,
+        duration: item.duration,
+      };
+
+      // If the same song is playing, toggle play/pause
+      if (currentSong && currentSong.uri === item.audioUrl) {
+        togglePlayPause();
+      } else {
+        // Otherwise play the new song
+        play(formattedSong);
+      }
     }
-  }
+  };
+
+  // Check if this song is currently playing
+  const isCurrentlyPlaying =
+    currentSong && currentSong.uri === item?.audioUrl && isPlaying;
 
   return (
     <>
@@ -38,18 +63,24 @@ const MusicCard = ({ item, index, handlePlayPause }) => {
         <TouchableOpacity
           style={{
             ...styles.cardListContainer,
-            opacity: 1
+            opacity: 1,
           }}
           onPress={handleSongPress}>
           <CView row style={styles.cardWrapper}>
             <CView row style={styles.leftWrapper}>
               <CView style={styles.leftIconWrapper}>
-                <Image
-                  source={{ uri: item?.imageUrl }}
-                  style={styles.leftIcon}
-                />
+                <Image source={{uri: item?.imageUrl}} style={styles.leftIcon} />
+                {/* Optional: Add a play indicator when the song is playing */}
+                {isCurrentlyPlaying && (
+                  <View style={styles.playingIndicator}>
+                    <Image
+                      source={appImages.playerPauseIcon}
+                      style={styles.playPauseIcon}
+                    />
+                  </View>
+                )}
               </CView>
-              <CView style={{ width: '65%' }}>
+              <CView style={{width: '65%'}}>
                 {item?.title && (
                   <CText numberOfLines={1} style={styles.labelText}>
                     {item?.title}
@@ -92,7 +123,7 @@ const MusicCard = ({ item, index, handlePlayPause }) => {
                   <AuthShareButton
                     shareOptions={shareOptions}
                     customStyles={{
-                      shareContainer: styles.shareContainer
+                      shareContainer: styles.shareContainer,
                     }}
                   />
                 </CView>
@@ -115,7 +146,7 @@ const MusicCard = ({ item, index, handlePlayPause }) => {
                   <AuthShareButton
                     shareOptions={shareOptions}
                     customStyles={{
-                      shareContainer: styles.shareContainer
+                      shareContainer: styles.shareContainer,
                     }}
                   />
                 </CView>
@@ -125,7 +156,7 @@ const MusicCard = ({ item, index, handlePlayPause }) => {
         </TouchableOpacity>
       </CView>
     </>
-  )
-}
+  );
+};
 
-export default MusicCard
+export default MusicCard;

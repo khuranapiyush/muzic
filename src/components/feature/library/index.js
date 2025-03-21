@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -8,159 +8,141 @@ import {
   SafeAreaView,
   ScrollView,
   Dimensions,
-  ActivityIndicator
-} from 'react-native'
-import AudioPlayer from '../../../screens/Home/AudioPlayer'
-import config from 'react-native-config'
-import { useMutation } from '@tanstack/react-query'
-import fetcher from '../../../dataProvider'
-import Sound from 'react-native-sound'
-import { formatTime } from '../../../utils/common'
+  ActivityIndicator,
+} from 'react-native';
+import config from 'react-native-config';
+import {useMutation} from '@tanstack/react-query';
+import fetcher from '../../../dataProvider';
+import {formatTime} from '../../../utils/common';
+import {useSelector} from 'react-redux';
+import {getAuthToken, makeAuthenticatedRequest} from '../../../utils/authUtils';
+import useMusicPlayer from '../../../hooks/useMusicPlayer';
 
-const { width } = Dimensions.get('window')
-const CARD_WIDTH = (width - 48) / 2
+const {width} = Dimensions.get('window');
+const CARD_WIDTH = (width - 48) / 2;
 
 const LibraryScreen = () => {
-  const { API_BASE_URL } = config
-  const [currentTrack, setCurrentTrack] = useState(null)
-  const [audioList, setAudioList] = useState([])
-  const [sound, setSound] = useState(null)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const {API_BASE_URL} = config;
+  const [audioList, setAudioList] = useState([]);
+  const authState = useSelector(state => state.auth);
+
+  // Use our global music player hook
+  const {play, isPlaying, currentSong, togglePlayPause} =
+    useMusicPlayer('LibraryScreen');
 
   // Fetch audio list mutation
-  const { mutate: fetchAudioList, isLoading: isListLoading } = useMutation(
-    () => fetcher.get(`${API_BASE_URL}/v1/audio-list`),
+  const {mutate: fetchAudioList, isLoading: isListLoading} = useMutation(
+    async () => {
+      return await makeAuthenticatedRequest(async () => {
+        // Get the current auth token
+        const token = await getAuthToken();
+
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const response = await fetcher.get(`${API_BASE_URL}/v1/library`, {
+          headers,
+        });
+        return response;
+      });
+    },
     {
       onSuccess: response => {
         if (response) {
-          setAudioList(response.data.data)
+          setAudioList(response.data.data);
         }
       },
       onError: error => {
-        console.error('Error fetching audio list:', error)
-      }
-    }
-  )
+        console.error('Error fetching audio list:', error);
+      },
+    },
+  );
 
   useEffect(() => {
-    fetchAudioList()
-    return () => {
-      if (sound) {
-        sound.release() // Properly release the sound resource
-      }
-    }
-  }, [])
-
-  const handlePlayPause = () => {
-    if (sound) {
-      if (isPlaying) {
-        sound.pause(() => {
-          setIsPlaying(false)
-        })
-      } else {
-        sound.play(success => {
-          if (!success) {
-            console.log('Sound playback failed')
-          }
-        })
-        setIsPlaying(true)
-      }
-    }
-  }
+    fetchAudioList();
+  }, [fetchAudioList]);
 
   const handleSongPress = (audioUrl, title, duration, imageUrl) => {
-    try {
-      // If the same song is clicked
-      if (currentTrack?.audioUrl === audioUrl) {
-        handlePlayPause()
-        return
-      }
+    // Format the song for the global player
+    const formattedSong = {
+      id: audioUrl,
+      title: title,
+      artist: 'Library Song',
+      uri: audioUrl,
+      thumbnail: imageUrl,
+      poster: imageUrl,
+      duration: duration || 0,
+    };
 
-      // Release previous sound if exists
-      if (sound) {
-        sound.release()
-      }
-
-      // Initialize new sound
-      const newSound = new Sound(audioUrl, null, error => {
-        if (error) {
-          console.log('Failed to load sound', error)
-          return
-        }
-
-        // Sound loaded successfully
-        setSound(newSound)
-        setCurrentTrack({ audioUrl, title, duration, imageUrl })
-
-        // Play the sound
-        newSound.play(success => {
-          if (!success) {
-            console.log('Sound playback failed')
-          }
-        })
-        setIsPlaying(true)
-
-        // Setup completion callback
-        newSound.setNumberOfLoops(0) // Play once
-        newSound.onEnded = () => {
-          setIsPlaying(false)
-        }
-      })
-    } catch (error) {
-      console.error('Error playing sound:', error)
+    // If the same song is playing, toggle play/pause
+    if (currentSong && currentSong.uri === audioUrl) {
+      togglePlayPause();
+    } else {
+      // Otherwise play the new song
+      play(formattedSong);
     }
-  }
+  };
 
-  const SongItem = ({ song }) => {
+  const SongItem = ({song}) => {
+    const isCurrentlyPlaying =
+      currentSong && currentSong.uri === song.audioUrl && isPlaying;
+
     return (
       <TouchableOpacity
-        style={styles.songItem}
+        style={[styles.songItem, isCurrentlyPlaying && styles.playingSongItem]}
         onPress={() =>
           handleSongPress(
             song.audioUrl,
             song.title,
             song.duration,
-            song.imageUrl
+            song.imageUrl,
           )
         }>
-        <Image source={{ uri: song.imageUrl }} style={styles.songImage} />
+        <Image source={{uri: song.imageUrl}} style={styles.songImage} />
+        {isCurrentlyPlaying && (
+          <View style={styles.playingIndicator}>
+            <Image
+              // source={require('../../../resource/images/playing.gif')}
+              style={styles.playingIcon}
+            />
+          </View>
+        )}
         <View style={styles.songInfo}>
           <Text style={styles.songTitle}>{song.title}</Text>
           <Text style={styles.songGenres}>{formatTime(song.duration)}</Text>
         </View>
       </TouchableOpacity>
-    )
-  }
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>Library</Text>
       {isListLoading ? (
-        <ActivityIndicator />
+        <ActivityIndicator color="#FFD5A9" size="large" style={styles.loader} />
       ) : (
-        <>
-          <ScrollView style={styles.content}>
-            <View style={styles.songsList}>
-              {audioList?.map(song => (
-                <SongItem key={song._id} song={song} />
-              ))}
-            </View>
-          </ScrollView>
-          <AudioPlayer
-            currentTrack={currentTrack}
-            isPlaying={isPlaying}
-            onPlayPause={handlePlayPause}
-          />
-        </>
+        <ScrollView style={styles.content}>
+          <View style={styles.songsList}>
+            {audioList?.map(song => (
+              <SongItem key={song._id} song={song} />
+            ))}
+          </View>
+        </ScrollView>
       )}
     </SafeAreaView>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000'
+    backgroundColor: '#000',
   },
   navbar: {
     flexDirection: 'row',
@@ -168,131 +150,109 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#1A1A1A'
+    borderBottomColor: '#1A1A1A',
   },
   menuIcon: {
     width: 24,
-    height: 24
+    height: 24,
   },
   logo: {
     width: 120,
-    height: 24
+    height: 24,
   },
   searchIcon: {
     width: 24,
-    height: 24
+    height: 24,
   },
   content: {
     flex: 1,
     paddingVertical: 10,
-    paddingHorizontal: 16
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     color: '#FDF5E6',
-    padding: 16
+    padding: 16,
   },
   cardsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 32
+    marginBottom: 32,
   },
   libraryCard: {
     width: CARD_WIDTH,
     height: CARD_WIDTH,
     borderRadius: 16,
-    overflow: 'hidden'
+    overflow: 'hidden',
   },
   cardGradient: {
     flex: 1,
     padding: 16,
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
   },
   cardTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#fff'
+    color: '#fff',
   },
   sectionTitle: {
     fontSize: 24,
     fontWeight: '600',
     color: '#FDF5E6',
-    marginBottom: 16
+    marginBottom: 16,
   },
   songsList: {
-    marginBottom: 80
+    marginBottom: 80,
   },
   songItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  playingSongItem: {
+    backgroundColor: 'rgba(255, 213, 169, 0.1)',
+    borderRadius: 8,
   },
   songImage: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
     borderRadius: 8,
-    marginRight: 12
+    marginRight: 16,
   },
   songInfo: {
-    flex: 1
+    flex: 1,
   },
   songTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
     color: '#fff',
-    marginBottom: 4
+    marginBottom: 4,
   },
   songGenres: {
     fontSize: 14,
-    color: '#999'
+    color: '#A5A5A5',
   },
-  createButton: {
-    height: 56,
-    borderRadius: 28,
-    overflow: 'hidden',
-    marginBottom: 24
-  },
-  createButtonGradient: {
-    flex: 1,
+  playingIndicator: {
+    position: 'absolute',
+    top: 42,
+    left: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 10,
+    width: 40,
+    height: 40,
     justifyContent: 'center',
-    alignItems: 'center'
-  },
-  createButtonText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000'
-  },
-  bottomTabs: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     alignItems: 'center',
-    backgroundColor: '#1A1A1A',
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#333'
   },
-  tab: {
-    alignItems: 'center',
-    paddingVertical: 8
+  playingIcon: {
+    width: 24,
+    height: 24,
   },
-  tabIcon: {
-    fontSize: 24,
-    marginBottom: 4,
-    color: '#666'
+  loader: {
+    marginTop: 40,
   },
-  tabText: {
-    fontSize: 12,
-    color: '#666'
-  },
-  activeTab: {
-    backgroundColor: '#333',
-    borderRadius: 20,
-    paddingHorizontal: 16
-  },
-  activeTabText: {
-    color: '#F4A460'
-  }
-})
+});
 
-export default LibraryScreen
+export default LibraryScreen;

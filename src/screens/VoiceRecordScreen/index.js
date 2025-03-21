@@ -1,5 +1,5 @@
 /* eslint-disable react-native/no-inline-styles */
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import axios from 'axios';
 import RNFS from 'react-native-fs';
 import config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
+import {getAuthToken} from '../../utils/authUtils';
 
 const VoiceRecordScreen = ({navigation}) => {
   const {API_BASE_URL} = config;
@@ -30,9 +31,160 @@ const VoiceRecordScreen = ({navigation}) => {
   const [recordingTime, setRecordingTime] = useState('00:00');
   const [isUploading, setIsUploading] = useState(false);
   const [permissionsGranted, setPermissionsGranted] = useState(false);
+  const [recordingName, setRecordingName] = useState(
+    `My Voice Recording ${new Date().toLocaleString()}`,
+  );
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Use a ref to keep track of the record back listener
   const recordBackListenerRef = useRef(null);
+
+  // Move uploadVoiceRecording definition before stopRecording
+  const uploadVoiceRecording = useCallback(
+    async (filePath, duration) => {
+      try {
+        // Check for internet connection before making the API call
+        const netInfo = await NetInfo.fetch();
+        if (!netInfo.isConnected) {
+          throw new Error(
+            'No internet connection. Please try again when you are connected.',
+          );
+        }
+
+        // Get auth token
+        const token = await getAuthToken();
+        if (!token) {
+          throw new Error('Authentication required. Please log in again.');
+        }
+
+        // Create FormData for multipart/form-data upload
+        const formData = new FormData();
+
+        // Add recording file
+        formData.append('voiceFile', {
+          uri: Platform.OS === 'android' ? `file://${filePath}` : filePath,
+          type: 'audio/mpeg',
+          name: 'recording.mp3',
+        });
+
+        // Add metadata
+        formData.append('name', recordingName);
+        formData.append('duration', String(Math.floor(duration / 1000))); // Convert ms to seconds
+
+        // Make API request with progress tracking
+        const response = await axios.post(
+          `${API_BASE_URL}/v1/voice-recordings`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+              Authorization: `Bearer ${token}`,
+            },
+            onUploadProgress: progressEvent => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              setUploadProgress(percentCompleted);
+            },
+          },
+        );
+
+        console.log('Voice recording uploaded successfully:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('Error uploading voice recording:', error);
+        throw new Error(
+          error.response?.data?.message || 'Failed to upload voice recording',
+        );
+      }
+    },
+    [API_BASE_URL, recordingName],
+  );
+
+  // Now define stopRecording after uploadVoiceRecording
+  const stopRecording = useCallback(async () => {
+    if (!audioRecorder || !isRecording) {
+      return;
+    }
+
+    try {
+      // Remove the recording progress listener
+      if (recordBackListenerRef.current) {
+        audioRecorder.removeRecordBackListener(recordBackListenerRef.current);
+        recordBackListenerRef.current = null;
+      }
+
+      // Stop the recording
+      const uri = await audioRecorder.stopRecorder();
+      console.log('Recording stopped, file saved at:', uri);
+
+      // Get recording duration from the recorder
+      const recordingResult = await audioRecorder.stopPlayer();
+      const durationMs = recordingResult?.duration || 0;
+
+      setRecordings(uri);
+      setIsRecording(false);
+      setSelectedRecording(null);
+      setRecordingTime('00:00');
+
+      // Upload the recording
+      try {
+        setIsUploading(true);
+        setUploadProgress(0);
+
+        // Check if the file exists
+        const fileExists = await RNFS.exists(uri);
+        if (!fileExists) {
+          throw new Error('Recording file not found');
+        }
+
+        // Upload directly to our API with authentication
+        const uploadResponse = await uploadVoiceRecording(uri, durationMs);
+
+        console.log('Upload successful:', {
+          localUri: uri,
+          timestamp: new Date().toISOString(),
+          apiResponse: uploadResponse,
+        });
+
+        Alert.alert('Success', 'Voice recording uploaded successfully');
+
+        // Optional: Navigate back after successful upload
+        // navigation.goBack();
+      } catch (uploadError) {
+        console.error('Upload error:', uploadError);
+        Alert.alert(
+          'Upload Failed',
+          `Recording saved locally but upload failed: ${uploadError.message}`,
+        );
+      } finally {
+        setIsUploading(false);
+        setUploadProgress(0);
+      }
+    } catch (error) {
+      console.error('Error stopping recording:', error);
+      Alert.alert('Error', `Failed to stop recording: ${error.message}`);
+      setIsRecording(false);
+      setSelectedRecording(null);
+      setRecordingTime('00:00');
+    }
+  }, [audioRecorder, isRecording, uploadVoiceRecording]);
+
+  // Create a cleanup function with useRef to avoid dependency issues
+  const cleanupRecording = useRef(() => {
+    if (audioRecorder && isRecording) {
+      try {
+        // Stop any ongoing recording
+        if (recordBackListenerRef.current) {
+          audioRecorder.removeRecordBackListener(recordBackListenerRef.current);
+          recordBackListenerRef.current = null;
+        }
+        audioRecorder.stopRecorder();
+      } catch (e) {
+        console.error('Error in cleanup:', e);
+      }
+    }
+  }).current;
 
   useEffect(() => {
     // Initialize the recorder once when component mounts
@@ -42,18 +194,16 @@ const VoiceRecordScreen = ({navigation}) => {
     // Request permissions on component mount
     checkAndRequestPermissions();
 
-    // Clean up function
-    return () => {
-      if (isRecording) {
-        stopRecording();
-      }
+    // Clean up function - use the ref version to avoid dependency cycles
+    return cleanupRecording;
+  }, [cleanupRecording]);
 
-      if (recordBackListenerRef.current && recorder) {
-        recorder.removeRecordBackListener(recordBackListenerRef.current);
-        recordBackListenerRef.current = null;
-      }
-    };
-  }, []);
+  // Add a separate effect to handle recording state changes
+  useEffect(() => {
+    // This effect handles updates to isRecording state
+    // but we don't need to do anything on state change here
+    // This is just to properly separate concerns
+  }, [isRecording]);
 
   const checkAndRequestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -234,73 +384,6 @@ const VoiceRecordScreen = ({navigation}) => {
     await startRecordingProcess();
   };
 
-  const stopRecording = async () => {
-    if (!audioRecorder || !isRecording) {
-      return;
-    }
-
-    try {
-      // Remove the recording progress listener
-      if (recordBackListenerRef.current) {
-        audioRecorder.removeRecordBackListener(recordBackListenerRef.current);
-        recordBackListenerRef.current = null;
-      }
-
-      // Stop the recording
-      const uri = await audioRecorder.stopRecorder();
-      console.log('Recording stopped, file saved at:', uri);
-
-      setRecordings(uri);
-      setIsRecording(false);
-      setSelectedRecording(null);
-      setRecordingTime('00:00');
-
-      // Upload the recording
-      try {
-        setIsUploading(true);
-
-        // Check if the file exists
-        const fileExists = await RNFS.exists(uri);
-        if (!fileExists) {
-          throw new Error('Recording file not found');
-        }
-
-        // Upload to Walrus
-        const walrusResponse = await uploadToWalrus(uri);
-        const blobId = walrusResponse.newlyCreated.blobObject.blobId;
-        const walrusAudioUrl = `https://aggregator.walrus-testnet.walrus.space/v1/blobs/${blobId}`;
-
-        // Save to your API
-        const audioId = blobId;
-        const apiResponse = await saveCoverAudio(audioId, walrusAudioUrl);
-
-        console.log('Upload successful:', {
-          localUri: uri,
-          blobId,
-          audioUrl: walrusAudioUrl,
-          timestamp: new Date().toISOString(),
-          apiResponse,
-        });
-
-        Alert.alert('Success', 'Recording uploaded successfully');
-      } catch (uploadError) {
-        console.error('Upload error:', uploadError);
-        Alert.alert(
-          'Upload Failed',
-          `Recording saved locally but upload failed: ${uploadError.message}`,
-        );
-      } finally {
-        setIsUploading(false);
-      }
-    } catch (error) {
-      console.error('Error stopping recording:', error);
-      Alert.alert('Error', `Failed to stop recording: ${error.message}`);
-      setIsRecording(false);
-      setSelectedRecording(null);
-      setRecordingTime('00:00');
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
@@ -361,7 +444,7 @@ const VoiceRecordScreen = ({navigation}) => {
           <View style={styles.recordingStatusContainer}>
             <Text style={styles.recordingText}>
               {isUploading
-                ? 'Uploading...'
+                ? `Uploading... ${uploadProgress}%`
                 : isRecording
                 ? `Recording... ${recordingTime}`
                 : 'Start recording'}

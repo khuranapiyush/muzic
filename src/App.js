@@ -14,6 +14,7 @@ import {ThemeContext} from './context/ThemeContext';
 import AppNavigator from './navigator/AppNavigator';
 import {persistor, store} from './stores';
 import {PersistGate} from 'redux-persist/integration/react';
+import GlobalPlayer from './components/common/GlobalPlayer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -80,6 +81,7 @@ const App = () => {
               <SafeAreaProvider initialMetrics={initialWindowMetrics}>
                 <BottomSheetModalProvider>
                   <AppNavigator />
+                  <GlobalPlayer />
                 </BottomSheetModalProvider>
               </SafeAreaProvider>
             </GestureHandlerRootView>
