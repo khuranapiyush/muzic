@@ -6,9 +6,50 @@ import {
   refreshInstance,
   strapiInstance,
 } from './axios';
+import {
+  isTokenExpired,
+  refreshAccessToken,
+  checkAndRefreshTokens,
+} from '../utils/authUtils';
+import {store} from '../stores';
+import config from 'react-native-config';
 
 let isRefreshing = false;
 let failedQueue = [];
+
+// Helper to check if endpoint is auth-related (login, refresh tokens)
+const isAuthEndpoint = url => {
+  return (
+    url.includes('login') ||
+    url.includes('register') ||
+    url.includes('refresh-tokens') ||
+    url.includes('auth/') ||
+    url.includes('verify-email')
+  );
+};
+
+// Check and refresh token if needed before making API call
+const ensureValidToken = async url => {
+  // Skip token validation for auth endpoints
+  if (isAuthEndpoint(url)) {
+    return;
+  }
+
+  try {
+    const state = store.getState();
+    const accessToken = state?.auth?.accessToken;
+    const refreshToken = state?.auth?.refreshToken;
+
+    // If we have a refresh token and the access token is expired, refresh it
+    if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
+      console.log(`Token validation before API call to ${url}`);
+      await checkAndRefreshTokens();
+    }
+  } catch (error) {
+    console.error('Error ensuring valid token:', error);
+    // Continue with request anyway - the interceptor will handle 401 errors
+  }
+};
 
 const fetchAxiosInstanceType = type => {
   switch (type) {
@@ -34,6 +75,9 @@ const fetcher = {
     axiosInstanceType,
     logConfigs = {log: false},
   ) => {
+    // Check token validity before making the request
+    await ensureValidToken(url);
+
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
       .request({
@@ -60,6 +104,9 @@ const fetcher = {
    * @returns Promise
    */
   post: async (url, data, paramConfigs = {}, axiosInstanceType) => {
+    // Check token validity before making the request
+    await ensureValidToken(url);
+
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
       .request({
@@ -86,6 +133,9 @@ const fetcher = {
    * @returns Promise
    */
   put: async (url, data, paramConfigs = {}, axiosInstanceType) => {
+    // Check token validity before making the request
+    await ensureValidToken(url);
+
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
       .request({
@@ -112,6 +162,9 @@ const fetcher = {
    * @returns Promise
    */
   patch: async (url, data, paramConfigs = {}, axiosInstanceType) => {
+    // Check token validity before making the request
+    await ensureValidToken(url);
+
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
       .request({
@@ -138,6 +191,9 @@ const fetcher = {
    * @returns Promise
    */
   delete: async (url, paramConfigs = {}, axiosInstanceType) => {
+    // Check token validity before making the request
+    await ensureValidToken(url);
+
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
       .request({
@@ -156,6 +212,9 @@ const fetcher = {
       });
   },
   upload: async (url, formData, paramConfigs = {}, axiosInstanceType) => {
+    // Check token validity before making the request
+    await ensureValidToken(url);
+
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
       .request({
@@ -185,14 +244,43 @@ export const addAuthInterceptor = async () => {
           )) &&
         !req.url.includes('login') &&
         !req.url.includes('/api') &&
-        !req.url.includes('verify-email')
+        !req.url.includes('verify-email') &&
+        !req.url.includes('refresh-tokens') // Skip token check for refresh endpoint
       ) {
-        let {accessToken: token} = await getData('persist:auth');
-        token = token?.replace(/^"|"$/g, '');
-        if (token) {
-          req.headers.Authorization = `Bearer ${token}`;
+        // Check Redux store first for tokens
+        const state = store.getState();
+        let accessToken = state?.auth?.accessToken;
+        const refreshToken = state?.auth?.refreshToken;
+
+        // If not in Redux, try from AsyncStorage
+        if (!accessToken) {
+          let {accessToken: token} = await getData('persist:auth');
+          accessToken = token?.replace(/^"|"$/g, '');
+        }
+
+        // If we have an access token, check if it's expired
+        if (accessToken && isTokenExpired(accessToken)) {
+          console.log('Access token is expired, attempting to refresh...');
+
+          // Only try to refresh if we have a refresh token
+          if (refreshToken) {
+            try {
+              // Get a new access token
+              accessToken = await refreshAccessToken();
+              console.log('Access token refreshed successfully');
+            } catch (error) {
+              console.error('Failed to refresh token:', error);
+              // Will proceed with existing token or no token
+            }
+          }
+        }
+
+        // Set the Authorization header if we have a token
+        if (accessToken) {
+          req.headers.Authorization = `Bearer ${accessToken}`;
         }
       }
+
       console.log('🚀 ~ addAuthInterceptor ~ req:', req.url);
 
       req.headers.platform = 'ios';
@@ -232,6 +320,10 @@ export const setupResponseInterceptor = async store => {
 
         const refreshToken = state?.auth?.refreshToken;
 
+        if (!refreshToken) {
+          return Promise.reject(error);
+        }
+
         if (!isRefreshing) {
           isRefreshing = true;
           originalRequest._retry = true;
@@ -244,7 +336,7 @@ export const setupResponseInterceptor = async store => {
 
           return new Promise((resolve, reject) => {
             refreshInstance
-              .post('/v2/auth/refresh-tokens', {
+              .post(`${config.API_BASE_URL}/v1/auth/refresh-tokens`, {
                 refreshToken,
               })
               .then(async res => {
@@ -256,9 +348,25 @@ export const setupResponseInterceptor = async store => {
                 resolve(fanTvInstance(originalRequest));
               })
               .catch(refreshError => {
+                console.error('Token refresh error:', refreshError);
+
+                if (
+                  refreshError.response &&
+                  (refreshError.response.status === 401 ||
+                    refreshError.response.status === 403)
+                ) {
+                  console.log(
+                    'Refresh token is invalid or expired. Logging out.',
+                  );
+                  store.dispatch(updateToken({access: '', refresh: ''}));
+                } else {
+                  console.log(
+                    'Token refresh failed due to network or server error.',
+                  );
+                }
+
                 processQueue(refreshError, null);
                 reject(refreshError);
-                store.dispatch(updateToken({access: '', refresh: ''}));
               })
               .finally(() => {
                 isRefreshing = false;

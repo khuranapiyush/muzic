@@ -10,8 +10,8 @@ const HeaderLeft = ({mode}) => {
       <Image
         source={appImages.appLogo}
         style={{
-          height: 90,
-          width: 160,
+          height: 60,
+          width: 190,
           resizeMode: 'contain',
         }}
       />

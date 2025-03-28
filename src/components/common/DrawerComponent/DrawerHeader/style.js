@@ -1,29 +1,27 @@
-import { StyleSheet } from 'react-native'
+import {StyleSheet} from 'react-native';
 
 const styles = StyleSheet.create({
-  wrapper: { paddingVertical: 10 },
-  container: { alignItems: 'center' },
-  contentContainer: { justifyContent: 'center', marginLeft: 10 },
+  wrapper: {paddingTop: 5},
+  container: {alignItems: 'center'},
+  contentContainer: {justifyContent: 'center', marginLeft: 10},
   submitBtn: {
-    buttonTextStyles: { fontSize: 16, fontWeight: '600' }
+    buttonTextStyles: {fontSize: 16, fontWeight: '600'},
   },
-  userStyle: { marginBottom: 5 },
+  userStyle: {marginBottom: 5, color: 'white'},
   closeButtonContainer: {
     flex: 1,
-    justifyContent: 'flex-end'
+    justifyContent: 'flex-end',
   },
   closeButtonStyle: {
     width: 30,
     height: 30,
-    resizeMode: 'contain'
+    resizeMode: 'contain',
   },
   badgeStyle: {
-    position: 'absolute',
-    right: -5,
-    top: -5,
-    height: 25,
-    width: 25
-  }
-})
+    height: 70,
+    width: 190,
+    resizeMode: 'contain',
+  },
+});
 
-export default styles
+export default styles;

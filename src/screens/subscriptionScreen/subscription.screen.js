@@ -1,5 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import React, {useState, useEffect} from 'react';
+import {Image, ScrollView} from 'react-native';
 import {
   View,
   Text,
@@ -9,9 +10,67 @@ import {
   Alert,
 } from 'react-native';
 import * as RNIap from 'react-native-iap';
+import LinearGradient from 'react-native-linear-gradient';
+import appImages from '../../resource/images';
+import CText from '../../components/common/core/Text';
+
+// Define PlanCard component outside of SubscriptionScreen
+const PlanCard = ({
+  title,
+  price,
+  features,
+  originalPrice,
+  onSubscribe,
+  selectedPlan,
+}) => (
+  <LinearGradient
+    colors={[
+      'rgba(255, 213, 169, 0.60)',
+      '#FFD5A9',
+      'rgba(255, 213, 169, 0.60)',
+    ]}
+    start={{x: -0.3553, y: 0}}
+    end={{x: 1.0777, y: 0}}
+    style={styles.planCard}>
+    <View style={styles.planHeader}>
+      <Text style={styles.planTitle}>{title}</Text>
+      <View style={styles.priceContainer}>
+        {originalPrice && (
+          <Text style={styles.originalPrice}>{originalPrice}</Text>
+        )}
+        <Text style={styles.planPrice}>{price}</Text>
+      </View>
+    </View>
+    {features.map((feature, index) => (
+      <Text key={index} style={styles.featureText}>
+        {feature}
+      </Text>
+    ))}
+    <TouchableOpacity
+      style={[styles.createButton]}
+      activeOpacity={0.8}
+      onPress={() =>
+        onSubscribe(
+          selectedPlan === 'monthly'
+            ? 'test_subscription_monthly'
+            : 'test_subscription_yearly',
+        )
+      }>
+      <LinearGradient
+        colors={['#F4A460', '#DEB887']}
+        start={{x: 0, y: 0}}
+        end={{x: 1, y: 1}}
+        style={styles.gradient}>
+        <CText style={[styles.createButtonText, styles.disabledButtonText]}>
+          Subscribe Now
+        </CText>
+      </LinearGradient>
+    </TouchableOpacity>
+  </LinearGradient>
+);
 
 const SubscriptionScreen = () => {
-  const [credits, setCredits] = useState(20);
+  const [credits, setCredits] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const [products, setProducts] = useState([]);
 
@@ -90,72 +149,86 @@ const SubscriptionScreen = () => {
     }
   };
 
-  const PlanCard = ({title, price, features}) => (
-    <View style={styles.planCard}>
-      <View style={styles.planHeader}>
-        <Text style={styles.planTitle}>{title}</Text>
-        <Text style={styles.planPrice}>{price}</Text>
-      </View>
-      {features.map((feature, index) => (
-        <Text key={index} style={styles.featureText}>
-          {feature}
-        </Text>
-      ))}
-      <TouchableOpacity
-        style={styles.subscribeButton}
-        onPress={() =>
-          handleSubscribe(
-            selectedPlan === 'monthly'
-              ? 'test_subscription_monthly'
-              : 'test_subscription_yearly',
-          )
-        }>
-        <Text style={styles.subscribeButtonText}>Subscribe Now</Text>
-      </TouchableOpacity>
-    </View>
-  );
-
-  const navigator = useNavigation();
+  const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => navigator.goBack()}>
-        <Text style={styles.backButtonText}>←</Text>
-      </TouchableOpacity>
-      <Text style={styles.creditsTitle}>Credits</Text>
-      <Text style={styles.creditsNumber}>{credits}</Text>
-      <Text style={styles.creditsSubtitle}>Songs left</Text>
+      <LinearGradient
+        colors={['#18181B', '#3C3029']}
+        locations={[0.4, 0.99]}
+        style={styles.gradientWrapper}
+        angle={180}
+        useAngle={true}>
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Image
+              source={appImages.arrowLeftIcon}
+              style={styles.backArrowIcon}
+            />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Subscriptions</Text>
+        </View>
 
-      <View style={styles.planToggle}>
-        <TouchableOpacity
-          style={[
-            styles.planToggleButton,
-            selectedPlan === 'monthly' && styles.selectedPlan,
-          ]}
-          onPress={() => setSelectedPlan('monthly')}>
-          <Text style={styles.planToggleText}>Monthly</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[
-            styles.planToggleButton,
-            selectedPlan === 'annual' && styles.selectedPlan,
-          ]}
-          onPress={() => setSelectedPlan('annual')}>
-          <Text style={styles.planToggleText}>Annual</Text>
-        </TouchableOpacity>
-      </View>
+        <View style={styles.creditsContainer}>
+          <Text style={styles.creditsTitle}>Credits</Text>
+          <Text style={styles.creditsNumber}>{credits}</Text>
+          <Text style={styles.creditsSubtitle}>Songs left</Text>
+        </View>
 
-      <PlanCard
-        title="Pro Plan"
-        price="$99/Month"
-        features={[
-          '500 songs monthly',
-          'Priority Generation queue',
-          'Priority Generation queue',
-        ]}
-      />
+        <View style={styles.divider} />
+      </LinearGradient>
+
+      <ScrollView style={styles.scrollView}>
+        <View style={styles.plansContainer}>
+          {selectedPlan === 'monthly' ? (
+            <PlanCard
+              title="Monthly Pro Plan"
+              price="$29/Month"
+              features={[
+                '100 songs monthly',
+                'Priority Generation queue',
+                'Priority Generation queue',
+              ]}
+              onSubscribe={handleSubscribe}
+              selectedPlan={selectedPlan}
+            />
+          ) : (
+            <PlanCard
+              title="Yearly Pro Plan"
+              price="$99"
+              originalPrice="$359/Yearly"
+              features={[
+                '200 songs monthly',
+                'Priority Generation queue',
+                'Priority Generation queue',
+              ]}
+              onSubscribe={handleSubscribe}
+              selectedPlan={selectedPlan}
+            />
+          )}
+
+          <PlanCard
+            title={
+              selectedPlan === 'monthly'
+                ? 'Yearly Pro Plan'
+                : 'Monthly Pro Plan'
+            }
+            price={selectedPlan === 'monthly' ? '$99' : '$29/Month'}
+            originalPrice={selectedPlan === 'monthly' ? '$359/Yearly' : null}
+            features={[
+              selectedPlan === 'monthly'
+                ? '200 songs monthly'
+                : '100 songs monthly',
+              'Priority Generation queue',
+              'Priority Generation queue',
+            ]}
+            onSubscribe={handleSubscribe}
+            selectedPlan={selectedPlan}
+          />
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -163,27 +236,45 @@ const SubscriptionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E1E1E',
-    padding: 20,
+    backgroundColor: '#0F0F11',
+    padding: 0,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 10,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: 'bold',
+    marginLeft: 15,
   },
   backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 20,
+    width: 10,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButtonText: {
     color: 'white',
-    fontSize: 24,
+    fontSize: 28,
+  },
+  creditsContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
   },
   creditsTitle: {
     color: 'white',
     fontSize: 18,
     textAlign: 'center',
-    marginTop: 60,
   },
   creditsNumber: {
     color: 'white',
-    fontSize: 48,
+    fontSize: 64,
     fontWeight: 'bold',
     textAlign: 'center',
   },
@@ -192,55 +283,102 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
   },
-  planToggle: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  planToggleButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+  divider: {
+    height: 1,
     backgroundColor: '#333',
+    marginVertical: 5,
   },
-  selectedPlan: {
-    backgroundColor: '#555',
-  },
-  planToggleText: {
-    color: 'white',
+  plansContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
   planCard: {
-    backgroundColor: '#D2B48C',
-    borderRadius: 10,
+    borderRadius: 15,
     padding: 20,
     marginBottom: 20,
   },
   planHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 15,
   },
   planTitle: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
+  },
+  priceContainer: {
+    alignItems: 'flex-end',
   },
   planPrice: {
     fontSize: 18,
     fontWeight: 'bold',
+    color: '#000',
+  },
+  originalPrice: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#000',
+    textDecorationLine: 'line-through',
   },
   featureText: {
-    marginBottom: 5,
+    marginBottom: 10,
+    fontSize: 16,
+    color: '#000',
   },
   subscribeButton: {
-    backgroundColor: '#FFA500',
-    borderRadius: 20,
-    padding: 10,
+    backgroundColor: '#FF9966',
+    borderRadius: 25,
+    padding: 15,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 15,
   },
   subscribeButtonText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 16,
+  },
+  createButton: {
+    marginVertical: 10,
+    width: '100%',
+    height: 56,
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderStyle: 'solid',
+    borderColor: '#C87D48',
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 100,
+    borderWidth: 4,
+    borderStyle: 'solid',
+    borderColor: '#C87D48',
+  },
+  createButtonText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  gradientContainer: {
+    overflow: 'hidden',
+    borderRadius: 15,
+  },
+  borderTop: {
+    height: 2,
+    backgroundColor: '#564A3F',
+    width: '100%',
+    position: 'absolute',
+    top: 0,
+    zIndex: 1,
+  },
+  gradientWrapper: {
+    paddingTop: 2,
+  },
+  scrollView: {
+    flex: 1,
   },
 });
 

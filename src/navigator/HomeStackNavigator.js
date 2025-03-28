@@ -51,11 +51,12 @@ const HomeStackNavigator = () => {
     <Tab.Navigator
       screenOptions={{
         tabBarStyle: {
-          height: 70,
+          height: 80,
           paddingBottom: 10,
-          paddingTop: 10,
+          paddingTop: 20,
           backgroundColor: '#000',
-          borderTopWidth: 0,
+          borderTopWidth: 1,
+          borderColor: '#FFB680',
         },
         headerShown: false,
         header: props => {

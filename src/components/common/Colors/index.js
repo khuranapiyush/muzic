@@ -14,41 +14,7 @@ const commonColor = {
   trackColor: '#AFAFAF',
 };
 
-const light = {
-  white: '#000000',
-  appBg: '#FFF',
-  activeDotColor: '#0B091C',
-  inActiveDotColor: 'rgba(151, 151, 151, 0.50)', // home page banner Dot inactive color
-  categoryBg: 'rgba(196, 196, 196, 0.5)', // home page song category
-  cardBg: '#F4F4F4',
-  iconBg: '#DADADA',
-  cardBorderColor: '#DADADA',
-  borderColor: '#DADADA',
-  inputBg: '#F3F3F3',
-  inputBorderColor: '#DADADA',
-  communityMsgWrapper: '#FFF',
-  footerBG: '#F5F5F5',
-  footerBorder: '#EAEAEA',
-  textBlack: '#1E1E1E',
-  textGray: '#353535',
-  textLightGray: '#626262',
-  dailyStreakBg: '#FEDFC8',
-  activeEarningBg: '#E6FFA6',
-  activeFilterText: '#FFF',
-
-  similarSongTabColor: '#A5A5A5',
-  similarSongTabBG: '#353535',
-  brandNewPink: '#FE9BF3',
-  chatOwnMsgBg: '#353262',
-
-  secondaryBackground: '#D9D9D9',
-
-  earnCoinLvLBorder: '#4A4A4A',
-  earnCoinLvLBG: '#0C0C0C',
-
-  ...commonColor,
-};
-
+// Dark theme colors - the app is now locked to dark mode only
 const dark = {
   white: '#FFFFFF',
   // appBg: '#1B0E37',
@@ -87,4 +53,11 @@ const dark = {
   ...commonColor,
 };
 
+// Light mode is now duplicated from dark mode
+// This ensures components that try to use light mode still get dark mode colors
+// App is now locked to dark mode only
+const light = {...dark};
+
+// Both light and dark are exported for compatibility
+// But they now contain the same colors (dark theme)
 export default {light, dark};

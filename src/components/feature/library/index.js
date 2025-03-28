@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,13 @@ import {
   ScrollView,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import config from 'react-native-config';
 import {useMutation} from '@tanstack/react-query';
 import fetcher from '../../../dataProvider';
 import {formatTime} from '../../../utils/common';
-import {useSelector} from 'react-redux';
 import {getAuthToken, makeAuthenticatedRequest} from '../../../utils/authUtils';
 import useMusicPlayer from '../../../hooks/useMusicPlayer';
 
@@ -24,7 +25,7 @@ const CARD_WIDTH = (width - 48) / 2;
 const LibraryScreen = () => {
   const {API_BASE_URL} = config;
   const [audioList, setAudioList] = useState([]);
-  const authState = useSelector(state => state.auth);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Use our global music player hook
   const {play, isPlaying, currentSong, togglePlayPause} =
@@ -64,6 +65,31 @@ const LibraryScreen = () => {
     },
   );
 
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    console.log('Refreshing library...');
+
+    fetchAudioList(undefined, {
+      onSuccess: () => {
+        console.log('Library refresh complete');
+        setRefreshing(false);
+      },
+      onError: error => {
+        console.error('Error refreshing library:', error);
+        Alert.alert(
+          'Refresh Failed',
+          'Could not refresh library. Please try again.',
+        );
+        setRefreshing(false);
+      },
+      onSettled: () => {
+        // This executes regardless of success or failure
+        setRefreshing(false);
+      },
+    });
+  }, [fetchAudioList]);
+
   useEffect(() => {
     fetchAudioList();
   }, [fetchAudioList]);
@@ -92,7 +118,6 @@ const LibraryScreen = () => {
   const SongItem = ({song}) => {
     const isCurrentlyPlaying =
       currentSong && currentSong.uri === song.audioUrl && isPlaying;
-
     return (
       <TouchableOpacity
         style={[styles.songItem, isCurrentlyPlaying && styles.playingSongItem]}
@@ -127,7 +152,18 @@ const LibraryScreen = () => {
       {isListLoading ? (
         <ActivityIndicator color="#FFD5A9" size="large" style={styles.loader} />
       ) : (
-        <ScrollView style={styles.content}>
+        <ScrollView
+          style={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#FFD5A9']}
+              tintColor="#FFD5A9"
+              title="Pull to refresh..."
+              titleColor="#FFD5A9"
+            />
+          }>
           <View style={styles.songsList}>
             {audioList?.map(song => (
               <SongItem key={song._id} song={song} />

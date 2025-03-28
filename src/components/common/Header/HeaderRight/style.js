@@ -7,7 +7,8 @@ const getStyles = theme => {
       alignItems: 'center',
     },
     leaderBoardWrapper: {marginHorizontal: 15},
-    searchIcon: {height: 24, width: 24, tintColor: 'white'},
+    searchIcon: {height: 27, width: 27, tintColor: 'white'},
+    subscribeIcon: {height: 30, width: 30},
     coinWrapper: {
       backgroundColor: Colors[theme].categoryBg,
       paddingHorizontal: 5,

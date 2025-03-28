@@ -52,7 +52,8 @@ const getStyles = theme => {
     sectionTitle: {
       fontSize: 24,
       fontWeight: 'bold',
-      color: '#fff',
+      color: '#FDF5E6',
+      paddingVertical: 10,
     },
     moreText: {
       color: '#666',

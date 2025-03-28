@@ -6,22 +6,17 @@ import CView from '../../../common/core/View';
 import CText from '../../../common/core/Text';
 import TextInputFC from '../../../common/FormComponents/TextInputFC';
 import {useForm} from 'react-hook-form';
-// import {useNavigation, useTheme} from '@react-navigation/native';
 import getStyles from './AIGenerator.styles';
 import Colors from '../../../common/Colors';
 import {useMutation} from '@tanstack/react-query';
 import config from 'react-native-config';
 import MusicCard from './MusicCard';
 import useToaster from '../../../../hooks/useToaster';
-// import PlayerLoader from '../../../common/Player/lib/components/PlayerLoader';
 import AudioPlayer from '../../../../screens/Home/AudioPlayer';
 import GenreSelectionScreen from './Filters';
 import {TouchableOpacity} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Sound from 'react-native-sound';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import PromoModal from './PromoBanner';
-// import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {useSelector} from 'react-redux';
 import fetcher from '../../../../dataProvider';
 import {useTheme} from '@react-navigation/native';
@@ -31,7 +26,6 @@ import {
 } from '../../../../utils/authUtils';
 
 const AIGenerator = ({pageHeading}) => {
-  const {user} = useSelector(state => state.user);
   const authState = useSelector(state => state.auth);
   const {API_BASE_URL} = config;
   const {mode} = useTheme();
@@ -66,7 +60,11 @@ const AIGenerator = ({pageHeading}) => {
     };
   }, [reset]);
 
-  const generateSongMutation = async promptText => {
+  const generateSongMutation = async (promptText, genreValue, voiceValue) => {
+    // Use the provided values or fall back to state if not provided
+    const genreToUse = genreValue !== undefined ? genreValue : selectedGenre;
+    const voiceToUse = voiceValue !== undefined ? voiceValue : selectedVoice;
+
     const formattedPrompt = promptText.trim();
 
     if (!formattedPrompt) {
@@ -78,49 +76,56 @@ const AIGenerator = ({pageHeading}) => {
       prompt: formattedPrompt,
     };
 
-    // Add genre if selected
-    if (selectedGenre) {
-      requestPayload.genre = selectedGenre;
+    // Add genre if selected - ensure it's added with the correct field name
+    if (genreToUse && genreToUse.trim() !== '') {
+      requestPayload.genre = genreToUse.trim();
+      console.log('Including genre in request:', genreToUse);
     }
 
-    // Add voice if selected
-    if (selectedVoice) {
-      requestPayload.voice = selectedVoice;
+    // Add voice if selected - ensure it's added with the correct field name
+    if (voiceToUse && voiceToUse.trim() !== '') {
+      requestPayload.voice = voiceToUse.trim();
+      console.log('Including voice in request:', voiceToUse);
     }
 
-    console.log('Sending request with payload:', requestPayload);
+    console.log(
+      'Final request payload:',
+      JSON.stringify(requestPayload, null, 2),
+    );
 
-    // Make authenticated request with automatic token refresh
-    return await makeAuthenticatedRequest(async () => {
-      // Get the current auth token
-      const token = await getAuthToken();
+    // Get auth token
+    const token = await getAuthToken();
 
-      const headers = {
-        'Content-Type': 'application/json',
-      };
+    const headers = {
+      'Content-Type': 'application/json',
+    };
 
-      // Add authorization header if token exists
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
-      // Make the API call
-      const response = await fetcher.post(
-        `${API_BASE_URL}/v1/generate-song`,
-        requestPayload,
-        {headers},
-      );
+    // Using fetcher with a much longer timeout since we know song generation takes time
+    const response = await fetcher.post(
+      `${API_BASE_URL}/v1/generate-song`,
+      requestPayload,
+      {
+        headers,
+        timeout: 300000, // 5 minutes timeout - significantly longer to accommodate AI processing time
+      },
+    );
 
-      return response.data;
-    });
+    return response.data;
   };
 
   // Inside useMutation
-  const {mutate: generateSong, isLoading: isGeneratingSong} = useMutation(
-    async promptText => generateSongMutation(promptText),
+  const {mutate: generateSong} = useMutation(
+    // Pass the params directly to the mutation function
+    params =>
+      generateSongMutation(params.promptText, params.genre, params.voice),
     {
       onSuccess: data => {
         if (!data?.errorCode) {
+          console.log('Song generation successful:', data);
           setResponse(data);
           setGeneratedListResponse(data);
           setErrorMessage('');
@@ -139,39 +144,32 @@ const AIGenerator = ({pageHeading}) => {
         }
       },
       onError: error => {
-        handleApiError(error);
+        // We'll handle errors in a more user-friendly way
+        console.log('Song generation error:', error);
+
+        // Don't show error toasts for timeouts - the user already knows their song is being generated
+        // Only show errors for clear server issues
+        if (
+          error.response &&
+          error.response.status >= 400 &&
+          error.response.status < 500
+        ) {
+          let errorMsg = 'Failed to generate song';
+
+          if (error.response.data && error.response.data.message) {
+            errorMsg = error.response.data.message;
+          }
+
+          setErrorMessage(errorMsg);
+          showToaster({
+            type: 'error',
+            text1: 'Generation Failed',
+            text2: errorMsg,
+          });
+        }
       },
     },
   );
-
-  const handleApiError = error => {
-    let errorMsg = 'Failed to generate song';
-
-    if (error.message && error.message.includes('Network Error')) {
-      errorMsg =
-        'Network connection failed. Please check your internet connection and try again.';
-    } else if (error.response) {
-      if (error.response.data && error.response.data.message) {
-        errorMsg = error.response.data.message;
-      } else if (error.response.status === 429) {
-        errorMsg = 'Too many requests. Please try again later.';
-      } else if (error.response.status >= 500) {
-        errorMsg = 'Server error. Please try again later.';
-      }
-    } else if (error.request) {
-      errorMsg =
-        'No response received from server. Please check your internet connection.';
-    } else {
-      errorMsg = error.message;
-    }
-
-    setErrorMessage(errorMsg);
-    showToaster({
-      type: 'error',
-      text1: 'Generation Failed',
-      text2: errorMsg,
-    });
-  };
 
   const getRenderDetail = () => {
     return {
@@ -207,30 +205,36 @@ const AIGenerator = ({pageHeading}) => {
       return;
     }
 
-    try {
-      await generateSong(promptText);
-      setShowBottomSheet(true);
+    // Store current selections before showing UI changes
+    const genreToSend = selectedGenre;
+    const voiceToSend = selectedVoice;
 
-      // Reset the form and selections after successful submission
-      reset();
-      setPrompt('');
-      setSelectedGenre(null);
-      setSelectedVoice(null);
+    // Show the bottom sheet immediately to inform the user
+    setShowBottomSheet(true);
 
-      // Trigger reset in the GenreSelectionScreen
-      setResetSelections(true);
-      // Reset the flag after a short delay
-      setTimeout(() => {
-        setResetSelections(false);
-      }, 100);
-    } catch (error) {
-      // SILENTLY RETURN
-      return;
-    }
-
+    // Reset the form and selections immediately for better UX
+    reset();
     setPrompt('');
-    // Handle the case when the user has no credits
-    // navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+
+    // Reset selections for UI
+    setSelectedGenre(null);
+    setSelectedVoice(null);
+
+    // Trigger reset in the GenreSelectionScreen
+    setResetSelections(true);
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      setResetSelections(false);
+    }, 100);
+
+    // Call the mutation with the stored values
+    generateSong({
+      promptText: promptText,
+      genre: genreToSend,
+      voice: voiceToSend,
+    });
+
+    // No need for try/catch here as the mutation handles errors
   };
 
   const handleInputChange = text => {
@@ -258,44 +262,11 @@ const AIGenerator = ({pageHeading}) => {
       } else {
         sound.play(success => {
           if (!success) {
-            console.log('Sound playback failed');
+            return;
           }
         });
         setIsPlaying(true);
       }
-    }
-  };
-
-  const handleSongPress = (audioUrl, title, duration, imageUrl) => {
-    try {
-      if (currentTrack?.audioUrl === audioUrl) {
-        handlePlayPause();
-        return;
-      }
-      if (sound) {
-        sound.release();
-      }
-
-      const newSound = new Sound(audioUrl, null, error => {
-        if (error) {
-          return;
-        }
-
-        setSound(newSound);
-        setCurrentTrack({audioUrl, title, duration, imageUrl});
-
-        newSound.play(success => {
-          if (!success) {
-          }
-        });
-        setIsPlaying(true);
-        newSound.setNumberOfLoops(0);
-        newSound.onEnded = () => {
-          setIsPlaying(false);
-        };
-      });
-    } catch (error) {
-      console.error('Error playing sound:', error);
     }
   };
 
@@ -306,47 +277,31 @@ const AIGenerator = ({pageHeading}) => {
   }, []);
 
   const checkIfModalShown = async () => {
-    try {
-      const hasShown = await AsyncStorage.getItem('promoModalShown');
-      if (hasShown !== 'true') {
-        // if (hasShown === 'true') {
-        setModalVisible(true);
-      }
-    } catch (error) {
-      console.error('Error checking modal shown status:', error);
+    if (modalVisible) {
+      setModalVisible(false);
+    } else {
+      setModalVisible(true);
     }
   };
 
   const handleCloseModal = async () => {
     setModalVisible(false);
-    try {
-      await AsyncStorage.setItem('promoModalShown', 'true');
-    } catch (error) {
-      console.error('Error saving modal shown status:', error);
-    }
   };
-
-  console.log(isGeneratingSong, 'isGeneratingSong');
 
   // Handle genre selection from the GenreSelectionScreen
   const handleGenreSelect = genre => {
-    console.log('Selected genre:', genre);
+    console.log('Genre selected in AIGenerator:', genre);
     setSelectedGenre(genre);
   };
 
   // Handle voice selection from the GenreSelectionScreen
   const handleVoiceSelect = voice => {
-    console.log('Selected voice:', voice);
+    console.log('Voice selected in AIGenerator:', voice);
     setSelectedVoice(voice);
   };
 
   return (
     <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
-      {/* {isGeneratingSong && (
-        <CView style={styles.loaderWrapper}>
-          <PlayerLoader isVideoLoading={isGeneratingSong} />
-        </CView>
-      )} */}
       <CView style={styles.flatList}>
         <CView style={styles.wrapper}>
           <CText size="largeBold" style={styles.promptHeading}>
@@ -372,37 +327,6 @@ const AIGenerator = ({pageHeading}) => {
             <CText style={styles.errorText}>{errorMessage}</CText>
           ) : null}
         </CView>
-
-        {/* Show selected genre and voice */}
-        {/* {(selectedGenre || selectedVoice) && (
-          <CView style={styles.selectionInfoContainer}>
-            <CText size="medium" style={styles.selectionInfoText}>
-              Selected: {selectedGenre && `Genre: ${selectedGenre}`}{' '}
-              {selectedVoice && `Voice: ${selectedVoice}`}
-            </CText>
-          </CView>
-        )} */}
-
-        {/* {generatedListResponse && (
-          <>
-            <CView style={styles.cardListContainer}>
-              <CView style={styles.resultTitle}>
-                <CText size="largeBold">Generated Results</CText>
-              </CView>
-            </CView>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              style={styles.flatList}>
-              <CView key={generatedListResponse?.id}>
-                <MusicCard
-                  item={generatedListResponse?.data}
-                  index={generatedListResponse?.id}
-                  handlePlayPause={handleSongPress}
-                />
-              </CView>
-            </ScrollView>
-          </>
-        )} */}
         <GenreSelectionScreen
           onGenreSelect={handleGenreSelect}
           onVoiceSelect={handleVoiceSelect}
@@ -413,7 +337,7 @@ const AIGenerator = ({pageHeading}) => {
             style={styles.createButton}
             activeOpacity={0.8}
             onPress={handleSubmit}
-            disabled={!prompt || isGeneratingSong}>
+            disabled={!prompt}>
             <LinearGradient
               colors={['#F4A460', '#DEB887']}
               start={{x: 0, y: 0}}
@@ -422,9 +346,9 @@ const AIGenerator = ({pageHeading}) => {
               <CText
                 style={[
                   styles.createButtonText,
-                  (!prompt || isGeneratingSong) && styles.disabledButtonText,
+                  !prompt && styles.disabledButtonText,
                 ]}>
-                {isGeneratingSong ? 'Generating...' : 'Create Song'}
+                {'Create Song'}
               </CText>
             </LinearGradient>
           </TouchableOpacity>
@@ -435,7 +359,9 @@ const AIGenerator = ({pageHeading}) => {
         isPlaying={isPlaying}
         onPlayPause={handlePlayPause}
       />
-      {user && <PromoModal visible={modalVisible} onClose={handleCloseModal} />}
+      {authState.isLoggedIn && (
+        <PromoModal visible={modalVisible} onClose={handleCloseModal} />
+      )}
 
       {/* Bottom Sheet Notification */}
       <Modal

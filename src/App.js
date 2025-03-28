@@ -1,7 +1,7 @@
 import './utils/backHandlerPolyfill';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import React, {useEffect, useMemo, useState} from 'react';
-import {Appearance, StatusBar} from 'react-native';
+import {StatusBar} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {
   SafeAreaProvider,
@@ -33,17 +33,16 @@ if (!store) {
 }
 
 const App = () => {
+  // Always use dark mode, no need to check device appearance
   const [theme, setTheme] = useState({
-    mode: Appearance.getColorScheme(),
+    mode: 'dark',
   });
 
-  const updateTheme = newTheme => {
-    let theme;
-    if (!newTheme) {
-      theme = Appearance.getColorScheme();
-      newTheme = {mode: 'dark'};
-    }
-    setTheme(newTheme);
+  // Update function still needed for context API compatibility
+  const updateTheme = () => {
+    // No-op - we always stay in dark mode
+    // This prevents any accidental theme changes
+    setTheme({mode: 'dark'});
   };
 
   const fetchStoredTheme = async () => {
@@ -51,7 +50,8 @@ const App = () => {
       const timer = setTimeout(() => {
         SplashScreen.hide();
       }, 100);
-      StatusBar.setBarStyle('dark-content');
+      // Always use light-content for dark mode
+      StatusBar.setBarStyle('light-content');
       return () => clearTimeout(timer);
     } catch (error) {
       console.error('Error hiding splash screen:', error);
@@ -60,13 +60,7 @@ const App = () => {
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
-  useEffect(() => {
-    const appearanceListener = ({colorScheme}) => {
-      let obj = {mode: colorScheme};
-      updateTheme(obj);
-    };
-    Appearance.addChangeListener(appearanceListener);
-  }, []);
+  // No more appearance listener - we don't want to respond to system theme changes
 
   useEffect(() => {
     fetchStoredTheme();

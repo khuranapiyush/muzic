@@ -2,7 +2,6 @@ import config from 'react-native-config';
 import fetcher from '../../dataProvider';
 
 export const authLoginSignup = async data => {
-  console.log(data, 'data');
   return fetcher.post(`${config.API_BASE_URL}/v1/phone/send-code`, data);
 };
 
@@ -38,5 +37,5 @@ export const authVerifyEmail = async token => {
 };
 
 export const getRefreshToken = async data => {
-  return fetcher.post(`${config.API_URL}/v2/auth/refresh-tokens`, data);
+  return fetcher.post(`${config.API_BASE_URL}/v1/auth/refresh-tokens`, data);
 };

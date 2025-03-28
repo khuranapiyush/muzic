@@ -1,5 +1,5 @@
 import {useMutation, useQuery} from '@tanstack/react-query';
-import React, {createContext, useEffect, useState} from 'react';
+import React, {createContext, useEffect, useState, useCallback} from 'react';
 import {Platform} from 'react-native';
 import {
   PERMISSIONS,
@@ -29,6 +29,7 @@ import {setUser, setUserData} from '../stores/slices/user';
 import {setWalletStats} from '../stores/slices/walletStats';
 import {getData, storeData} from '../utils/asyncStorage';
 import {compareVersions, getUniqueId} from '../utils/common';
+import {checkAndRefreshTokens} from '../utils/authUtils';
 // import AnalyticsHandler from '../components/common/AnalyticsHandler';
 import DeepLinkHandler from '../components/common/DeepLinkHandler';
 
@@ -36,6 +37,7 @@ const AppContext = createContext();
 
 export const AppProvider = ({children}) => {
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+  const [tokenChecked, setTokenChecked] = useState(false);
 
   const {isGuest, isLoggedIn, id: userId} = useSelector(useAuthUser);
 
@@ -46,6 +48,38 @@ export const AppProvider = ({children}) => {
   const {showModal, hideModal} = useModal();
 
   const dispatch = useDispatch();
+
+  // Add function to validate tokens on app startup, wrapped in useCallback
+  const validateTokens = useCallback(async () => {
+    try {
+      console.log('Validating auth tokens on app startup...');
+
+      // Only try to validate/refresh if we have some tokens
+      if (refreshToken) {
+        // Check if tokens are valid and refresh if needed
+        const isValid = await checkAndRefreshTokens();
+        console.log(
+          'Token validation result:',
+          isValid ? 'Valid/Refreshed' : 'Invalid',
+        );
+
+        // If tokens are invalid and couldn't be refreshed, show login
+        if (!isValid) {
+          console.log(
+            'Tokens are invalid and could not be refreshed. Showing login.',
+          );
+          showModal('auth', {
+            isVisible: true,
+            onClose: () => hideModal('auth'),
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error validating tokens:', error);
+    } finally {
+      setTokenChecked(true);
+    }
+  }, [refreshToken, showModal, hideModal]);
 
   const checkForUpdates = async data => {
     const lastShownVersion = await getData(appKeys.lastShownAppVersion);
@@ -111,7 +145,7 @@ export const AppProvider = ({children}) => {
   useQuery({
     queryKey: ['appConfig'],
     queryFn: fetchAppConfig,
-    enabled: permissionsLoaded,
+    enabled: permissionsLoaded && tokenChecked, // Only fetch after token check
     onSuccess: res => {
       const data = res.data.data;
       if (data.latestVersion == APP_VERSION) {
@@ -127,7 +161,7 @@ export const AppProvider = ({children}) => {
   const {refetch: refetchWalletBalance} = useQuery({
     queryKey: [`getWalletBalance/${userId}`],
     queryFn: fetchWalletBalance,
-    enabled: isGuest || isLoggedIn,
+    enabled: (isGuest || isLoggedIn) && tokenChecked, // Only fetch after token check
     onSuccess: res => {
       const data = res?.data;
       dispatch(setWalletStats(data));
@@ -140,7 +174,7 @@ export const AppProvider = ({children}) => {
   const {refetch: refetchUserData} = useQuery({
     queryKey: [`getUserData/${userId}`],
     queryFn: fetchUserDetail.bind(this, {userId: userId}),
-    enabled: (isGuest || isLoggedIn) && !!userId,
+    enabled: (isGuest || isLoggedIn) && !!userId && tokenChecked, // Only fetch after token check
     onSuccess: res => {
       const data = res?.data?.result;
       dispatch(setUserData(data));
@@ -166,6 +200,11 @@ export const AppProvider = ({children}) => {
     dispatch(setSessionId(getUniqueId()));
   }, [dispatch]);
 
+  // Add effect for token validation on startup
+  useEffect(() => {
+    validateTokens();
+  }, [validateTokens]);
+
   useEffect(() => {
     const requestPermissions = async () => {
       try {
@@ -183,12 +222,12 @@ export const AppProvider = ({children}) => {
   const {mutate: handlePostDailyStreak} = useMutation(data => dailyStreak());
 
   useEffect(() => {
-    if (!isGuest && !isLoggedIn && deviceId) {
+    if (!isGuest && !isLoggedIn && deviceId && tokenChecked) {
       // is a guest account
       dispatch(setAppLoading(true));
       deviceLogin({deviceId});
     }
-  }, [deviceId, deviceLogin, dispatch, isGuest, isLoggedIn]);
+  }, [deviceId, deviceLogin, dispatch, isGuest, isLoggedIn, tokenChecked]);
 
   useEffect(() => {
     if (isLoggedIn) {
@@ -208,6 +247,10 @@ export const AppProvider = ({children}) => {
     let removeResponseInterceptor = null;
 
     const setupInterceptors = async () => {
+      // Wait for token validation to complete before setting up interceptors
+      if (!tokenChecked) {
+        await validateTokens();
+      }
       removeAuthInterceptor = await addAuthInterceptor();
       removeResponseInterceptor = await setupResponseInterceptor(store);
     };
@@ -225,17 +268,18 @@ export const AppProvider = ({children}) => {
         removeResponseInterceptor();
       }
     };
-  }, [userId]);
+  }, [userId, tokenChecked, validateTokens]);
 
+  // Update the token check effect to be more proactive
   useEffect(() => {
-    if (!accessToken && !refreshToken) {
+    if (tokenChecked && !accessToken && !refreshToken) {
       console.log('Redirecting to login as refresh token expired');
       showModal('auth', {
         isVisible: true,
         onClose: () => hideModal('auth'),
       });
     }
-  }, [accessToken, hideModal, refreshToken, showModal]);
+  }, [accessToken, hideModal, refreshToken, showModal, tokenChecked]);
 
   return (
     <AppContext.Provider value={isLoggedIn}>

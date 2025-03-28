@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Image,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
+  Alert,
 } from 'react-native';
 import config from 'react-native-config';
 import fetcher from '../../dataProvider';
@@ -16,6 +18,7 @@ import getStyles from './Home.style';
 import {useTheme} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import useMusicPlayer from '../../hooks/useMusicPlayer';
+import Loader from '../../components/common/core/Loader';
 
 const SongCard = ({
   title,
@@ -96,6 +99,8 @@ const SongSection = ({title, data, onSongPress, currentSongId}) => {
 export default function HomeScreen() {
   const {API_BASE_URL} = config;
   const [audioList, setAudioList] = useState([]);
+  const [trendingList, setTrendingList] = useState([]);
+  const [refreshing, setRefreshing] = useState(false);
   const {mode} = useTheme();
   const styles = getStyles(mode);
 
@@ -110,6 +115,12 @@ export default function HomeScreen() {
       onSuccess: response => {
         if (response) {
           setAudioList(response.data.data);
+          setTrendingList(
+            response.data.data.slice(
+              response.data.data.length - 10,
+              response.data.data.length,
+            ),
+          );
         }
       },
       onError: error => {
@@ -120,6 +131,27 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchAudioList();
+  }, [fetchAudioList]);
+
+  // Handle pull-to-refresh
+  const onRefresh = useCallback(async () => {
+    try {
+      setRefreshing(true);
+      console.log('Refreshing home screen data...');
+
+      // Call the mutation to fetch fresh data
+      await fetchAudioList();
+
+      console.log('Home screen data refreshed successfully');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      Alert.alert(
+        'Refresh Failed',
+        'Could not refresh content. Please try again.',
+      );
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchAudioList]);
 
   const handleSongPress = song => {
@@ -146,7 +178,7 @@ export default function HomeScreen() {
   const sections = [
     {
       title: 'Trending Songs',
-      data: audioList,
+      data: trendingList,
     },
     {
       title: 'New Songs',
@@ -154,9 +186,24 @@ export default function HomeScreen() {
     },
   ];
 
+  if (isListLoading && !refreshing) {
+    return <Loader message="Loading songs..." />;
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
+      <ScrollView
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#F4A460']}
+            tintColor="#F4A460"
+            title="Refreshing..."
+            titleColor="#F4A460"
+          />
+        }>
         {sections.map((section, index) => (
           <SongSection
             key={index}

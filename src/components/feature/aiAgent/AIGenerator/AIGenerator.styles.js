@@ -392,10 +392,10 @@ const getStyles = theme => {
       top: 50,
     },
     promptHeading: {
-      marginTop: 0,
-      marginLeft: 0,
-      marginBottom: 10,
-      color: Colors[theme].textBlack,
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#FDF5E6',
+      paddingVertical: 10,
     },
     bottomSheetContainer: {
       flex: 1,

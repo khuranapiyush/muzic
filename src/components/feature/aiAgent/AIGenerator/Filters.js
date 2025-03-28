@@ -106,7 +106,7 @@ const GenreSelectionScreen = ({
       selectedGenreName = genre ? genre.name.toLowerCase() : null;
     }
 
-    // Notify parent component
+    // Notify parent component with the genre name
     if (onGenreSelect) {
       onGenreSelect(selectedGenreName);
     }
@@ -124,7 +124,7 @@ const GenreSelectionScreen = ({
       selectedVoiceType = singer ? singer.name.toLowerCase() : null;
     }
 
-    // Notify parent component
+    // Notify parent component with the voice type
     if (onVoiceSelect) {
       onVoiceSelect(selectedVoiceType);
     }
@@ -263,7 +263,6 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(147, 51, 234, 0.2)', // purple-600 with opacity
   },
   selectedOverlay: {
     backgroundColor: 'rgba(147, 51, 234, 0.4)',
@@ -272,9 +271,10 @@ const styles = StyleSheet.create({
     transform: [{scale: 1.05}],
   },
   itemText: {
-    fontSize: 12,
+    fontSize: 14,
     color: '#fff',
-    textAlign: 'left',
+    textAlign: 'center',
+    lineHeight: 21,
   },
   selectedText: {
     color: '#A855F7', // purple-500

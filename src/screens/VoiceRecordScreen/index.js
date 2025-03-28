@@ -21,6 +21,7 @@ import RNFS from 'react-native-fs';
 import config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 import {getAuthToken} from '../../utils/authUtils';
+import CView from '../../components/common/core/View';
 
 const VoiceRecordScreen = ({navigation}) => {
   const {API_BASE_URL} = config;
@@ -89,10 +90,8 @@ const VoiceRecordScreen = ({navigation}) => {
           },
         );
 
-        console.log('Voice recording uploaded successfully:', response.data);
         return response.data;
       } catch (error) {
-        console.error('Error uploading voice recording:', error);
         throw new Error(
           error.response?.data?.message || 'Failed to upload voice recording',
         );
@@ -387,16 +386,18 @@ const VoiceRecordScreen = ({navigation}) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView style={styles.content}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}>
-          <Image
-            source={appImages.arrowLeftIcon}
-            style={styles.backArrowIcon}
-          />
-        </TouchableOpacity>
+        <CView row style={{marginTop: 60}}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}>
+            <Image
+              source={appImages.arrowLeftIcon}
+              style={styles.backArrowIcon}
+            />
+          </TouchableOpacity>
 
-        <Text style={styles.title}>Record your Voice</Text>
+          <CText style={styles.title}>Record your Voice</CText>
+        </CView>
         <LinearGradient
           colors={['#18181B', '#231F1F', '#3A2F28']}
           locations={[0.35, 0.75, 1]}
@@ -466,24 +467,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   backButton: {
-    marginTop: 40,
-    padding: 2,
+    // padding: 2,
     marginBottom: 12,
   },
   backArrowIcon: {
-    width: 24,
-    height: 24,
+    width: 40,
+    height: 40,
     tintColor: '#FFF',
   },
-  backButtonText: {
-    color: '#FFF',
-    fontSize: 24,
-  },
   title: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#FDF5E6',
-    marginBottom: 24,
+    marginTop: 10,
+    marginBottom: 40,
+    marginLeft: 12,
   },
   textContainer: {
     // backgroundColor: 'rgba(40, 40, 40, 0.6)',

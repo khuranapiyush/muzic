@@ -50,7 +50,6 @@ const appImages = {
   creatorDashboard: require('../../../assets/images/icons/creatorDashboard.png'),
   emailIcon: require('../../../assets/images/icons/email.png'),
   googleLogoIcon: require('../../../assets/images/icons/googleLogo.png'),
-  kycIcon: require('../../../assets/images/icons/kycIcon.webp'),
   kycSuccessIcon: require('../../../assets/images/icons/kycSuccessIcon.webp'),
   tickCircleIcon: require('../../../assets/images/icons/tickcircle.png'),
   leaderBoardIcon: require('../../../assets/images/icons/leaderboard.png'),
@@ -156,6 +155,7 @@ const appImages = {
   aiCoverIcon: require('../../../assets/images/icons/aiCoverIcon.png'),
   libraryIcon: require('../../../assets/images/icons/libraryIcon.png'),
   micIcon: require('../../../assets/images/icons/micIcon.png'),
+  subscribeIcon: require('../../../assets/images/icons/subscribeIcon.png'),
 };
 
 export default appImages;

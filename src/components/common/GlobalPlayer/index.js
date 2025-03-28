@@ -617,8 +617,8 @@ const styles = StyleSheet.create({
   },
   closePlayerButton: {
     position: 'absolute',
-    top: 8,
-    right: 8,
+    top: 5,
+    right: 5,
     zIndex: 10,
   },
   closeButtonCircle: {
