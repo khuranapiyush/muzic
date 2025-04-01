@@ -28,11 +28,22 @@ import {getAuthToken} from '../../../../utils/authUtils';
 import {useSelector} from 'react-redux';
 import NetInfo from '@react-native-community/netinfo';
 import axios from 'axios';
+import useCredits from '../../../../hooks/useCredits';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
 const MAX_RETRY_ATTEMPTS = 3;
 const RETRY_DELAY = 2000; // 2 seconds
+// Define how many credits a cover generation costs
+const COVER_GENERATION_COST = 1;
+
+// Helper function to safely display credits
+const getCreditsValue = creditsData => {
+  if (typeof creditsData === 'object' && creditsData !== null) {
+    return creditsData.balance || 0;
+  }
+  return typeof creditsData === 'number' ? creditsData : 0;
+};
 
 const CoverCreationScreen = () => {
   const [link, setLink] = useState('');
@@ -64,6 +75,22 @@ const CoverCreationScreen = () => {
   // Add global music player hook
   const {play, isPlaying, currentSong, togglePlayPause} =
     useMusicPlayer('AICoverScreen');
+
+  // Add credits hook
+  const {
+    credits,
+    decrementUserCredits,
+    handleCreditRequiredAction,
+    refreshCredits,
+  } = useCredits();
+
+  // Get the numeric value of credits
+  const creditsValue = getCreditsValue(credits);
+
+  // Add useEffect to refresh credits when component mounts
+  useEffect(() => {
+    refreshCredits();
+  }, [refreshCredits]);
 
   // Add pagination states
   const [page, setPage] = useState(1);
@@ -225,182 +252,222 @@ const CoverCreationScreen = () => {
       return;
     }
 
-    // Reset API request status
-    setApiRequestStatus({
-      lastAttempt: new Date().toISOString(),
-      lastError: null,
-      debugMode: apiRequestStatus.debugMode,
-    });
+    // Refresh credits to ensure we have the latest count
+    await refreshCredits();
 
-    console.log('Starting voice conversion with:');
-    console.log('- Link:', link);
-    console.log(
-      '- Voice Model ID:',
-      selectedVoiceId || 'Not using voice model',
-    );
-    console.log('- Using My Vocal:', isUsingMyVocal);
-    console.log(
-      '- Recording File ID:',
-      selectedRecordingFile?._id || 'Not using recording',
-    );
-
-    try {
-      setIsLoading(true);
-
-      // Enhanced network connectivity check
-      const isConnected = await checkNetworkConnectivity();
-      if (!isConnected) {
-        setIsLoading(false);
-        return;
-      }
-
-      // Get auth token
-      const token = await getAuthToken();
-      if (!token) {
-        const errorMsg = 'Authentication required. Please log in again.';
-        setApiRequestStatus(prev => ({
-          ...prev,
-          lastError: errorMsg,
-        }));
-        throw new Error(errorMsg);
-      }
-
-      // Format request data
-      const requestData = {
-        url: link,
-        title: songTitle || 'My Cover',
-        artist: artistName || 'AI Cover',
-      };
-
-      // Validate voice selection and add ID to request data
-      if (isUsingMyVocal && selectedRecordingFile) {
-        // Using user's own vocal recording
-        if (!selectedRecordingFile._id) {
-          const errorMsg =
-            'Invalid recording ID. Please select a different recording.';
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: errorMsg,
-          }));
-          throw new Error(errorMsg);
-        }
-        console.log('Using user recording with ID:', selectedRecordingFile._id);
-        requestData.voiceRecordingId = selectedRecordingFile._id;
-      } else if (selectedVoiceId) {
-        // Using voice model from the sample catalog
-        if (!selectedVoiceId) {
-          const errorMsg =
-            'Invalid voice model ID. Please select a different voice.';
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: errorMsg,
-          }));
-          throw new Error(errorMsg);
-        }
-        console.log('Using voice model with ID:', selectedVoiceId);
-        requestData.voiceModelId = selectedVoiceId;
-      } else {
-        const errorMsg =
-          'Please select either a voice model or your own recording.';
-        setApiRequestStatus(prev => ({
-          ...prev,
-          lastError: errorMsg,
-        }));
-        throw new Error(errorMsg);
-      }
-
-      // Log the complete request data for debugging
-      console.log('API Request Data:', JSON.stringify(requestData, null, 2));
-
-      // Show bottom sheet modal instead of alert
-      setShowBottomSheet(true);
-
-      // Reset form immediately for better UX
-      setLink('');
-      setSongTitle('');
-      setArtistName('');
-      setSelectedVoiceId(null);
-      setSelectedRecordingFile(null);
-      setIsUsingMyVocal(false);
-
-      // Now make the API request in the background
-      const apiUrl = `${config.API_BASE_URL}/v1/integration/url-to-voice`;
-      console.log(`Making API request to: ${apiUrl}`);
-
-      fetcher
-        .post(apiUrl, requestData, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+    // First check if user has enough credits
+    if (creditsValue < COVER_GENERATION_COST) {
+      // Redirect to subscription screen
+      Alert.alert(
+        'Insufficient Credits',
+        'You need more credits to generate a cover. Would you like to purchase more?',
+        [
+          {text: 'Cancel', style: 'cancel'},
+          {
+            text: 'Get Credits',
+            onPress: () => navigation.navigate(ROUTE_NAME.SUBSCRIPTION_SCREEN),
           },
-          timeout: 300000, // Increased timeout to 5 minutes (300,000ms)
-        })
-        .then(response => {
-          console.log('Voice conversion API response status:', response.status);
-          console.log(
-            'Voice conversion response data:',
-            JSON.stringify(response.data, null, 2),
-          );
-
-          // Clear any error state on success
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: null,
-          }));
-
-          console.log('Cover generation request successful');
-        })
-        .catch(error => {
-          console.error('Voice conversion request error:', error);
-          // We don't show errors to the user here since we've already shown the success message
-          // Just log them for debugging
-
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: error.message || 'Unknown API error',
-          }));
-        });
-    } catch (error) {
-      console.error('Voice conversion failed:', error);
-
-      let errorMessage = 'Failed to create voice conversion';
-
-      // Determine the appropriate error message
-      if (
-        error.message === 'Network Error' ||
-        error.customMessage?.includes('Network connection failed')
-      ) {
-        errorMessage =
-          'Network connection failed. Please check your internet connection and try again.';
-      } else if (error.code === 'ECONNABORTED') {
-        errorMessage =
-          'Request timed out. The server took too long to respond. Please try again later.';
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please log in again.';
-      } else if (error.response?.status === 429) {
-        errorMessage = 'Too many requests. Please try again later.';
-      } else if (error.response?.status >= 500) {
-        errorMessage = 'Server error. Please try again later.';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.customMessage) {
-        errorMessage = error.customMessage;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      // Store the error message in state for debug display
-      setApiRequestStatus(prev => ({
-        ...prev,
-        lastError: errorMessage,
-      }));
-
-      Alert.alert('Error', errorMessage);
-    } finally {
-      setIsLoading(false);
-      setIsRetrying(false);
-      retryAttempts.current = 0;
+        ],
+      );
+      return;
     }
+
+    // Use the handleCreditRequiredAction to handle credit check and deduction
+    return handleCreditRequiredAction(async () => {
+      // Reset API request status
+      setApiRequestStatus({
+        lastAttempt: new Date().toISOString(),
+        lastError: null,
+        debugMode: apiRequestStatus.debugMode,
+      });
+
+      console.log('Starting voice conversion with:');
+      console.log('- Link:', link);
+      console.log(
+        '- Voice Model ID:',
+        selectedVoiceId || 'Not using voice model',
+      );
+      console.log('- Using My Vocal:', isUsingMyVocal);
+      console.log(
+        '- Recording File ID:',
+        selectedRecordingFile?._id || 'Not using recording',
+      );
+
+      try {
+        setIsLoading(true);
+
+        // Enhanced network connectivity check
+        const isConnected = await checkNetworkConnectivity();
+        if (!isConnected) {
+          setIsLoading(false);
+          return false; // Return false to indicate failure so credits aren't deducted
+        }
+
+        // Get auth token
+        const token = await getAuthToken();
+        if (!token) {
+          const errorMsg = 'Authentication required. Please log in again.';
+          setApiRequestStatus(prev => ({
+            ...prev,
+            lastError: errorMsg,
+          }));
+          throw new Error(errorMsg);
+        }
+
+        // Format request data
+        const requestData = {
+          url: link,
+          title: songTitle || 'My Cover',
+          artist: artistName || 'AI Cover',
+        };
+
+        // Validate voice selection and add ID to request data
+        if (isUsingMyVocal && selectedRecordingFile) {
+          // Using user's own vocal recording
+          if (!selectedRecordingFile._id) {
+            const errorMsg =
+              'Invalid recording ID. Please select a different recording.';
+            setApiRequestStatus(prev => ({
+              ...prev,
+              lastError: errorMsg,
+            }));
+            throw new Error(errorMsg);
+          }
+          console.log(
+            'Using user recording with ID:',
+            selectedRecordingFile._id,
+          );
+          requestData.voiceRecordingId = selectedRecordingFile._id;
+        } else if (selectedVoiceId) {
+          // Using voice model from the sample catalog
+          if (!selectedVoiceId) {
+            const errorMsg =
+              'Invalid voice model ID. Please select a different voice.';
+            setApiRequestStatus(prev => ({
+              ...prev,
+              lastError: errorMsg,
+            }));
+            throw new Error(errorMsg);
+          }
+          console.log('Using voice model with ID:', selectedVoiceId);
+          requestData.voiceModelId = selectedVoiceId;
+        } else {
+          const errorMsg =
+            'Please select either a voice model or your own recording.';
+          setApiRequestStatus(prev => ({
+            ...prev,
+            lastError: errorMsg,
+          }));
+          throw new Error(errorMsg);
+        }
+
+        // Log the complete request data for debugging
+        console.log('API Request Data:', JSON.stringify(requestData, null, 2));
+
+        // Show bottom sheet modal instead of alert
+        setShowBottomSheet(true);
+
+        // Reset form immediately for better UX
+        setLink('');
+        setSongTitle('');
+        setArtistName('');
+        setSelectedVoiceId(null);
+        setSelectedRecordingFile(null);
+        setIsUsingMyVocal(false);
+
+        // Now make the API request in the background
+        const apiUrl = `${config.API_BASE_URL}/v1/integration/url-to-voice`;
+        console.log(`Making API request to: ${apiUrl}`);
+
+        fetcher
+          .post(apiUrl, requestData, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 300000, // Increased timeout to 5 minutes (300,000ms)
+          })
+          .then(response => {
+            console.log(
+              'Voice conversion API response status:',
+              response.status,
+            );
+            console.log(
+              'Voice conversion response data:',
+              JSON.stringify(response.data, null, 2),
+            );
+
+            // Clear any error state on success
+            setApiRequestStatus(prev => ({
+              ...prev,
+              lastError: null,
+            }));
+
+            console.log('Cover generation request successful');
+
+            // Make sure to refresh credits after successful generation
+            setTimeout(() => {
+              refreshCredits();
+            }, 1000);
+
+            return true; // Return true to indicate success
+          })
+          .catch(error => {
+            console.error('Voice conversion request error:', error);
+            // We don't show errors to the user here since we've already shown the success message
+            // Just log them for debugging
+
+            setApiRequestStatus(prev => ({
+              ...prev,
+              lastError: error.message || 'Unknown API error',
+            }));
+            return false; // Return false to indicate failure
+          });
+
+        return true; // Credit should be deducted
+      } catch (error) {
+        console.error('Voice conversion failed:', error);
+
+        let errorMessage = 'Failed to create voice conversion';
+
+        // Determine the appropriate error message
+        if (
+          error.message === 'Network Error' ||
+          error.customMessage?.includes('Network connection failed')
+        ) {
+          errorMessage =
+            'Network connection failed. Please check your internet connection and try again.';
+        } else if (error.code === 'ECONNABORTED') {
+          errorMessage =
+            'Request timed out. The server took too long to respond. Please try again later.';
+        } else if (error.response?.status === 401) {
+          errorMessage = 'Authentication failed. Please log in again.';
+        } else if (error.response?.status === 429) {
+          errorMessage = 'Too many requests. Please try again later.';
+        } else if (error.response?.status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        } else if (error.response?.data?.message) {
+          errorMessage = error.response.data.message;
+        } else if (error.customMessage) {
+          errorMessage = error.customMessage;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        // Store the error message in state for debug display
+        setApiRequestStatus(prev => ({
+          ...prev,
+          lastError: errorMessage,
+        }));
+
+        Alert.alert('Error', errorMessage);
+        return false; // Return false to indicate failure
+      } finally {
+        setIsLoading(false);
+        setIsRetrying(false);
+        retryAttempts.current = 0;
+      }
+    }, COVER_GENERATION_COST);
   };
 
   const navigation = useNavigation();
@@ -1072,6 +1139,11 @@ const CoverCreationScreen = () => {
     <SafeAreaView style={styles.container}>
       <NetworkStatusBar />
       <View style={styles.content}>
+        {/* Credits Display */}
+        <View style={styles.creditsContainer}>
+          <Text style={styles.creditsText}>Credits: {creditsValue}</Text>
+        </View>
+
         {/* Link Input Section */}
         <View style={styles.section}>
           <View style={styles.titleContainer}>
@@ -1167,7 +1239,8 @@ const CoverCreationScreen = () => {
             isLoading ||
             (!selectedVoiceId && !selectedRecordingFile) ||
             !networkStatus.isConnected ||
-            isRetrying
+            isRetrying ||
+            creditsValue < COVER_GENERATION_COST
           }
           onPress={createVoiceConversion}>
           <LinearGradient
@@ -1181,7 +1254,8 @@ const CoverCreationScreen = () => {
                 (isLoading ||
                   (!selectedVoiceId && !selectedRecordingFile) ||
                   !networkStatus.isConnected ||
-                  isRetrying) &&
+                  isRetrying ||
+                  creditsValue < COVER_GENERATION_COST) &&
                   styles.disabledButtonText,
               ]}>
               {isLoading
@@ -1190,6 +1264,8 @@ const CoverCreationScreen = () => {
                 ? `Retrying (${retryAttempts.current}/${MAX_RETRY_ATTEMPTS})...`
                 : !networkStatus.isConnected
                 ? 'Offline'
+                : creditsValue < COVER_GENERATION_COST
+                ? 'Insufficient Credits'
                 : 'Create Cover'}
             </CText>
           </LinearGradient>
@@ -1685,6 +1761,21 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  // Add styles for credits display
+  creditsContainer: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    padding: 8,
+    borderRadius: 12,
+    alignSelf: 'flex-end',
+    marginTop: 8,
+    marginRight: 16,
+    marginBottom: 16,
+  },
+  creditsText: {
+    color: 'white',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });
 

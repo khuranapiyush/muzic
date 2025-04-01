@@ -15,6 +15,7 @@ import appImages from '../../resource/images';
 import CText from '../../components/common/core/Text';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
+import useCredits from '../../hooks/useCredits';
 
 // Define PlanCard component outside of SubscriptionScreen
 const PlanCard = ({
@@ -494,28 +495,38 @@ const getCreditsForProduct = productId => {
 };
 
 const SubscriptionScreen = () => {
-  const [credits, setCredits] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState('monthly');
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [purchasePending, setPurchasePending] = useState(false);
   const authState = useSelector(state => state.auth);
 
-  // Local function to add credits (not using Redux)
-  const addCredits = useCallback(creditsToAdd => {
-    console.log('Adding credits:', creditsToAdd);
-    if (typeof creditsToAdd === 'number') {
-      setCredits(prevCredits => prevCredits + creditsToAdd);
-    } else {
-      console.error('Invalid credits value:', creditsToAdd);
+  // Replace local credits state with Redux
+  const {credits, addCredits, updateUserCredits, refreshCredits} = useCredits();
+
+  // Helper function to safely display credits
+  const displayCredits = () => {
+    if (typeof credits === 'object' && credits !== null) {
+      // If credits is an object with balance property, use that
+      return credits.data.balance || 0;
     }
-  }, []);
+    // Otherwise use the credits number directly
+    return typeof credits === 'number' ? credits : 0;
+  };
+
+  // Refresh credits when the screen loads
+  useEffect(() => {
+    refreshCredits();
+  }, [refreshCredits]);
 
   // Handle existing purchase
   const handleExistingPurchase = useCallback(async () => {
     try {
       console.log('Checking for existing purchases...');
       setPurchasePending(true);
+
+      // Refresh credits before processing purchase
+      await refreshCredits();
 
       const purchases = await RNIap.getAvailablePurchases();
       console.log('Available purchases:', purchases);
@@ -590,14 +601,17 @@ const SubscriptionScreen = () => {
 
               if (verifyResult && verifyResult.status === 'SUCCESS') {
                 if (verifyResult.credits) {
-                  // Set absolute value instead of adding
-                  setCredits(verifyResult.credits);
+                  // Update Redux state with absolute value instead of local state
+                  updateUserCredits(verifyResult.credits);
                 } else {
                   const creditsToAdd = getCreditsForProduct(
                     existingPurchase.productId,
                   );
                   addCredits(creditsToAdd);
                 }
+
+                // Refresh credits after purchase is processed
+                await refreshCredits();
 
                 Alert.alert(
                   'Purchase Processed',
@@ -659,14 +673,25 @@ const SubscriptionScreen = () => {
       );
     } finally {
       setPurchasePending(false);
+      // Final refresh to ensure latest credit data
+      refreshCredits();
     }
-  }, [authState.accessToken, selectedPlan, addCredits]);
+  }, [
+    authState.accessToken,
+    selectedPlan,
+    addCredits,
+    updateUserCredits,
+    refreshCredits,
+  ]);
 
   // Add a restore purchases function
   const restorePurchases = useCallback(async () => {
     try {
       console.log('Restoring purchases...');
       setPurchasePending(true);
+
+      // Refresh credits before processing purchase
+      await refreshCredits();
 
       // Check for auth token first
       if (!authState.accessToken) {
@@ -742,8 +767,8 @@ const SubscriptionScreen = () => {
 
           if (verifyResult && verifyResult.status === 'SUCCESS') {
             if (verifyResult.credits) {
-              // Use server-provided credits (total value)
-              setCredits(verifyResult.credits);
+              // Use Redux to update credits with server-provided value
+              updateUserCredits(verifyResult.credits);
               // We just use the last value if there are multiple purchases
               totalCreditsAdded = verifyResult.credits;
             } else {
@@ -780,6 +805,9 @@ const SubscriptionScreen = () => {
 
       // Show appropriate message based on results
       if (restoredCount > 0) {
+        // Refresh credits after restore
+        await refreshCredits();
+
         Alert.alert(
           'Success',
           `Successfully restored ${restoredCount} purchase${
@@ -802,8 +830,10 @@ const SubscriptionScreen = () => {
       Alert.alert('Error', `Failed to restore purchases: ${err.message}`);
     } finally {
       setPurchasePending(false);
+      // Final refresh to ensure latest credit data
+      refreshCredits();
     }
-  }, [authState.accessToken, addCredits]);
+  }, [authState.accessToken, addCredits, updateUserCredits, refreshCredits]);
 
   // Update useEffect with proper dependency
   useEffect(() => {
@@ -912,7 +942,8 @@ const SubscriptionScreen = () => {
                   console.log('verifyResult', verifyResult);
                   if (verifyResult.credits) {
                     // If server returns specific credit amount, use it as total
-                    setCredits(verifyResult.credits);
+                    // Use Redux to update credits with server-provided value
+                    updateUserCredits(verifyResult.credits);
                     console.log('Credits set to:', verifyResult.credits);
                   } else {
                     // Otherwise use a default amount based on the product
@@ -1018,7 +1049,7 @@ const SubscriptionScreen = () => {
       }
       RNIap.endConnection();
     };
-  }, [authState, handleExistingPurchase, addCredits]);
+  }, [authState, handleExistingPurchase, addCredits, updateUserCredits]);
 
   const handlePurchase = useCallback(async () => {
     try {
@@ -1130,7 +1161,7 @@ const SubscriptionScreen = () => {
 
         <View style={styles.creditsContainer}>
           <Text style={styles.creditsTitle}>Credits</Text>
-          <Text style={styles.creditsNumber}>{credits}</Text>
+          <Text style={styles.creditsNumber}>{displayCredits()}</Text>
           <Text style={styles.creditsSubtitle}>Songs left</Text>
         </View>
 

@@ -9,6 +9,23 @@ const getStyles = theme => {
     leaderBoardWrapper: {marginHorizontal: 15},
     searchIcon: {height: 27, width: 27, tintColor: 'white'},
     subscribeIcon: {height: 30, width: 30},
+    creditsWrapper: {
+      backgroundColor: '#3C3029',
+      paddingHorizontal: 12,
+      paddingVertical: 5,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: '#C87D48',
+      justifyContent: 'center',
+      alignItems: 'center',
+      minWidth: 40,
+    },
+    creditsText: {
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: 14,
+      textAlign: 'center',
+    },
     coinWrapper: {
       backgroundColor: Colors[theme].categoryBg,
       paddingHorizontal: 5,
