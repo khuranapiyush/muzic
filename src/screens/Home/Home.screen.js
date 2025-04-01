@@ -9,6 +9,7 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import config from 'react-native-config';
 import fetcher from '../../dataProvider';
@@ -18,7 +19,6 @@ import getStyles from './Home.style';
 import {useTheme} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import useMusicPlayer from '../../hooks/useMusicPlayer';
-import Loader from '../../components/common/core/Loader';
 
 const SongCard = ({
   title,
@@ -66,7 +66,13 @@ const SectionHeader = ({title}) => {
 };
 
 // Song Section Component
-const SongSection = ({title, data, onSongPress, currentSongId}) => {
+const SongSection = ({
+  title,
+  data,
+  onSongPress,
+  currentSongId,
+  isListLoading,
+}) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
 
@@ -76,22 +82,28 @@ const SongSection = ({title, data, onSongPress, currentSongId}) => {
   return (
     <View style={styles.section}>
       <SectionHeader title={title} />
-      <FlatList
-        horizontal
-        data={limitedData}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({item}) => (
-          <SongCard
-            title={item.title}
-            duration={item.duration}
-            audioUrl={item.audioUrl}
-            imageUrl={item.imageUrl}
-            onPress={onSongPress}
-            isPlaying={currentSongId === item.audioUrl}
-          />
-        )}
-        showsHorizontalScrollIndicator={false}
-      />
+      {isListLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#F4A460" />
+        </View>
+      ) : (
+        <FlatList
+          horizontal
+          data={limitedData}
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({item}) => (
+            <SongCard
+              title={item.title}
+              duration={item.duration}
+              audioUrl={item.audioUrl}
+              imageUrl={item.imageUrl}
+              onPress={onSongPress}
+              isPlaying={currentSongId === item.audioUrl}
+            />
+          )}
+          showsHorizontalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
@@ -105,8 +117,7 @@ export default function HomeScreen() {
   const styles = getStyles(mode);
 
   // Use our custom music player hook
-  const {play, isPlaying, currentSong, isActiveSource, togglePlayPause} =
-    useMusicPlayer('HomeScreen');
+  const {play, currentSong, togglePlayPause} = useMusicPlayer('HomeScreen');
 
   // Fetch audio list mutation
   const {mutate: fetchAudioList, isLoading: isListLoading} = useMutation(
@@ -186,10 +197,6 @@ export default function HomeScreen() {
     },
   ];
 
-  if (isListLoading && !refreshing) {
-    return <Loader message="Loading songs..." />;
-  }
-
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -211,6 +218,7 @@ export default function HomeScreen() {
             data={section.data}
             onSongPress={handleSongPress}
             currentSongId={currentSong?.uri}
+            isListLoading={isListLoading}
           />
         ))}
       </ScrollView>

@@ -211,12 +211,11 @@ const getStyles = theme => {
       marginBottom: 8,
       // fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif'
     },
-    // duration: {
-    //   fontSize: 24,
-    //   color: '#FFFFFF',
-    //   opacity: 0.8,
-    //   // fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif'
-    // }
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
   });
 };
 

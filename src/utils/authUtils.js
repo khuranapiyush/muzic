@@ -132,6 +132,13 @@ export const refreshAccessToken = async () => {
     // Get current state
     const state = store.getState();
     const refreshToken = state?.auth?.refreshToken;
+    const isLoggedIn = state?.auth?.isLoggedIn;
+
+    // If user is not logged in, don't attempt to refresh
+    if (!isLoggedIn) {
+      console.log('User is not logged in, skipping token refresh');
+      return null;
+    }
 
     if (!refreshToken) {
       throw new Error('No refresh token available');
@@ -254,8 +261,17 @@ export const withTokenValidation = async (apiFunction, requestData = {}) => {
  */
 export const makeAuthenticatedRequest = async apiCall => {
   try {
-    // Check if access token is expired and refresh if needed
+    // Check if user is logged in
     const state = store.getState();
+    const isLoggedIn = state?.auth?.isLoggedIn;
+
+    // If user is not logged in, don't attempt the request
+    if (!isLoggedIn) {
+      console.log('User is not logged in, skipping authenticated request');
+      throw new Error('User is not logged in');
+    }
+
+    // Check if access token is expired and refresh if needed
     const accessToken = state?.auth?.accessToken;
 
     if (accessToken && isTokenExpired(accessToken)) {

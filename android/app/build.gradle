@@ -133,6 +133,7 @@ dependencies {
     implementation project(':react-native-config')
     implementation(project(':react-native-iap'))
 
+    implementation 'com.android.billingclient:billing:6.1.0' // Use the latest version
 
     if (project.hasProperty('hermesEnabled') && hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
