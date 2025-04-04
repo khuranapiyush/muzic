@@ -37,10 +37,7 @@ const HeaderRight = ({mode}) => {
   };
 
   const handleCreditPress = () => {
-    // If user has credits, go to generator, otherwise go to subscription
-    if (creditValue <= 0) {
-      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-    }
+    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
   };
 
   return (

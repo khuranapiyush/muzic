@@ -18,14 +18,48 @@ import fetcher from '../../../dataProvider';
 import {formatTime} from '../../../utils/common';
 import {getAuthToken, makeAuthenticatedRequest} from '../../../utils/authUtils';
 import useMusicPlayer from '../../../hooks/useMusicPlayer';
+import {useNavigation} from '@react-navigation/native';
+// import ROUTE_NAME from '../../../navigator/config/routeName';
+// import LinearGradient from 'react-native-linear-gradient';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
+
+// Empty Library Component
+const EmptyLibrary = () => {
+  // const navigation = useNavigation();
+
+  return (
+    <View style={styles.emptyContainer}>
+      <View style={styles.emptyImageContainer}>
+        <Text style={styles.musicEmoji}>🎵</Text>
+      </View>
+      <Text style={styles.emptyTitle}>Your Library is Empty</Text>
+      <Text style={styles.emptyText}>
+        Create your first AI cover to start building your personal music
+        collection
+      </Text>
+      {/* <TouchableOpacity
+        style={styles.createButton}
+        onPress={() => navigation.navigate(ROUTE_NAME.AIGenerator)}
+        activeOpacity={0.8}>
+        <LinearGradient
+          colors={['#F4A460', '#DEB887']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.buttonGradient}>
+          <Text style={styles.createButtonText}>Create a Cover</Text>
+        </LinearGradient>
+      </TouchableOpacity> */}
+    </View>
+  );
+};
 
 const LibraryScreen = () => {
   const {API_BASE_URL} = config;
   const [audioList, setAudioList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
+  const navigation = useNavigation();
 
   // Use our global music player hook
   const {play, isPlaying, currentSong, togglePlayPause} =
@@ -164,11 +198,15 @@ const LibraryScreen = () => {
               titleColor="#FFD5A9"
             />
           }>
-          <View style={styles.songsList}>
-            {audioList?.map(song => (
-              <SongItem key={song._id} song={song} />
-            ))}
-          </View>
+          {audioList && audioList.length > 0 ? (
+            <View style={styles.songsList}>
+              {audioList.map(song => (
+                <SongItem key={song._id} song={song} />
+              ))}
+            </View>
+          ) : (
+            <EmptyLibrary />
+          )}
         </ScrollView>
       )}
     </SafeAreaView>
@@ -206,7 +244,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   title: {
-    fontSize: 32,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FDF5E6',
     padding: 16,
@@ -233,7 +271,7 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     color: '#FDF5E6',
     marginBottom: 16,
@@ -286,8 +324,65 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
   },
+  // Empty library styles
+  emptyContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  emptyImageContainer: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#222',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  musicEmoji: {
+    fontSize: 80,
+  },
+  emptyTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#F4A460',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+    marginBottom: 32,
+    lineHeight: 24,
+  },
+  createButton: {
+    width: '80%',
+    height: 50,
+    borderRadius: 25,
+    overflow: 'hidden',
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#C87D48',
+  },
+  buttonGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  createButtonText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   loader: {
-    marginTop: 40,
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
