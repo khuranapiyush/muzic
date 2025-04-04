@@ -2,10 +2,8 @@ import {createSlice} from '@reduxjs/toolkit';
 import {resetUser, setUser} from '../user';
 
 const initialState = {
-  isLoggedIn: false,
   accessToken: null,
   refreshToken: null,
-  isGuest: false,
 };
 
 const auth = createSlice({
@@ -19,28 +17,16 @@ const auth = createSlice({
   },
   extraReducers: builder => {
     builder.addCase(setUser, (state, action) => {
-      const {tokens, isGuest, isLoggedIn} = action.payload;
+      const {tokens, isLoggedIn} = action.payload;
 
-      const {access, refresh} = tokens;
-
-      state.accessToken = access?.token;
-
-      state.refreshToken = refresh?.token;
-
-      if (isLoggedIn) {
-        state.isLoggedIn = true;
-      }
-
-      if (isGuest) {
-        state.isGuest = true;
-      } else {
-        state.isGuest = false;
+      if (tokens) {
+        const {access, refresh} = tokens;
+        state.accessToken = access?.token;
+        state.refreshToken = refresh?.token;
       }
     });
 
     builder.addCase(resetUser, (state, action) => {
-      state.isLoggedIn = false;
-      state.isGuest = false;
       state.accessToken = null;
       state.refreshToken = null;
       return state;
@@ -48,6 +34,6 @@ const auth = createSlice({
   },
 });
 
-export const {signOut, updateToken} = auth.actions;
+export const {updateToken} = auth.actions;
 
 export default auth.reducer;

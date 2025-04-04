@@ -95,7 +95,17 @@ const Login = ({
           name="terms"
           rules={{required: 'Please agree to terms and conditions'}}
           customStyles={{
-            containerStyle: {padding: 0, marginLeft: 0, marginRight: 4},
+            containerStyle: {
+              padding: 0,
+              marginLeft: 0,
+              marginRight: 4,
+              backgroundColor: 'transparent',
+            },
+          }}
+          textStyle={{
+            color: '#fff',
+            fontSize: 12,
+            marginLeft: 4,
           }}
         />
         <CView style={styles.termsTextContainer}>

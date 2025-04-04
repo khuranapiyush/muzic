@@ -1,32 +1,32 @@
 import {createSlice} from '@reduxjs/toolkit';
 
 const initialState = {
-  appData: '',
+  appLoading: false,
   deviceId: '',
-  loading: false,
   sessionId: '',
-  isShowFeature: true,
-  tokenChecked: false,
+  appData: {},
+  featureEnable: false,
+  tokenChecked: false, // Track if token validation has completed
 };
 
-const app = createSlice({
+const appSlice = createSlice({
   name: 'app',
   initialState,
   reducers: {
-    setAppData: (state, action) => {
-      state.appData = action.payload;
+    setAppLoading: (state, action) => {
+      state.appLoading = action.payload;
     },
     setDeviceId: (state, action) => {
       state.deviceId = action.payload;
     },
-    setAppLoading: (state, action) => {
-      state.loading = action.payload;
-    },
     setSessionId: (state, action) => {
       state.sessionId = action.payload;
     },
+    setAppData: (state, action) => {
+      state.appData = action.payload;
+    },
     setFeatureEnable: (state, action) => {
-      state.isShowFeature = action.payload;
+      state.featureEnable = action.payload;
     },
     setTokenChecked: (state, action) => {
       state.tokenChecked = action.payload;
@@ -35,12 +35,12 @@ const app = createSlice({
 });
 
 export const {
-  setAppData,
-  setDeviceId,
   setAppLoading,
+  setDeviceId,
   setSessionId,
+  setAppData,
   setFeatureEnable,
   setTokenChecked,
-} = app.actions;
+} = appSlice.actions;
 
-export default app.reducer;
+export default appSlice.reducer;

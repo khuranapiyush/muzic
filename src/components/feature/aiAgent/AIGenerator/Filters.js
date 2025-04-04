@@ -20,7 +20,7 @@ import {
 } from '../../../../utils/authUtils';
 
 const {width} = Dimensions.get('window');
-const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
+// const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
 const GENRE_ITEM_WIDTH = (width - 48 - 32) / 5; // For larger screens
 
 const GenreSelectionScreen = ({
@@ -222,15 +222,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
-    padding: 16,
+    paddingVertical: 5,
+    paddingHorizontal: 16,
   },
   section: {
     marginBottom: 24,
   },
   sectionTitle: {
-    color: '#fff',
+    fontSize: 20,
+    lineHeight: 24,
+    fontWeight: '600',
+    color: '#FDF5E6',
     marginBottom: 16,
-    fontSize: 16,
   },
   genreGrid: {
     flexDirection: 'row',
@@ -248,7 +251,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   singerItem: {
-    width: ITEM_WIDTH,
+    width: GENRE_ITEM_WIDTH,
     marginBottom: 16,
   },
   imageContainer: {

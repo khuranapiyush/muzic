@@ -5,6 +5,7 @@ const screenRoutes = {
   RewardHistory: 'RewardHistory',
   LeaderBoard: 'LeaderBoard',
   Login: 'Login',
+  VerifyOtp: 'VerifyOtp',
   Community: 'Community',
   MarketPlace: 'MarketPlace',
   ForgotPassword: 'ForgotPassword',
@@ -53,6 +54,7 @@ const stacks = {
   MainStack: 'MainStack',
   HomeStack: 'HomeStack',
   RootStack: 'RootStack',
+  AuthStack: 'AuthStack',
 };
 
 const ROUTE_NAME = {...screenRoutes, ...stacks};

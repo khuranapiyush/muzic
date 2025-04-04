@@ -15,6 +15,9 @@ import {
   ActivityIndicator,
   RefreshControl,
   Modal,
+  ToastAndroid,
+  Platform,
+  ScrollView,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
@@ -485,45 +488,95 @@ const CoverCreationScreen = () => {
   const API_TOKEN = 'w8TOqTQD.HDIa0GVr6XlSFBbp4HIztEGj';
 
   // Fetch user's voice recordings
-  const fetchUserRecordings = useCallback(async () => {
-    try {
-      setIsLoadingRecordings(true);
+  const fetchUserRecordings = useCallback(
+    async (showToast = false) => {
+      try {
+        setIsLoadingRecordings(true);
 
-      // Check for internet connection
-      const netInfo = await NetInfo.fetch();
-      if (!netInfo.isConnected) {
-        throw new Error(
-          'No internet connection. Please try again when you are connected.',
-        );
-      }
+        // Check for internet connection
+        const netInfo = await NetInfo.fetch();
+        if (!netInfo.isConnected) {
+          throw new Error(
+            'No internet connection. Please try again when you are connected.',
+          );
+        }
 
-      // Get auth token
-      const token = await getAuthToken();
-      if (!token) {
-        throw new Error('Authentication required. Please log in again.');
-      }
+        // Get auth token
+        const token = await getAuthToken();
+        if (!token) {
+          throw new Error('Authentication required. Please log in again.');
+        }
 
-      // Make API request using fetcher instead of axios
-      const response = await fetcher.get(
-        `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+        // Make API request using fetcher instead of axios
+        const response = await fetcher.get(
+          `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           },
-        },
-      );
+        );
 
-      // Handle the response properly - check both data and data.data
-      const recordings = response.data?.data || response.data || [];
-      setUserRecordings(recordings);
-    } catch (error) {
-      console.error('Failed to fetch user recordings:', error);
-      Alert.alert('Error', 'Failed to fetch your voice recordings');
-    } finally {
-      setIsLoadingRecordings(false);
+        // Handle the response properly - check both data and data.data
+        const recordings = response.data?.data || response.data || [];
+        setUserRecordings(recordings);
+
+        // Show success message if requested
+        if (showToast) {
+          if (Platform.OS === 'android') {
+            ToastAndroid.show(
+              'Voice recordings refreshed!',
+              ToastAndroid.SHORT,
+            );
+          } else {
+            Alert.alert(
+              'Success',
+              'Voice recordings refreshed!',
+              [{text: 'OK', onPress: () => {}}],
+              {cancelable: true},
+            );
+          }
+        }
+
+        return recordings;
+      } catch (error) {
+        console.error('Failed to fetch user recordings:', error);
+        Alert.alert('Error', 'Failed to fetch your voice recordings');
+        return [];
+      } finally {
+        setIsLoadingRecordings(false);
+      }
+    },
+    [userId],
+  );
+
+  // Add a dedicated function to refresh just user recordings
+  const refreshUserRecordings = useCallback(async () => {
+    console.log('Refreshing user recordings...');
+
+    // Check if already loading
+    if (isLoadingRecordings) {
+      console.log('Already refreshing recordings, skipping request');
+      return;
     }
-  }, [userId]);
+
+    // Check network status before attempting refresh
+    const netInfo = await NetInfo.fetch();
+    if (!netInfo.isConnected) {
+      Alert.alert(
+        'Network Error',
+        'No internet connection. Please check your connection and try again.',
+      );
+      return;
+    }
+
+    // Call the fetch function with toast notification
+    const recordings = await fetchUserRecordings(true);
+    console.log(`Refreshed ${recordings.length} voice recordings`);
+
+    return recordings;
+  }, [fetchUserRecordings, isLoadingRecordings]);
 
   const getVoiceSamples = useCallback(
     async (pageNum = 1, shouldAppend = false) => {
@@ -719,12 +772,12 @@ const CoverCreationScreen = () => {
     // fetchExistingConversions();
   }, []);
 
-  // Add refresh handler to refresh both voice models and user recordings
+  // Add refresh handler to refresh everything
   const handleRefresh = useCallback(async () => {
     try {
       setIsRefreshing(true);
 
-      console.log('Pulling to refresh data...');
+      console.log('Pulling to refresh all data...');
 
       // Check network connectivity before refreshing
       const isConnected = await checkNetworkConnectivity();
@@ -741,8 +794,12 @@ const CoverCreationScreen = () => {
 
       // Reload user recordings if user is logged in
       if (userId) {
-        await fetchUserRecordings();
+        console.log('Refreshing user voice recordings...');
+        await fetchUserRecordings(false);
       }
+
+      // Refresh credits
+      await refreshCredits();
 
       // Clear any error states
       setApiRequestStatus(prev => ({
@@ -764,10 +821,25 @@ const CoverCreationScreen = () => {
     checkNetworkConnectivity,
     getVoiceSamples,
     fetchUserRecordings,
+    refreshCredits,
     userId,
     setPage,
     setApiRequestStatus,
   ]);
+
+  // Add useEffect to refresh user recordings when screen becomes focused
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      console.log('AI Cover screen focused, refreshing user recordings...');
+      // Check if we have a userId before trying to refresh
+      if (userId) {
+        fetchUserRecordings(false);
+      }
+    });
+
+    // Cleanup subscription
+    return unsubscribe;
+  }, [navigation, fetchUserRecordings, userId]);
 
   const VocalCard = ({recording}) => {
     const isSelected = !isUsingMyVocal && selectedVoiceId === recording.id;
@@ -814,10 +886,7 @@ const CoverCreationScreen = () => {
               />
               {isCurrentlyPlaying && (
                 <View style={styles.playingOverlay}>
-                  <Image
-                    // source={require('../../../../resource/images/playing.gif')}
-                    style={styles.playingIcon}
-                  />
+                  <Image style={styles.playingIcon} />
                 </View>
               )}
             </View>
@@ -1028,25 +1097,25 @@ const CoverCreationScreen = () => {
   );
 
   // Section to display generated songs
-  const GeneratedSongsSection = useCallback(() => {
-    if (conversions.length === 0) {
-      return null;
-    }
+  // const GeneratedSongsSection = useCallback(() => {
+  //   if (conversions.length === 0) {
+  //     return null;
+  //   }
 
-    return (
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>My Generated Covers</Text>
-        <FlatList
-          data={conversions}
-          renderItem={({item}) => <GeneratedSongCard conversion={item} />}
-          keyExtractor={item => item.id}
-          horizontal={false}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.generatedSongsContainer}
-        />
-      </View>
-    );
-  }, [conversions]); // Fix: Removed the unnecessary GeneratedSongCard dependency
+  //   return (
+  //     <View style={styles.section}>
+  //       <Text style={styles.sectionTitle}>My Generated Covers</Text>
+  //       <FlatList
+  //         data={conversions}
+  //         renderItem={({item}) => <GeneratedSongCard conversion={item} />}
+  //         keyExtractor={item => item.id}
+  //         horizontal={false}
+  //         showsVerticalScrollIndicator={false}
+  //         contentContainerStyle={styles.generatedSongsContainer}
+  //       />
+  //     </View>
+  //   );
+  // }, [conversions]); // Fix: Removed the unnecessary GeneratedSongCard dependency
 
   const MyVocalsSection = () => {
     return (
@@ -1138,102 +1207,109 @@ const CoverCreationScreen = () => {
   return (
     <SafeAreaView style={styles.container}>
       <NetworkStatusBar />
-      <View style={styles.content}>
-        {/* Credits Display */}
-        <View style={styles.creditsContainer}>
-          <Text style={styles.creditsText}>Credits: {creditsValue}</Text>
-        </View>
+      <ScrollView
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={['#F4A460']}
+            tintColor="#F4A460"
+            title="Pull to refresh"
+            titleColor="#F4A460"
+          />
+        }
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollViewContent}>
+        <View style={styles.content}>
+          {/* Credits Display */}
 
-        {/* Link Input Section */}
-        <View style={styles.section}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Paste Youtube/Spotify Link"
-              placeholderTextColor="#666"
-              value={link}
-              onChangeText={setLink}
-            />
-            <TouchableOpacity
-              style={styles.pasteButton}
-              onPress={handlePaste}
-              activeOpacity={0.8}>
-              <Text style={styles.pasteButtonText}>✨ Paste</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Metadata Input Section (Optional) */}
-        {/* <View style={styles.metadataContainer}>
-          <View style={styles.metadataField}>
-            <Text style={styles.metadataLabel}>Song Title (Optional)</Text>
-            <TextInput
-              style={styles.metadataInput}
-              placeholder="Enter song title"
-              placeholderTextColor="#666"
-              value={songTitle}
-              onChangeText={setSongTitle}
-            />
-          </View>
-          <View style={styles.metadataField}>
-            <Text style={styles.metadataLabel}>Artist Name (Optional)</Text>
-            <TextInput
-              style={styles.metadataInput}
-              placeholder="Enter artist name"
-              placeholderTextColor="#666"
-              value={artistName}
-              onChangeText={setArtistName}
-            />
-          </View>
-        </View> */}
-
-        {/* Removed Generated Songs Section - songs will be in library instead */}
-
-        {/* Vocals Section */}
-        {sampleVoice.length === 0 && !isLoadingMore ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#F4A460" />
-            <Text style={styles.loadingText}>Loading voices...</Text>
-          </View>
-        ) : (
+          {/* Link Input Section */}
           <View style={styles.section}>
-            <FlatList
-              data={sampleVoice}
-              ListHeaderComponent={MyVocalsSection}
-              ListFooterComponent={ListFooter}
-              renderItem={({item}) => <VocalCard recording={item} />}
-              keyExtractor={item => item.id.toString()}
-              numColumns={3}
-              contentContainerStyle={styles.vocalsContainerGrid}
-              showsVerticalScrollIndicator={false}
-              columnWrapperStyle={styles.row}
-              getItemLayout={(data, index) => ({
-                length: CARD_WIDTH,
-                offset: CARD_WIDTH * Math.floor(index / 3),
-                index,
-              })}
-              onEndReachedThreshold={0.5}
-              onEndReached={handleLoadMore}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefreshing}
-                  onRefresh={handleRefresh}
-                  colors={['#F4A460']}
-                  tintColor="#F4A460"
-                  title="Refreshing..."
-                  titleColor="#F4A460"
-                />
-              }
-            />
-          </View>
-        )}
+            <View style={styles.titleContainer}>
+              <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
+            </View>
 
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Paste Youtube/Spotify Link"
+                placeholderTextColor="#666"
+                value={link}
+                onChangeText={setLink}
+              />
+              <TouchableOpacity
+                style={styles.pasteButton}
+                onPress={handlePaste}
+                activeOpacity={0.8}>
+                <Text style={styles.pasteButtonText}>✨ Paste</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.creditsContainer}>
+              <Text style={styles.creditsText}>Songs Left: {creditsValue}</Text>
+            </View>
+          </View>
+
+          {/* Metadata Input Section (Optional) */}
+          {/* <View style={styles.metadataContainer}>
+            <View style={styles.metadataField}>
+              <Text style={styles.metadataLabel}>Song Title (Optional)</Text>
+              <TextInput
+                style={styles.metadataInput}
+                placeholder="Enter song title"
+                placeholderTextColor="#666"
+                value={songTitle}
+                onChangeText={setSongTitle}
+              />
+            </View>
+            <View style={styles.metadataField}>
+              <Text style={styles.metadataLabel}>Artist Name (Optional)</Text>
+              <TextInput
+                style={styles.metadataInput}
+                placeholder="Enter artist name"
+                placeholderTextColor="#666"
+                value={artistName}
+                onChangeText={setArtistName}
+              />
+            </View>
+          </View> */}
+
+          {/* Removed Generated Songs Section - songs will be in library instead */}
+
+          {/* Vocals Section */}
+          {sampleVoice.length === 0 && !isLoadingMore ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#F4A460" />
+              <Text style={styles.loadingText}>Loading voices...</Text>
+            </View>
+          ) : (
+            <View style={styles.section}>
+              <FlatList
+                data={sampleVoice}
+                ListHeaderComponent={MyVocalsSection}
+                ListFooterComponent={ListFooter}
+                renderItem={({item}) => <VocalCard recording={item} />}
+                keyExtractor={item => item.id.toString()}
+                numColumns={3}
+                contentContainerStyle={styles.vocalsContainerGrid}
+                showsVerticalScrollIndicator={false}
+                columnWrapperStyle={styles.row}
+                getItemLayout={(data, index) => ({
+                  length: CARD_WIDTH,
+                  offset: CARD_WIDTH * Math.floor(index / 3),
+                  index,
+                })}
+                onEndReachedThreshold={0.5}
+                onEndReached={handleLoadMore}
+              />
+            </View>
+          )}
+        </View>
+      </ScrollView>
+
+      {/* Create Button - Moved outside ScrollView */}
+      <View style={styles.buttonContainer}>
         <TouchableOpacity
-          style={[styles.createButton]}
+          style={styles.createButton}
           activeOpacity={0.8}
           disabled={
             isLoading ||
@@ -1309,16 +1385,16 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 15,
   },
   sectionTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: '600',
     color: '#FDF5E6',
     marginBottom: 16,
   },
   pageHeader: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FDF5E6',
     paddingVertical: 10,
@@ -1407,18 +1483,22 @@ const styles = StyleSheet.create({
     top: 8,
     right: 8,
   },
-  createButton: {
+  buttonContainer: {
     position: 'absolute',
     bottom: 20,
     left: 16,
     right: 16,
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  createButton: {
+    width: '100%',
     height: 56,
     borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 1,
     borderStyle: 'solid',
     borderColor: '#C87D48',
-    marginHorizontal: 15,
   },
   gradient: {
     flex: 1,
@@ -1433,6 +1513,9 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
+  },
+  disabledButtonText: {
+    opacity: 0.5,
   },
   vocalCardContainer: {
     borderRadius: 12,
@@ -1493,26 +1576,9 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  disabledButtonText: {
-    opacity: 0.5,
-  },
-  playingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  playingIcon: {
-    width: 24,
-    height: 24,
-  },
   userRecordingsContainer: {
     marginBottom: 16,
+    minHeight: 130, // Ensure enough height for content
   },
   userRecordingsContent: {
     paddingRight: 16,
@@ -1765,17 +1831,37 @@ const styles = StyleSheet.create({
   // Add styles for credits display
   creditsContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    padding: 8,
     borderRadius: 12,
     alignSelf: 'flex-end',
-    marginTop: 8,
     marginRight: 16,
-    marginBottom: 16,
+    marginTop: 10,
   },
   creditsText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: '#959595',
+    // fontWeight: 'bold',
     fontSize: 16,
+  },
+  scrollView: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  scrollViewContent: {
+    paddingBottom: 100, // Extra padding to account for bottom button
+  },
+  playingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  playingIcon: {
+    width: 24,
+    height: 24,
   },
 });
 

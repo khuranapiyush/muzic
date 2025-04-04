@@ -2,7 +2,6 @@ import {StyleSheet} from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: '4%',
     paddingVertical: 16,
     height: '100%',
     backgroundColor: '#000',
@@ -30,12 +29,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignContent: 'center',
     alignItems: 'center',
+    marginHorizontal: 5,
   },
   mobileTextContainer: {marginBottom: 10},
   mobileContainer: {
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginHorizontal: 15,
   },
   msgContainer: {
     marginTop: 15,
@@ -62,10 +61,14 @@ const styles = StyleSheet.create({
   },
   termsContainer: {
     marginVertical: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: 'flex-start',
+    justifyContent: 'flex-start',
+    marginHorizontal: 10,
   },
-  termsTextContainer: {flex: 1},
+  termsTextContainer: {
+    flex: 1,
+    paddingRight: 10,
+  },
   socialAuthContainer: {
     position: 'absolute',
     bottom: '4%',

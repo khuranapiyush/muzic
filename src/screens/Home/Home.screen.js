@@ -14,7 +14,7 @@ import {
 import config from 'react-native-config';
 import fetcher from '../../dataProvider';
 import {useMutation} from '@tanstack/react-query';
-import {formatTime} from '../../utils/common';
+import {formatDate, formatTime} from '../../utils/common';
 import getStyles from './Home.style';
 import {useTheme} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
@@ -27,6 +27,7 @@ const SongCard = ({
   imageUrl,
   onPress,
   isPlaying,
+  createdAt,
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
@@ -47,8 +48,9 @@ const SongCard = ({
         locations={[0.35, 1]}
         style={styles.gradient}>
         <View style={styles.contentContainer}>
-          <Text style={styles.songTitle}>{title}</Text>
+          <Text style={styles.songTitle}>{title.slice(0, 15)}...</Text>
           <Text style={styles.duration}>{formatTime(duration)}</Text>
+          <Text style={styles.duration}>{formatDate(createdAt)}</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -98,6 +100,7 @@ const SongSection = ({
               audioUrl={item.audioUrl}
               imageUrl={item.imageUrl}
               onPress={onSongPress}
+              createdAt={item.createdAt}
               isPlaying={currentSongId === item.audioUrl}
             />
           )}

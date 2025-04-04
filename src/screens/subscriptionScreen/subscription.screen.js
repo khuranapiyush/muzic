@@ -16,7 +16,6 @@ import CText from '../../components/common/core/Text';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
 import useCredits from '../../hooks/useCredits';
-import {clampRGBA} from 'react-native-reanimated/lib/typescript/Colors';
 
 // Define PlanCard component outside of SubscriptionScreen
 const PlanCard = ({
@@ -85,9 +84,29 @@ const createPendingPayment = async (productId, amount, token) => {
       throw new Error('Authentication token not found');
     }
 
+    // Make sure we have a valid amount - prevent 400 errors
+    if (!amount || amount <= 0 || isNaN(amount)) {
+      console.warn(
+        `Invalid amount for product ${productId}: ${amount}. Calculating new amount.`,
+      );
+      amount = getAmountFromProductId(productId);
+
+      // Double-check we have a valid amount now
+      if (!amount || amount <= 0 || isNaN(amount)) {
+        console.error(`Cannot determine valid amount for product ${productId}`);
+        throw new Error(
+          `Cannot determine valid amount for product ${productId}`,
+        );
+      }
+    }
+
     console.log(
       `Creating pending payment for ${productId} with amount ${amount}`,
     );
+
+    // Make sure amount is a number, not a string
+    amount = Number(amount);
+
     const response = await fetch(`${API_URL}/v1/payments/create-pending`, {
       method: 'POST',
       headers: {
@@ -98,6 +117,8 @@ const createPendingPayment = async (productId, amount, token) => {
     });
 
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Server error response (${response.status}):`, errorData);
       throw new Error(`Failed to create pending payment: ${response.status}`);
     }
 
@@ -188,13 +209,40 @@ const verifyPurchase = async (
 
 // Helper function to get amount from product ID
 const getAmountFromProductId = productId => {
-  // Map product IDs to amounts
-  if (productId === 'payment_100') return 29; // Standard Pack price
-  if (productId === 'premium_pack') return 99; // Premium Pack price
+  try {
+    // First try to get amount from the products list
+    const product = global.availableProducts?.find(
+      p => p.productId === productId,
+    );
+    if (product && product.price) {
+      // Extract numeric value from price string (e.g. "$29.99" -> 29.99)
+      const priceMatch = product.price.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
+      if (priceMatch && priceMatch[0]) {
+        return parseFloat(priceMatch[0]);
+      }
+    }
 
-  // Default fallback
-  console.warn(`Unknown product ID: ${productId}, using default amount 0`);
-  return 0;
+    // Fallback to hardcoded map for backward compatibility
+    if (productId === 'payment_100') return 29;
+    if (productId === 'payment_200') return 59;
+    if (productId === 'payment_500') return 99;
+    if (productId === 'premium_pack') return 99;
+
+    // If all else fails, extract number from product ID if possible
+    const matches = productId.match(/(\d+)/);
+    if (matches && matches[1]) {
+      const credits = parseInt(matches[1], 10);
+      // Apply a simple pricing formula based on credits
+      return Math.round(credits * 0.29);
+    }
+
+    // Default fallback
+    console.warn(`Unknown product ID: ${productId}, using default amount 0`);
+    return 0;
+  } catch (err) {
+    console.error('Error calculating amount from product ID:', err);
+    return 0;
+  }
 };
 
 // Request purchase function
@@ -350,17 +398,33 @@ const clearPendingPurchases = async () => {
         if (Platform.OS === 'android' && purchase.purchaseToken) {
           // For Android
           try {
+            // Check if purchase is already acknowledged to avoid error code 8
+            const isAcknowledged =
+              purchase.acknowledged || purchase.isAcknowledged;
+            if (isAcknowledged) {
+              console.log(
+                `Purchase ${purchase.productId} already acknowledged, skipping.`,
+              );
+              continue;
+            }
+
             // We're just going to try to finish, not worry about the result
             RNIap.finishTransaction({purchase, isConsumable: true})
               .then(() =>
                 console.log(`Cleared purchase: ${purchase.productId}`),
               )
               .catch(err => {
-                // Ignore errors, we just want to clear them
-                console.log(
-                  `Error clearing purchase ${purchase.productId}, but continuing:`,
-                  err.message,
-                );
+                // Ignore error code 8 (already consumed)
+                if (err.code === 8) {
+                  console.log(
+                    `Purchase ${purchase.productId} was already consumed, continuing.`,
+                  );
+                } else {
+                  console.log(
+                    `Error clearing purchase ${purchase.productId}, but continuing:`,
+                    err.message,
+                  );
+                }
               });
           } catch (err) {
             // Ignore errors
@@ -1116,12 +1180,34 @@ const SubscriptionScreen = () => {
               productsToDisplay = directProducts;
               setProducts(directProducts);
 
-              // Set the first product as the selected product ID
-              if (directProducts.length > 0 && directProducts[0].productId) {
-                setSelectedProductId(directProducts[0].productId);
+              // Store products globally for amount calculations
+              global.availableProducts = directProducts;
+
+              // Set the lowest price product as default
+              let lowestPriceProduct = directProducts[0];
+              for (const product of directProducts) {
+                // Extract price value for comparison
+                const currentPrice = parseFloat(
+                  product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
+                    '999999',
+                );
+                const lowestPrice = parseFloat(
+                  lowestPriceProduct.price?.match(
+                    /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
+                  )?.[0] || '999999',
+                );
+
+                if (currentPrice < lowestPrice) {
+                  lowestPriceProduct = product;
+                }
+              }
+
+              // Set the selected product ID
+              if (lowestPriceProduct?.productId) {
+                setSelectedProductId(lowestPriceProduct.productId);
                 console.log(
                   'Setting initial selected product ID:',
-                  directProducts[0].productId,
+                  lowestPriceProduct.productId,
                 );
               }
 
@@ -1158,23 +1244,51 @@ const SubscriptionScreen = () => {
             console.log('All available products:', allProducts);
             setProducts(allProducts);
 
-            // Set the first product as the selected product
-            if (allProducts[0]?.productId) {
-              setSelectedProductId(allProducts[0].productId);
+            // Store products globally for amount calculations
+            global.availableProducts = allProducts;
+
+            // Set the lowest price product as default
+            let lowestPriceProduct = allProducts[0];
+            for (const product of allProducts) {
+              // Extract price value for comparison
+              const currentPrice = parseFloat(
+                product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
+                  '999999',
+              );
+              const lowestPrice = parseFloat(
+                lowestPriceProduct.price?.match(
+                  /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
+                )?.[0] || '999999',
+              );
+
+              if (currentPrice < lowestPrice) {
+                lowestPriceProduct = product;
+              }
+            }
+
+            if (lowestPriceProduct?.productId) {
+              setSelectedProductId(lowestPriceProduct.productId);
               console.log(
                 'Setting initial selected product ID:',
-                allProducts[0].productId,
+                lowestPriceProduct.productId,
               );
             }
           } else {
             // If all else fails, try with some specific product IDs as fallback
-            const specificProductIds = ['payment_300', 'premium_pack'];
+            const specificProductIds = [
+              'payment_100',
+              'payment_200',
+              'premium_pack',
+            ];
             console.log('Trying specific product IDs:', specificProductIds);
 
             const specificProducts = await RNIap.getProducts({
               skus: specificProductIds,
             });
             console.log('Specific products:', specificProducts);
+
+            // Store products globally for amount calculations
+            global.availableProducts = specificProducts;
 
             if (specificProducts.length > 0) {
               setProducts(specificProducts);
@@ -1191,7 +1305,11 @@ const SubscriptionScreen = () => {
           console.error('Error fetching products from store:', err);
 
           // Last resort fallback to hardcoded product IDs
-          const fallbackProductIds = ['payment_300', 'premium_pack'];
+          const fallbackProductIds = [
+            'payment_100',
+            'payment_200',
+            'premium_pack',
+          ];
           console.log('Using fallback product IDs:', fallbackProductIds);
 
           try {
@@ -1200,6 +1318,8 @@ const SubscriptionScreen = () => {
             });
             if (fallbackProducts.length > 0) {
               setProducts(fallbackProducts);
+              // Store products globally for amount calculations
+              global.availableProducts = fallbackProducts;
               setSelectedProductId(fallbackProducts[0].productId);
             }
           } catch (fallbackErr) {
@@ -1643,7 +1763,7 @@ const SubscriptionScreen = () => {
               style={styles.backArrowIcon}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Credit Packs</Text>
+          <Text style={styles.headerTitle}>Subscriptions</Text>
 
           {/* Add Restore Purchases button */}
           <TouchableOpacity
@@ -1657,7 +1777,10 @@ const SubscriptionScreen = () => {
         <View style={styles.creditsContainer}>
           <Text style={styles.creditsTitle}>Credits</Text>
           <Text style={styles.creditsNumber}>{displayCredits()}</Text>
-          <Text style={styles.creditsSubtitle}>Songs left</Text>
+          {/* <Text style={styles.creditsSubtitle}>Songs left</Text> */}
+          <Text style={styles.creditsSubtitleText}>
+            *1 Credit = 1 Song Generation
+          </Text>
         </View>
 
         <View style={styles.divider} />
@@ -1696,10 +1819,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   headerTitle: {
-    color: 'white',
-    fontSize: 18,
     lineHeight: 24,
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#FDF5E6',
     marginLeft: 15,
     flex: 1,
   },
@@ -1714,8 +1837,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   backArrowIcon: {
-    width: 20,
-    height: 20,
+    width: 40,
+    height: 40,
     resizeMode: 'contain',
   },
   restoreButton: {
@@ -1746,6 +1869,12 @@ const styles = StyleSheet.create({
   creditsSubtitle: {
     color: 'white',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  creditsSubtitleText: {
+    color: '#AFAFAF',
+    marginTop: 10,
+    fontSize: 14,
     textAlign: 'center',
   },
   divider: {
