@@ -25,10 +25,9 @@ const VerifyOtpScreen = ({route}) => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
   const {defaultEventData} = useEvent();
-  const {userId} = useSelector(state => state.user);
 
   // Get parameters from route
-  const {phone, countryCode, referralCode} = route.params || {};
+  const {phone, countryCode} = route.params || {};
 
   const {mutate: loginMobileApi} = useMutation(data => authLoginSignup(data), {
     onSuccess: () => {
@@ -96,8 +95,6 @@ const VerifyOtpScreen = ({route}) => {
     const data = {
       phoneNumber: phone,
       phoneCountryCode: countryCode,
-      userId: userId,
-      ...(referralCode && {referralCode}),
     };
 
     loginMobileApi(data);
