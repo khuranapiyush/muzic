@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -9,15 +9,214 @@ import {
   ImageBackground,
   SafeAreaView,
   Platform,
+  NativeModules,
+  ActivityIndicator,
 } from 'react-native';
 import appImages from '../../../../resource/images';
 import {SCREEN_HEIGHT} from '@gorhom/bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
+import config from 'react-native-config';
+import {useSelector} from 'react-redux';
+import {getAuthToken} from '../../../../utils/authUtils';
 
+// Helper function to get user's country code
+const getUserCountryCode = async () => {
+  try {
+    // Get country code from device locale
+    const deviceLocale =
+      Platform.OS === 'ios'
+        ? NativeModules.SettingsManager.settings.AppleLocale ||
+          NativeModules.SettingsManager.settings.AppleLanguages[0]
+        : NativeModules.I18nManager.localeIdentifier;
+
+    console.log('Raw device locale:', deviceLocale);
+
+    let countryCode = 'US'; // Default fallback
+
+    if (deviceLocale) {
+      // Method 1: Extract from locale format like "en_US" or "en-US"
+      const parts = deviceLocale.split(/[_-]/);
+      if (parts.length > 1) {
+        const lastPart = parts[parts.length - 1].toUpperCase();
+        // Verify it's a valid country code (2 uppercase letters)
+        if (/^[A-Z]{2}$/.test(lastPart)) {
+          countryCode = lastPart;
+        }
+      }
+
+      // Method 2: If deviceLocale itself is just a country code
+      if (
+        deviceLocale.length === 2 &&
+        /^[A-Z]{2}$/.test(deviceLocale.toUpperCase())
+      ) {
+        countryCode = deviceLocale.toUpperCase();
+      }
+    }
+
+    console.log('Detected country code:', countryCode);
+    return countryCode;
+  } catch (error) {
+    console.error('Error getting country code:', error);
+    return 'US'; // Default to US if we can't determine
+  }
+};
+
+// Format price with currency symbol
+const formatPriceWithSymbol = priceObj => {
+  if (!priceObj || !priceObj.amount || !priceObj.currency) {
+    return '';
+  }
+
+  const amount = priceObj.amount;
+  const currency = priceObj.currency;
+
+  // Map currency codes to symbols
+  const symbols = {
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    INR: '₹',
+    JPY: '¥',
+    AUD: 'A$',
+    CAD: 'C$',
+    THB: '฿',
+    KRW: '₩',
+    RUB: '₽',
+    TRY: '₺',
+    BRL: 'R$',
+    CNY: '¥',
+  };
+
+  const symbol = symbols[currency] || currency;
+  return `${symbol}${amount}`;
+};
+
+// Component that displays product data from API
 const PromoModal = ({visible, onClose}) => {
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(true);
+  const [productData, setProductData] = useState(null);
+  const [userCountry, setUserCountry] = useState('US');
+  // Get auth state from Redux
+  const authState = useSelector(state => state.auth);
+
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      try {
+        setLoading(true);
+
+        // Get user's country code
+        const countryCode = await getUserCountryCode();
+        setUserCountry(countryCode);
+
+        // Get auth token
+        const token = await getAuthToken();
+        if (!token) {
+          console.error('Authentication token not found');
+          setLoading(false);
+          return;
+        }
+
+        console.log('Fetching products with auth token');
+
+        // Simple fetch from the API endpoint with authentication
+        const response = await fetch(
+          `${
+            config.API_BASE_URL || 'http://localhost:3010'
+          }/v1/payments/play-store-products`,
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`API error: ${response.status} - ${errorText}`);
+          setLoading(false);
+          return;
+        }
+
+        const result = await response.json();
+        console.log('API Response:', result);
+
+        if (result.success && result.data && result.data.length > 0) {
+          // Use the first product from the data array
+          setProductData(result.data[0]);
+        }
+      } catch (error) {
+        console.error('Error fetching product details:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (visible) {
+      fetchProductDetails();
+    }
+  }, [visible, authState.accessToken]);
+
+  // Get product price for user's country
+  const getProductPrice = () => {
+    if (!productData) return null;
+
+    // Try to get price for user's country
+    if (productData.prices && productData.prices[userCountry]) {
+      return productData.prices[userCountry];
+    }
+
+    // Fall back to default price
+    return productData.defaultPrice;
+  };
+
+  // Extract product title
+  const getProductTitle = () => {
+    if (
+      !productData ||
+      !productData.listings ||
+      !productData.listings['en-US']
+    ) {
+      return '';
+    }
+    return productData.listings['en-US'].title || '';
+  };
+
+  // Extract product description and convert to features
+  const getProductFeatures = () => {
+    if (
+      !productData ||
+      !productData.listings ||
+      !productData.listings['en-US']
+    ) {
+      return [];
+    }
+
+    const description = productData.listings['en-US'].description;
+    if (!description) return [];
+
+    return description.split('\n').filter(line => line.trim().length > 0);
+  };
+
+  console.log(productData, 'productData');
+
+  // Calculate "original" price for display (50% markup)
+  const getOriginalPrice = () => {
+    const priceObj = getProductPrice();
+    if (!priceObj) return '';
+
+    const originalPriceObj = {
+      amount: Math.round(priceObj.amount * 1.5),
+      currency: priceObj.currency,
+    };
+
+    return formatPriceWithSymbol(originalPriceObj);
+  };
+
   return (
     <Modal
       animationType="slide"
@@ -47,26 +246,29 @@ const PromoModal = ({visible, onClose}) => {
             <LinearGradient
               colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,1)']}
               style={styles.container}>
-              <Text style={styles.discountText}>88% OFF</Text>
+              {loading ? (
+                <ActivityIndicator size="large" color="#F97316" />
+              ) : (
+                <>
+                  <Text style={styles.discountText}>33% OFF</Text>
 
-              <View style={styles.featuresContainer}>
-                {[
-                  'Unlimited Song Creations',
-                  'Exclusive AI Voices',
-                  'Convert Songs to Your Voice',
-                  'Bonus Credits Every Month',
-                ].map((feature, index) => (
-                  <Text key={index} style={styles.featureText}>
-                    • {feature}
-                  </Text>
-                ))}
-              </View>
+                  <View style={styles.featuresContainer}>
+                    {getProductFeatures().map((feature, index) => (
+                      <Text key={index} style={styles.featureText}>
+                        • {feature}
+                      </Text>
+                    ))}
+                  </View>
 
-              <View style={styles.priceContainer}>
-                <Text style={styles.oldPrice}>₹1599</Text>
-                <Text style={styles.newPrice}>₹999 </Text>
-                <Text style={styles.newPriceText}>per month</Text>
-              </View>
+                  <View style={styles.priceContainer}>
+                    <Text style={styles.oldPrice}>{getOriginalPrice()}</Text>
+                    <Text style={styles.newPrice}>
+                      {formatPriceWithSymbol(getProductPrice())}
+                    </Text>
+                    <Text style={styles.newPriceText}> per month</Text>
+                  </View>
+                </>
+              )}
 
               <Text style={styles.renewalText}>
                 Auto renewable. Cancel anytime.

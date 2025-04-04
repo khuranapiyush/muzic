@@ -15,7 +15,7 @@ const HeaderRight = ({mode}) => {
   // Safely get numeric credit value
   const creditValue = (() => {
     if (typeof credits === 'object' && credits !== null) {
-      return credits.data.balance || 0;
+      return credits?.data?.balance || 0;
     }
     return typeof credits === 'number' ? credits : 0;
   })();

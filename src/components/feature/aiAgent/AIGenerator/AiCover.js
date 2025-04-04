@@ -40,7 +40,7 @@ const COVER_GENERATION_COST = 1;
 // Helper function to safely display credits
 const getCreditsValue = creditsData => {
   if (typeof creditsData === 'object' && creditsData !== null) {
-    return creditsData.balance || 0;
+    return creditsData?.data?.balance || 0;
   }
   return typeof creditsData === 'number' ? creditsData : 0;
 };

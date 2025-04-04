@@ -22,7 +22,7 @@ export const useCredits = () => {
   // Handle both object and primitive credit values
   const getCreditsValue = creditsData => {
     if (typeof creditsData === 'object' && creditsData !== null) {
-      return creditsData.data.balance || 0;
+      return creditsData?.data?.balance || 0;
     }
     return typeof creditsData === 'number' ? creditsData : 0;
   };
