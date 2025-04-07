@@ -3,20 +3,18 @@ import {createSelector} from 'reselect';
 // Selectors for auth slice
 const selectAuthState = state => state.auth;
 
-export const selectIsLoggedIn = createSelector(
-  [selectAuthState],
-  auth => auth.isLoggedIn,
-);
-
-export const selectIsGuest = createSelector(
-  [selectAuthState],
-  auth => auth.isGuest,
-);
-
 // Selectors for user slice
 const selectUserState = state => state.user;
 
-export const selectUserId = createSelector([selectUserState], user => user.id);
+export const selectIsLoggedIn = createSelector(
+  [selectUserState],
+  user => user.isLoggedIn,
+);
+
+export const selectUserId = createSelector(
+  [selectUserState],
+  user => user.userId || user.id || user._id,
+);
 
 // Selectors for App slice
 const selectAppState = state => state.app;
@@ -28,11 +26,10 @@ export const selectDeviceId = createSelector(
 
 // Combined selector
 export const useAuthUser = createSelector(
-  [selectIsLoggedIn, selectIsGuest, selectUserId, selectDeviceId],
-  (isLoggedIn, isGuest, id, deviceId) => {
+  [selectIsLoggedIn, selectUserId, selectDeviceId],
+  (isLoggedIn, id, deviceId) => {
     return {
       isLoggedIn,
-      isGuest,
       id,
       deviceId,
     };

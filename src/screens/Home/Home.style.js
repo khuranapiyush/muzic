@@ -50,7 +50,7 @@ const getStyles = theme => {
       marginBottom: 16,
     },
     sectionTitle: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: 'bold',
       color: '#FDF5E6',
       paddingVertical: 10,
@@ -106,6 +106,7 @@ const getStyles = theme => {
       fontWeight: '500',
     },
     duration: {
+      marginTop: 3,
       color: '#666',
       fontSize: 14,
     },

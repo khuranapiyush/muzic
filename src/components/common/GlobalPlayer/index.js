@@ -130,7 +130,8 @@ const GlobalPlayer = () => {
             <TouchableOpacity
               style={styles.closePlayerButton}
               onPress={handleClosePlayer}
-              hitSlop={{top: 10, right: 10, bottom: 10, left: 10}}>
+              // hitSlop={{top: 1, right: 1, bottom: 1, left: 1}}
+            >
               <View style={styles.closeButtonCircle}>
                 <Text style={styles.closeButtonText}>×</Text>
               </View>
@@ -373,7 +374,7 @@ const styles = StyleSheet.create({
   gradientContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
+    padding: 9,
     borderRadius: 16,
     margin: 0,
   },
@@ -617,7 +618,7 @@ const styles = StyleSheet.create({
   },
   closePlayerButton: {
     position: 'absolute',
-    top: 5,
+    top: 3,
     right: 5,
     zIndex: 10,
   },

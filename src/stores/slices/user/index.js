@@ -4,6 +4,7 @@ const initialState = {
   userId: '',
   credits: 0,
   creditHistory: [],
+  isLoggedIn: false,
 };
 
 // Helper function to safely get credit value
@@ -19,15 +20,23 @@ const user = createSlice({
   initialState,
   reducers: {
     setUser: (state, action) => {
-      const {_id, id} = action?.payload?.user || {};
-      return {...action?.payload?.user, userId: _id || id};
+      const isLoggedIn = action?.payload?.isLoggedIn ?? false;
+      const userData = action?.payload?.user || action?.payload || {};
+      const {_id, id} = userData;
+
+      return {
+        ...state,
+        ...userData,
+        userId: _id || id || state.userId,
+        isLoggedIn,
+      };
     },
     resetUser: (state, action) => {
       return initialState;
     },
     setUserData: (state, action) => {
       const {_id, id} = action?.payload || {};
-      return {...action?.payload, userId: _id || id};
+      return {...state, ...action?.payload, userId: _id || id || state.userId};
     },
     updateUserData: (state, action) => {
       return {...state, ...action?.payload};

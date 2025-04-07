@@ -19,7 +19,7 @@ const CustomHeader = props => {
           alignItems: 'center',
           paddingHorizontal: 15,
           backgroundColor: '#000',
-          marginTop: 35,
+          marginTop: 15,
         }}>
         <HeaderLeft mode={mode} />
         <HeaderRight mode={mode} />

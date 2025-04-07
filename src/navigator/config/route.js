@@ -6,6 +6,7 @@ import RootStackNavigator from '../RootStackNavigator';
 import GenerateAIScreen from '../../screens/AIGenerator/AIGenerator.screen';
 import VoiceRecordScreen from '../../screens/VoiceRecordScreen';
 import SubscriptionScreen from '../../screens/subscriptionScreen/subscription.screen';
+import AuthStackNavigator from '../AuthStackNavigator';
 
 export const mainAppRoutes = [
   {name: ROUTE_NAME.HomeStack, component: HomeStackNavigator},
@@ -27,8 +28,14 @@ export const appStackRoutes = [
     options: {
       headerShown: false,
       headerTitle: props => {
-        const title = props?.route?.params?.title || 'ComposerAI';
-        return <CText size="bricolageHeading" style={{flex: 1}} text={title} />;
+        const title = 'Generate Song';
+        return (
+          <CText
+            size="bricolageHeading"
+            style={{flex: 1, marginTop: 20}}
+            text={title}
+          />
+        );
       },
     },
   },
@@ -44,6 +51,14 @@ export const appStackRoutes = [
     name: ROUTE_NAME.SubscriptionScreen,
     component: SubscriptionScreen,
     key: ROUTE_NAME.SubscriptionScreen,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    name: ROUTE_NAME.AuthStack,
+    component: AuthStackNavigator,
+    key: ROUTE_NAME.AuthStack,
     options: {
       headerShown: false,
     },

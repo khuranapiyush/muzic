@@ -15,7 +15,7 @@ const HeaderRight = ({mode}) => {
   // Safely get numeric credit value
   const creditValue = (() => {
     if (typeof credits === 'object' && credits !== null) {
-      return credits.data.balance || 0;
+      return credits?.data?.balance || 0;
     }
     return typeof credits === 'number' ? credits : 0;
   })();
@@ -37,10 +37,7 @@ const HeaderRight = ({mode}) => {
   };
 
   const handleCreditPress = () => {
-    // If user has credits, go to generator, otherwise go to subscription
-    if (creditValue <= 0) {
-      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-    }
+    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
   };
 
   return (

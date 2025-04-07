@@ -476,7 +476,7 @@ const styles = StyleSheet.create({
     tintColor: '#FFF',
   },
   title: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#FDF5E6',
     marginTop: 10,

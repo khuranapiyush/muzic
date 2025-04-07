@@ -1,6 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import React, {useState, useEffect, useCallback} from 'react';
-import {Image, ScrollView} from 'react-native';
+import {Image, ScrollView, NativeModules} from 'react-native';
 import {
   View,
   Text,
@@ -84,9 +84,29 @@ const createPendingPayment = async (productId, amount, token) => {
       throw new Error('Authentication token not found');
     }
 
+    // Make sure we have a valid amount - prevent 400 errors
+    if (!amount || amount <= 0 || isNaN(amount)) {
+      console.warn(
+        `Invalid amount for product ${productId}: ${amount}. Calculating new amount.`,
+      );
+      amount = getAmountFromProductId(productId);
+
+      // Double-check we have a valid amount now
+      if (!amount || amount <= 0 || isNaN(amount)) {
+        console.error(`Cannot determine valid amount for product ${productId}`);
+        throw new Error(
+          `Cannot determine valid amount for product ${productId}`,
+        );
+      }
+    }
+
     console.log(
       `Creating pending payment for ${productId} with amount ${amount}`,
     );
+
+    // Make sure amount is a number, not a string
+    amount = Number(amount);
+
     const response = await fetch(`${API_URL}/v1/payments/create-pending`, {
       method: 'POST',
       headers: {
@@ -97,6 +117,8 @@ const createPendingPayment = async (productId, amount, token) => {
     });
 
     if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Server error response (${response.status}):`, errorData);
       throw new Error(`Failed to create pending payment: ${response.status}`);
     }
 
@@ -187,19 +209,61 @@ const verifyPurchase = async (
 
 // Helper function to get amount from product ID
 const getAmountFromProductId = productId => {
-  // Map product IDs to amounts
-  if (productId === 'payment_100') return 29; // Standard Pack price
-  if (productId === 'premium_pack') return 99; // Premium Pack price
+  try {
+    // First try to get amount from the products list
+    const product = global.availableProducts?.find(
+      p => p.productId === productId,
+    );
+    if (product && product.price) {
+      // Extract numeric value from price string (e.g. "$29.99" -> 29.99)
+      const priceMatch = product.price.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
+      if (priceMatch && priceMatch[0]) {
+        return parseFloat(priceMatch[0]);
+      }
+    }
 
-  // Default fallback
-  console.warn(`Unknown product ID: ${productId}, using default amount 0`);
-  return 0;
+    // Fallback to hardcoded map for backward compatibility
+    if (productId === 'payment_100') return 29;
+    if (productId === 'payment_200') return 59;
+    if (productId === 'payment_500') return 99;
+    if (productId === 'premium_pack') return 99;
+
+    // If all else fails, extract number from product ID if possible
+    const matches = productId.match(/(\d+)/);
+    if (matches && matches[1]) {
+      const credits = parseInt(matches[1], 10);
+      // Apply a simple pricing formula based on credits
+      return Math.round(credits * 0.29);
+    }
+
+    // Default fallback
+    console.warn(`Unknown product ID: ${productId}, using default amount 0`);
+    return 0;
+  } catch (err) {
+    console.error('Error calculating amount from product ID:', err);
+    return 0;
+  }
 };
 
 // Request purchase function
-const requestPurchase = async productId => {
+const requestPurchase = async (productId, availableProducts) => {
   try {
     console.log(`Requesting purchase for ${productId}`);
+    console.log(
+      'Available products for purchase:',
+      availableProducts?.map(p => p.productId).join(', ') || 'None',
+    );
+
+    // Double-check that product exists
+    if (
+      availableProducts &&
+      !availableProducts.some(p => p.productId === productId)
+    ) {
+      console.error(`Product ${productId} not found in available products!`);
+      throw new Error(
+        `The product ID '${productId}' is not available. Please check your configuration.`,
+      );
+    }
 
     // Use different methods for Android vs iOS
     let purchase;
@@ -219,6 +283,15 @@ const requestPurchase = async productId => {
     return purchase;
   } catch (err) {
     console.error('Error requesting purchase:', err);
+    if (err.code === 'E_UNKNOWN') {
+      console.log('Detailed error info:', err.message, err.debugMessage || '');
+      // This could be a product not found error
+      if (err.message.includes('sku') && err.message.includes('not found')) {
+        throw new Error(
+          `Product ${productId} not found. Make sure you've added it to your Google Play Console.`,
+        );
+      }
+    }
     throw err;
   }
 };
@@ -325,17 +398,33 @@ const clearPendingPurchases = async () => {
         if (Platform.OS === 'android' && purchase.purchaseToken) {
           // For Android
           try {
+            // Check if purchase is already acknowledged to avoid error code 8
+            const isAcknowledged =
+              purchase.acknowledged || purchase.isAcknowledged;
+            if (isAcknowledged) {
+              console.log(
+                `Purchase ${purchase.productId} already acknowledged, skipping.`,
+              );
+              continue;
+            }
+
             // We're just going to try to finish, not worry about the result
             RNIap.finishTransaction({purchase, isConsumable: true})
               .then(() =>
                 console.log(`Cleared purchase: ${purchase.productId}`),
               )
               .catch(err => {
-                // Ignore errors, we just want to clear them
-                console.log(
-                  `Error clearing purchase ${purchase.productId}, but continuing:`,
-                  err.message,
-                );
+                // Ignore error code 8 (already consumed)
+                if (err.code === 8) {
+                  console.log(
+                    `Purchase ${purchase.productId} was already consumed, continuing.`,
+                  );
+                } else {
+                  console.log(
+                    `Error clearing purchase ${purchase.productId}, but continuing:`,
+                    err.message,
+                  );
+                }
               });
           } catch (err) {
             // Ignore errors
@@ -494,11 +583,177 @@ const getCreditsForProduct = productId => {
   return creditMap[productId] || 0;
 };
 
+// Add a helper function to get user's country code
+const getUserCountryCode = async () => {
+  try {
+    // Get country code from device locale
+    console.log(
+      NativeModules.I18nManager.localeIdentifier,
+      'NativeModules.I18nManager.localeIdentifier',
+    );
+    const deviceLocale =
+      Platform.OS === 'ios'
+        ? NativeModules.SettingsManager.settings.AppleLocale ||
+          NativeModules.SettingsManager.settings.AppleLanguages[0]
+        : NativeModules.I18nManager.localeIdentifier;
+
+    // Extract the country code (last 2 characters of locale like 'en-US')
+    console.log(deviceLocale, 'deviceLocale');
+    const countryCode = deviceLocale.slice(-2).toUpperCase();
+    console.log('Device country code:', countryCode);
+    return countryCode;
+  } catch (error) {
+    console.error('Error getting country code:', error);
+    return 'US'; // Default to US if we can't determine
+  }
+};
+
+// New function to fetch products directly from Google Play API
+const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
+  try {
+    console.log(
+      `Fetching Play Store products for package: ${packageName}, region: ${regionCode}`,
+    );
+
+    // Instead of directly calling Google Play API, use our backend endpoint
+    const endpoint = `${API_URL}/v1/payments/play-store-products`;
+
+    console.log(`Using endpoint: ${endpoint}`);
+
+    const response = await fetch(endpoint, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`API error: ${response.status} - ${errorText}`);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log('API Response:', result);
+
+    // Check if response has the expected format
+    if (result.success && result.data && result.data.length > 0) {
+      // Process the data
+      const localizedProducts = result.data.map(product => {
+        // Extract data using the API response format
+        const title =
+          product.listings?.['en-US']?.title || product.productId || '';
+        const description = product.listings?.['en-US']?.description || '';
+
+        // Get price for user's country or default price
+        const price = product.prices?.[regionCode] || product.defaultPrice;
+
+        // Extract features from description
+        const features = extractFeaturesFromDescription(description);
+
+        // Format the price for display
+        const formattedPrice = price
+          ? `${price.currency} ${price.amount}`
+          : 'Not available';
+
+        return {
+          productId: product.productId,
+          sku: product.productId,
+          title: title,
+          description: description,
+          features: features,
+          price: formattedPrice,
+          localizedPrice: formattedPrice,
+          countryPrices: product.prices || {},
+        };
+      });
+
+      return localizedProducts;
+    }
+
+    // If the API doesn't return data in the expected format
+    return [];
+  } catch (error) {
+    console.error('Error fetching Play Store products:', error);
+    return [];
+  }
+};
+
+// Helper function to extract features from description
+const extractFeaturesFromDescription = description => {
+  if (!description) return [];
+
+  // Look for bullet points or numbered lists in description
+  const bulletPattern = /[•\-\*]\s*([^\n•\-\*]+)/g;
+  const numberedPattern = /\d+\.\s+([^\n]+)/g;
+  const featureMatches = [];
+
+  // Extract bullet points
+  let match;
+  while ((match = bulletPattern.exec(description)) !== null) {
+    featureMatches.push(match[1].trim());
+  }
+
+  // If no bullet points, try numbered lists
+  if (featureMatches.length === 0) {
+    while ((match = numberedPattern.exec(description)) !== null) {
+      featureMatches.push(match[1].trim());
+    }
+  }
+
+  // If still no features, split by newlines
+  if (featureMatches.length === 0) {
+    return description
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+  }
+
+  return featureMatches;
+};
+
+// Add debug helper function for purchases
+const debugPurchaseRequest = (productId, products, operation = 'Purchase') => {
+  console.log(`\n========== ${operation} DEBUG INFO ==========`);
+  console.log(`Operation: ${operation}`);
+  console.log(`Product ID: ${productId}`);
+  console.log(`Is product ID undefined? ${productId === undefined}`);
+  console.log(`Is product ID null? ${productId === null}`);
+
+  if (products) {
+    console.log(`Available products: ${products.length}`);
+    const productIds = products.map(p => p.productId || p.sku || 'unknown');
+    console.log(`Product IDs: ${JSON.stringify(productIds)}`);
+
+    const matchingProduct = products.find(
+      p => p.productId === productId || p.sku === productId,
+    );
+    console.log(`Matching product found: ${matchingProduct ? 'YES' : 'NO'}`);
+
+    if (matchingProduct) {
+      console.log(
+        `Matching product details: ${JSON.stringify({
+          productId: matchingProduct.productId,
+          sku: matchingProduct.sku,
+          title: matchingProduct.title,
+          price: matchingProduct.price || matchingProduct.localizedPrice,
+        })}`,
+      );
+    }
+  } else {
+    console.log('Products array is null or undefined');
+  }
+  console.log('===========================================\n');
+};
+
 const SubscriptionScreen = () => {
-  const [selectedPlan, setSelectedPlan] = useState('monthly');
+  // Replace the selectedPlan state with selectedProductId
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [purchasePending, setPurchasePending] = useState(false);
+  const [userCountry, setUserCountry] = useState('US'); // Default country code
   const authState = useSelector(state => state.auth);
 
   // Replace local credits state with Redux
@@ -508,7 +763,7 @@ const SubscriptionScreen = () => {
   const displayCredits = () => {
     if (typeof credits === 'object' && credits !== null) {
       // If credits is an object with balance property, use that
-      return credits.data.balance || 0;
+      return credits?.data?.balance || 0;
     }
     // Otherwise use the credits number directly
     return typeof credits === 'number' ? credits : 0;
@@ -519,170 +774,222 @@ const SubscriptionScreen = () => {
     refreshCredits();
   }, [refreshCredits]);
 
-  // Handle existing purchase
-  const handleExistingPurchase = useCallback(async () => {
+  // Add function to fetch direct Google Play products
+  const fetchDirectPlayStoreProducts = useCallback(async () => {
     try {
-      console.log('Checking for existing purchases...');
-      setPurchasePending(true);
-
-      // Refresh credits before processing purchase
-      await refreshCredits();
-
-      const purchases = await RNIap.getAvailablePurchases();
-      console.log('Available purchases:', purchases);
-
-      if (purchases.length === 0) {
-        console.log(
-          'No existing purchases found, despite E_ALREADY_OWNED error',
-        );
-        setPurchasePending(false);
-        return;
+      if (Platform.OS !== 'android') {
+        console.log('Not an Android device, skipping direct Play Store fetch');
+        return [];
       }
 
-      // Find the purchase for the selected product
-      const productId =
-        selectedPlan === 'monthly' ? 'payment_100' : 'premium_pack';
-      let existingPurchase = purchases.find(p => p.productId === productId);
+      // Get user's country code
+      const countryCode = await getUserCountryCode();
+      setUserCountry(countryCode);
 
-      // If not found, just use the first available purchase
-      if (!existingPurchase && purchases.length > 0) {
-        existingPurchase = purchases[0];
+      // Get the package name from config
+      const packageName = config.GOOGLE_PLAY_PACKAGE_NAME;
+
+      // For demonstration, we'd get the access token from your backend
+      // Here we use the auth token, but in production you'd use a dedicated token
+      // with Google Play API permissions
+      const accessToken = authState.accessToken;
+
+      if (!accessToken) {
+        console.log('No access token available for Google Play API');
+        return [];
       }
 
-      if (existingPurchase) {
-        // Check if already processed
-        const purchaseKey =
-          Platform.OS === 'android'
-            ? existingPurchase.purchaseToken
-            : existingPurchase.transactionId;
+      // Fetch products directly from Google Play
+      const playStoreProducts = await fetchPlayStoreProducts(
+        packageName,
+        accessToken,
+        countryCode,
+      );
 
-        if (processedPurchases.has(purchaseKey)) {
+      return playStoreProducts;
+    } catch (error) {
+      console.error('Error fetching direct Play Store products:', error);
+      return [];
+    }
+  }, [authState.accessToken]);
+
+  // Handle existing purchase
+  const handleExistingPurchase = useCallback(
+    async productId => {
+      try {
+        console.log('Checking for existing purchases...');
+        setPurchasePending(true);
+
+        // Refresh credits before processing purchase
+        await refreshCredits();
+
+        const purchases = await RNIap.getAvailablePurchases();
+        console.log('Available purchases:', purchases);
+
+        if (purchases.length === 0) {
           console.log(
-            'Existing purchase already processed, skipping:',
-            purchaseKey,
+            'No existing purchases found, despite E_ALREADY_OWNED error',
           );
           setPurchasePending(false);
           return;
         }
 
-        // Mark as processed immediately
-        processedPurchases.add(purchaseKey);
-        console.log('Existing purchase marked as processed:', purchaseKey);
+        // Find the purchase for the selected product
+        let existingPurchase = null;
 
-        console.log('Processing existing purchase:', existingPurchase);
+        if (productId) {
+          existingPurchase = purchases.find(p => p.productId === productId);
+          console.log(`Looking for specific product ID: ${productId}`);
+        }
 
-        try {
-          if (authState.accessToken) {
-            try {
-              const pendingPayment = await createPendingPayment(
-                existingPurchase.productId,
-                getAmountFromProductId(existingPurchase.productId),
-                authState.accessToken,
-              );
-              console.log('Pending payment created for existing purchase');
-
-              const processResult = await processPurchase(
-                existingPurchase,
-                authState.accessToken,
-              );
-              console.log('Existing purchase processed');
-
-              const purchaseToken =
-                Platform.OS === 'android'
-                  ? existingPurchase.purchaseToken
-                  : existingPurchase.transactionReceipt;
-
-              const verifyResult = await verifyPurchase(
-                purchaseToken,
-                existingPurchase.productId,
-                authState.accessToken,
-              );
-              console.log('Existing purchase verified:', verifyResult);
-
-              if (verifyResult && verifyResult.status === 'SUCCESS') {
-                if (verifyResult.credits) {
-                  // Update Redux state with absolute value instead of local state
-                  updateUserCredits(verifyResult.credits);
-                } else {
-                  const creditsToAdd = getCreditsForProduct(
-                    existingPurchase.productId,
-                  );
-                  addCredits(creditsToAdd);
-                }
-
-                // Refresh credits after purchase is processed
-                await refreshCredits();
-
-                Alert.alert(
-                  'Purchase Processed',
-                  'Your previous purchase has been processed successfully!',
-                );
-              } else {
-                Alert.alert(
-                  'Verification Failed',
-                  'Your purchase could not be verified. Please contact support.',
-                );
-              }
-
-              // Skip finishTransaction for Android
-              if (Platform.OS === 'ios') {
-                // Finish the transaction for iOS
-                try {
-                  await RNIap.finishTransaction({
-                    purchase: existingPurchase,
-                    isConsumable: true,
-                  });
-                  console.log('iOS transaction finished for existing purchase');
-                } catch (finishErr) {
-                  console.log(
-                    'Error finishing iOS transaction, but continuing:',
-                    finishErr,
-                  );
-                }
-              } else {
-                console.log(
-                  'Skipping finishTransaction for Android existing purchase',
-                );
-              }
-            } catch (apiErr) {
-              console.error('API error during existing purchase flow:', apiErr);
-              Alert.alert(
-                'Purchase Processing Error',
-                'We had trouble processing your previous purchase. Please contact support if credits are not added.',
-              );
-            }
-          } else {
-            Alert.alert(
-              'Authentication Required',
-              'Please log in to process your purchase.',
-            );
-          }
-        } catch (err) {
-          console.error('Error handling existing purchase:', err);
-          Alert.alert(
-            'Error',
-            'Failed to process existing purchase: ' + err.message,
+        // If not found, just use the first available purchase
+        if (!existingPurchase && purchases.length > 0) {
+          existingPurchase = purchases[0];
+          console.log(
+            'Using first available purchase:',
+            existingPurchase.productId,
           );
         }
+
+        if (existingPurchase) {
+          // Check if already processed
+          const purchaseKey =
+            Platform.OS === 'android'
+              ? existingPurchase.purchaseToken
+              : existingPurchase.transactionId;
+
+          if (processedPurchases.has(purchaseKey)) {
+            console.log(
+              'Existing purchase already processed, skipping:',
+              purchaseKey,
+            );
+            setPurchasePending(false);
+            return;
+          }
+
+          // Mark as processed immediately
+          processedPurchases.add(purchaseKey);
+          console.log('Existing purchase marked as processed:', purchaseKey);
+
+          console.log('Processing existing purchase:', existingPurchase);
+
+          try {
+            if (authState.accessToken) {
+              try {
+                const pendingPayment = await createPendingPayment(
+                  existingPurchase.productId,
+                  getAmountFromProductId(existingPurchase.productId),
+                  authState.accessToken,
+                );
+                console.log('Pending payment created for existing purchase');
+
+                const processResult = await processPurchase(
+                  existingPurchase,
+                  authState.accessToken,
+                );
+                console.log('Existing purchase processed');
+
+                const purchaseToken =
+                  Platform.OS === 'android'
+                    ? existingPurchase.purchaseToken
+                    : existingPurchase.transactionReceipt;
+
+                const verifyResult = await verifyPurchase(
+                  purchaseToken,
+                  existingPurchase.productId,
+                  authState.accessToken,
+                );
+                console.log('Existing purchase verified:', verifyResult);
+
+                if (verifyResult && verifyResult.status === 'SUCCESS') {
+                  if (verifyResult.credits) {
+                    // Update Redux state with absolute value instead of local state
+                    updateUserCredits(verifyResult.credits);
+                  } else {
+                    const creditsToAdd = getCreditsForProduct(
+                      existingPurchase.productId,
+                    );
+                    addCredits(creditsToAdd);
+                  }
+
+                  // Refresh credits after purchase is processed
+                  await refreshCredits();
+
+                  Alert.alert(
+                    'Purchase Processed',
+                    'Your previous purchase has been processed successfully!',
+                  );
+                } else {
+                  Alert.alert(
+                    'Verification Failed',
+                    'Your purchase could not be verified. Please contact support.',
+                  );
+                }
+
+                // Skip finishTransaction for Android
+                if (Platform.OS === 'ios') {
+                  // Finish the transaction for iOS
+                  try {
+                    await RNIap.finishTransaction({
+                      purchase: existingPurchase,
+                      isConsumable: true,
+                    });
+                    console.log(
+                      'iOS transaction finished for existing purchase',
+                    );
+                  } catch (finishErr) {
+                    console.log(
+                      'Error finishing iOS transaction, but continuing:',
+                      finishErr,
+                    );
+                  }
+                } else {
+                  console.log(
+                    'Skipping finishTransaction for Android existing purchase',
+                  );
+                }
+              } catch (apiErr) {
+                console.error(
+                  'API error during existing purchase flow:',
+                  apiErr,
+                );
+                Alert.alert(
+                  'Purchase Processing Error',
+                  'We had trouble processing your previous purchase. Please contact support if credits are not added.',
+                );
+              }
+            } else {
+              Alert.alert(
+                'Authentication Required',
+                'Please log in to process your purchase.',
+              );
+            }
+          } catch (err) {
+            console.error('Error handling existing purchase:', err);
+            Alert.alert(
+              'Error',
+              'Failed to process existing purchase: ' + err.message,
+            );
+          } finally {
+            setPurchasePending(false);
+            // Final refresh to ensure latest credit data
+            refreshCredits();
+          }
+        }
+      } catch (err) {
+        console.error('Error handling existing purchase:', err);
+        Alert.alert(
+          'Error',
+          'Failed to check existing purchases: ' + err.message,
+        );
+      } finally {
+        setPurchasePending(false);
+        // Final refresh to ensure latest credit data
+        refreshCredits();
       }
-    } catch (err) {
-      console.error('Error handling existing purchase:', err);
-      Alert.alert(
-        'Error',
-        'Failed to check existing purchases: ' + err.message,
-      );
-    } finally {
-      setPurchasePending(false);
-      // Final refresh to ensure latest credit data
-      refreshCredits();
-    }
-  }, [
-    authState.accessToken,
-    selectedPlan,
-    addCredits,
-    updateUserCredits,
-    refreshCredits,
-  ]);
+    },
+    [authState.accessToken, addCredits, updateUserCredits, refreshCredits],
+  );
 
   // Add a restore purchases function
   const restorePurchases = useCallback(async () => {
@@ -842,6 +1149,12 @@ const SubscriptionScreen = () => {
         console.log('Initializing IAP connection...');
         await RNIap.initConnection();
 
+        // Get user's country code
+        const countryCode = await getUserCountryCode();
+        setUserCountry(countryCode);
+
+        console.log(countryCode, 'countryCode');
+
         // Clear the processed purchases set on initialization
         processedPurchases.clear();
         console.log('Cleared processed purchases tracking');
@@ -849,22 +1162,173 @@ const SubscriptionScreen = () => {
         // First clear any pending purchases without processing them
         await clearPendingPurchases();
 
-        // Use the product ID from your store
-        const productIds = ['payment_100', 'premium_pack'];
-        console.log('Requesting products with IDs:', productIds);
+        let productsToDisplay = [];
 
-        // Get available products
-        const products = await RNIap.getProducts({skus: productIds});
-        console.log('Available products:', JSON.stringify(products, null, 2));
+        // First try to fetch products directly from Google Play API
+        if (Platform.OS === 'android') {
+          try {
+            console.log(
+              'Attempting to fetch products directly from Google Play...',
+            );
+            const directProducts = await fetchDirectPlayStoreProducts();
 
-        if (products && products.length > 0) {
-          setProducts(products);
-        } else {
-          console.log('No products available from the store');
-          Alert.alert(
-            'Error',
-            'No products available from the store. Please check your configuration.',
-          );
+            if (directProducts && directProducts.length > 0) {
+              console.log(
+                'Successfully fetched products from Google Play API:',
+                directProducts,
+              );
+              productsToDisplay = directProducts;
+              setProducts(directProducts);
+
+              // Store products globally for amount calculations
+              global.availableProducts = directProducts;
+
+              // Set the lowest price product as default
+              let lowestPriceProduct = directProducts[0];
+              for (const product of directProducts) {
+                // Extract price value for comparison
+                const currentPrice = parseFloat(
+                  product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
+                    '999999',
+                );
+                const lowestPrice = parseFloat(
+                  lowestPriceProduct.price?.match(
+                    /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
+                  )?.[0] || '999999',
+                );
+
+                if (currentPrice < lowestPrice) {
+                  lowestPriceProduct = product;
+                }
+              }
+
+              // Set the selected product ID
+              if (lowestPriceProduct?.productId) {
+                setSelectedProductId(lowestPriceProduct.productId);
+                console.log(
+                  'Setting initial selected product ID:',
+                  lowestPriceProduct.productId,
+                );
+              }
+
+              setLoading(false);
+              return;
+            } else {
+              console.log(
+                'No products found from direct API, falling back to RNIap',
+              );
+            }
+          } catch (directError) {
+            console.error('Error in direct Play Store fetch:', directError);
+            console.log('Falling back to RNIap');
+          }
+        }
+
+        // Fall back to RNIap if direct fetch fails
+        console.log('Using RNIap to fetch products');
+
+        // Fetch all available products without hardcoding IDs
+        try {
+          console.log('Fetching available subscriptions...');
+          const subscriptions = await RNIap.getSubscriptions([]);
+          console.log('Available subscriptions:', subscriptions);
+
+          console.log('Fetching available one-time products...');
+          const oneTimeProducts = await RNIap.getProducts([]);
+          console.log('Available one-time products:', oneTimeProducts);
+
+          // Combine both types of products
+          const allProducts = [...subscriptions, ...oneTimeProducts];
+
+          if (allProducts.length > 0) {
+            console.log('All available products:', allProducts);
+            setProducts(allProducts);
+
+            // Store products globally for amount calculations
+            global.availableProducts = allProducts;
+
+            // Set the lowest price product as default
+            let lowestPriceProduct = allProducts[0];
+            for (const product of allProducts) {
+              // Extract price value for comparison
+              const currentPrice = parseFloat(
+                product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
+                  '999999',
+              );
+              const lowestPrice = parseFloat(
+                lowestPriceProduct.price?.match(
+                  /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
+                )?.[0] || '999999',
+              );
+
+              if (currentPrice < lowestPrice) {
+                lowestPriceProduct = product;
+              }
+            }
+
+            if (lowestPriceProduct?.productId) {
+              setSelectedProductId(lowestPriceProduct.productId);
+              console.log(
+                'Setting initial selected product ID:',
+                lowestPriceProduct.productId,
+              );
+            }
+          } else {
+            // If all else fails, try with some specific product IDs as fallback
+            const specificProductIds = [
+              'payment_100',
+              'payment_200',
+              'premium_pack',
+            ];
+            console.log('Trying specific product IDs:', specificProductIds);
+
+            const specificProducts = await RNIap.getProducts({
+              skus: specificProductIds,
+            });
+            console.log('Specific products:', specificProducts);
+
+            // Store products globally for amount calculations
+            global.availableProducts = specificProducts;
+
+            if (specificProducts.length > 0) {
+              setProducts(specificProducts);
+              setSelectedProductId(specificProducts[0].productId);
+            } else {
+              console.log('No products available from the store');
+              Alert.alert(
+                'Error',
+                'No products available from the store. Please check your configuration.',
+              );
+            }
+          }
+        } catch (err) {
+          console.error('Error fetching products from store:', err);
+
+          // Last resort fallback to hardcoded product IDs
+          const fallbackProductIds = [
+            'payment_100',
+            'payment_200',
+            'premium_pack',
+          ];
+          console.log('Using fallback product IDs:', fallbackProductIds);
+
+          try {
+            const fallbackProducts = await RNIap.getProducts({
+              skus: fallbackProductIds,
+            });
+            if (fallbackProducts.length > 0) {
+              setProducts(fallbackProducts);
+              // Store products globally for amount calculations
+              global.availableProducts = fallbackProducts;
+              setSelectedProductId(fallbackProducts[0].productId);
+            }
+          } catch (fallbackErr) {
+            console.error('Error with fallback products:', fallbackErr);
+            Alert.alert(
+              'Error',
+              `Failed to initialize in-app purchases: ${err.message}`,
+            );
+          }
         }
       } catch (err) {
         console.log('Error initializing IAP:', err);
@@ -1012,7 +1476,7 @@ const SubscriptionScreen = () => {
           console.log('Product already owned, handling existing purchase...');
 
           // Handle the already owned product
-          handleExistingPurchase()
+          handleExistingPurchase(selectedProductId)
             .then(() => console.log('Existing purchase handled successfully'))
             .catch(err =>
               console.error('Failed to handle existing purchase:', err),
@@ -1049,87 +1513,238 @@ const SubscriptionScreen = () => {
       }
       RNIap.endConnection();
     };
-  }, [authState, handleExistingPurchase, addCredits, updateUserCredits]);
+  }, [
+    authState,
+    handleExistingPurchase,
+    addCredits,
+    updateUserCredits,
+    fetchDirectPlayStoreProducts,
+    selectedProductId,
+  ]);
 
-  const handlePurchase = useCallback(async () => {
-    try {
-      // Check for auth token first
-      if (!authState.accessToken) {
-        Alert.alert(
-          'Authentication Required',
-          'Please log in before making a purchase.',
-        );
-        return;
-      }
-
-      if (products.length === 0) {
-        throw new Error('No products available');
-      }
-
-      setPurchasePending(true);
-
-      // Get product ID based on selected plan
-      const productId =
-        selectedPlan === 'monthly' ? 'payment_100' : 'premium_pack';
-      console.log('Attempting to purchase:', productId);
-
-      // Check if product exists in available products
-      const productExists = products.some(p => p.productId === productId);
-      if (!productExists) {
-        Alert.alert(
-          'Product Not Available',
-          `The selected product (${productId}) is not available for purchase.`,
-        );
-        setPurchasePending(false);
-        return;
-      }
-
-      // Check if already purchased
+  const handlePurchase = useCallback(
+    async productId => {
       try {
-        const purchases = await RNIap.getAvailablePurchases();
-        const alreadyPurchased = purchases.some(p => p.productId === productId);
+        console.log('\n===== PURCHASE ATTEMPT STARTED =====');
+        console.log('handlePurchase called with productId:', productId);
+        console.log('Selected product ID state:', selectedProductId);
+        console.log(
+          'Available products:',
+          products.map(p => p.productId).join(', '),
+        );
 
-        if (alreadyPurchased) {
-          console.log(
-            'Product already purchased, processing existing purchase...',
+        // Detailed product ID validation
+        if (!productId) {
+          console.warn('⚠️ No product ID provided to handlePurchase!');
+          if (selectedProductId) {
+            productId = selectedProductId;
+            console.log('Using selected product ID as fallback:', productId);
+          } else if (products.length > 0) {
+            productId = products[0].productId;
+            console.log(
+              'Using first available product as fallback:',
+              productId,
+            );
+          } else {
+            console.error('❌ No products available for purchase!');
+            throw new Error('No products available for purchase');
+          }
+        }
+
+        // Validate product ID exists in available products
+        const productExists = products.some(p => p.productId === productId);
+        console.log(
+          `Product ID "${productId}" exists in available products: ${productExists}`,
+        );
+
+        if (!productExists) {
+          console.warn(
+            `⚠️ Product ID "${productId}" not found in available products!`,
           );
-          await handleExistingPurchase();
+          console.log(
+            'Available product IDs:',
+            products.map(p => p.productId),
+          );
+
+          // Try to find alternative product
+          if (products.length > 0) {
+            const alternativeId = products[0].productId;
+            console.log(`Selecting alternative product ID: ${alternativeId}`);
+            productId = alternativeId;
+          }
+        }
+
+        // Check for auth token first
+        if (!authState.accessToken) {
+          console.error('❌ No auth token available!');
+          Alert.alert(
+            'Authentication Required',
+            'Please log in before making a purchase.',
+          );
           return;
         }
-      } catch (err) {
-        console.error('Error checking existing purchases:', err);
-      }
 
-      // Use our requestPurchase wrapper
-      try {
-        await requestPurchase(productId);
-        // The actual purchase processing is handled by the purchaseUpdatedListener
-      } catch (purchaseErr) {
-        console.log('Purchase request error:', purchaseErr);
-
-        // Check for already owned error
-        if (purchaseErr.code === 'E_ALREADY_OWNED') {
-          console.log('Handling already owned product...');
-          await handleExistingPurchase();
-        } else if (purchaseErr.code !== 'E_USER_CANCELLED') {
-          Alert.alert(
-            'Purchase Error',
-            `Failed to process purchase: ${purchaseErr.message}`,
-          );
-          setPurchasePending(false);
-        } else {
-          console.log('Purchase cancelled by user');
-          setPurchasePending(false);
+        if (products.length === 0) {
+          console.error('❌ No products available for purchase!');
+          throw new Error('No products available');
         }
+
+        setPurchasePending(true);
+
+        console.log('Attempting to purchase product ID:', productId);
+
+        // Check if already purchased
+        try {
+          const purchases = await RNIap.getAvailablePurchases();
+          console.log(
+            'Existing purchases:',
+            purchases.map(p => p.productId).join(', '),
+          );
+
+          const alreadyPurchased = purchases.some(
+            p => p.productId === productId,
+          );
+
+          if (alreadyPurchased) {
+            console.log(
+              'Product already purchased, processing existing purchase...',
+            );
+            await handleExistingPurchase(productId);
+            return;
+          }
+        } catch (err) {
+          console.error('Error checking existing purchases:', err);
+        }
+
+        // Use our requestPurchase wrapper
+        try {
+          console.log(`Requesting purchase for product ID: ${productId}`);
+
+          // Ensure RNIap knows about the products before purchase
+          if (Platform.OS === 'android') {
+            console.log('Refreshing product info before purchase...');
+            const availableProducts = await RNIap.getProducts({
+              skus: [productId],
+            });
+            console.log(
+              'Refreshed products:',
+              availableProducts.map(p => p.productId).join(', '),
+            );
+
+            if (availableProducts.length === 0) {
+              console.error(
+                `❌ Product ${productId} not available in the store after refresh!`,
+              );
+              throw new Error(
+                `Product ${productId} not available in the store`,
+              );
+            }
+          }
+
+          await requestPurchase(productId, products);
+          // The actual purchase processing is handled by the purchaseUpdatedListener
+        } catch (purchaseErr) {
+          console.log('Purchase request error:', purchaseErr);
+
+          // Check for already owned error
+          if (purchaseErr.code === 'E_ALREADY_OWNED') {
+            console.log('Handling already owned product...');
+            await handleExistingPurchase(productId);
+          } else if (purchaseErr.code !== 'E_USER_CANCELLED') {
+            console.error('❌ Purchase error:', purchaseErr.message);
+            Alert.alert(
+              'Purchase Error',
+              `Failed to process purchase: ${purchaseErr.message}`,
+            );
+            setPurchasePending(false);
+          } else {
+            console.log('Purchase cancelled by user');
+            setPurchasePending(false);
+          }
+        }
+      } catch (err) {
+        console.error('❌ General purchase error:', err);
+        Alert.alert('Error', `Failed to process purchase: ${err.message}`);
+        setPurchasePending(false);
+      } finally {
+        console.log('===== PURCHASE ATTEMPT ENDED =====\n');
       }
-    } catch (err) {
-      console.log('Purchase error:', err);
-      Alert.alert('Error', `Failed to process purchase: ${err.message}`);
-      setPurchasePending(false);
-    }
-  }, [authState.accessToken, products, selectedPlan, handleExistingPurchase]);
+    },
+    [
+      authState.accessToken,
+      products,
+      selectedProductId,
+      handleExistingPurchase,
+    ],
+  );
 
   const navigation = useNavigation();
+
+  // Add a renderDynamicProductCards function to render all products from Google Play
+  const renderDynamicProductCards = () => {
+    if (products.length === 0) {
+      return (
+        <View style={styles.plansContainer}>
+          <Text style={styles.loadingText}>No products available</Text>
+        </View>
+      );
+    }
+
+    // Render cards dynamically from fetched products
+    console.log(products, 'products');
+    return (
+      <View style={styles.plansContainer}>
+        {products.map((product, index) => {
+          // Extract features from the product's description
+          const features = product.features ||
+            extractFeaturesFromDescription(product.description) || [
+              product.title || 'Credit Pack',
+              'Priority Generation queue',
+              'Never expires',
+            ];
+
+          return (
+            <PlanCard
+              key={product.productId || product.sku}
+              title={product.title || 'Credit Pack'}
+              price={product.localizedPrice || product.price}
+              originalPrice={calculateOriginalPrice(
+                product.price || product.localizedPrice,
+              )}
+              features={features}
+              onPurchase={() => {
+                // Set the selected product ID to this product
+                setSelectedProductId(product.productId);
+                console.log(`Selected product ID: ${product.productId}`);
+                handlePurchase(product.productId);
+              }}
+              selectedPlan={selectedProductId === product.productId}
+              disabled={purchasePending}
+            />
+          );
+        })}
+      </View>
+    );
+  };
+
+  // Helper function to calculate "original price" for showing a discount
+  const calculateOriginalPrice = price => {
+    if (!price) return null;
+
+    try {
+      // Parse the price to add a "discount"
+      const match = price.match(/([^\d]*)(\d+(\.\d+)?)(.*)/);
+      if (match) {
+        const [_, currencySymbol, numericPrice, decimalPart, suffix] = match;
+        const inflatedPrice = Math.round(parseFloat(numericPrice) * 1.3);
+        return `${currencySymbol}${inflatedPrice}${suffix}`;
+      }
+    } catch (e) {
+      console.log('Error calculating original price:', e);
+    }
+
+    return null;
+  };
 
   return (
     <View style={styles.container}>
@@ -1148,7 +1763,7 @@ const SubscriptionScreen = () => {
               style={styles.backArrowIcon}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Credit Packs</Text>
+          <Text style={styles.headerTitle}>Subscriptions</Text>
 
           {/* Add Restore Purchases button */}
           <TouchableOpacity
@@ -1162,7 +1777,10 @@ const SubscriptionScreen = () => {
         <View style={styles.creditsContainer}>
           <Text style={styles.creditsTitle}>Credits</Text>
           <Text style={styles.creditsNumber}>{displayCredits()}</Text>
-          <Text style={styles.creditsSubtitle}>Songs left</Text>
+          {/* <Text style={styles.creditsSubtitle}>Songs left</Text> */}
+          <Text style={styles.creditsSubtitleText}>
+            *1 Credit = 1 Song Generation
+          </Text>
         </View>
 
         <View style={styles.divider} />
@@ -1174,40 +1792,7 @@ const SubscriptionScreen = () => {
             <Text style={styles.loadingText}>Loading credit packs...</Text>
           </View>
         ) : (
-          <View style={styles.plansContainer}>
-            <PlanCard
-              title="Standard Pack"
-              price="$29"
-              features={[
-                '100 song credits',
-                'Priority Generation queue',
-                'Never expires',
-              ]}
-              onPurchase={() => {
-                setSelectedPlan('monthly');
-                handlePurchase();
-              }}
-              selectedPlan={selectedPlan}
-              disabled={purchasePending}
-            />
-
-            <PlanCard
-              title="Premium Pack"
-              price="$99"
-              originalPrice="$129"
-              features={[
-                '200 song credits',
-                'Priority Generation queue',
-                'Exclusive access to new voices',
-              ]}
-              onPurchase={() => {
-                setSelectedPlan('yearly');
-                handlePurchase();
-              }}
-              selectedPlan={selectedPlan}
-              disabled={purchasePending}
-            />
-          </View>
+          renderDynamicProductCards()
         )}
       </ScrollView>
 
@@ -1234,10 +1819,10 @@ const styles = StyleSheet.create({
     paddingBottom: 10,
   },
   headerTitle: {
-    color: 'white',
-    fontSize: 18,
     lineHeight: 24,
+    fontSize: 22,
     fontWeight: 'bold',
+    color: '#FDF5E6',
     marginLeft: 15,
     flex: 1,
   },
@@ -1252,8 +1837,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   backArrowIcon: {
-    width: 20,
-    height: 20,
+    width: 40,
+    height: 40,
     resizeMode: 'contain',
   },
   restoreButton: {
@@ -1284,6 +1869,12 @@ const styles = StyleSheet.create({
   creditsSubtitle: {
     color: 'white',
     fontSize: 16,
+    textAlign: 'center',
+  },
+  creditsSubtitleText: {
+    color: '#AFAFAF',
+    marginTop: 10,
+    fontSize: 14,
     textAlign: 'center',
   },
   divider: {

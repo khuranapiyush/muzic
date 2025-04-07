@@ -4,7 +4,7 @@ import {screenHeight, screenWidth} from '../../../../utils/common';
 
 const getStyles = theme => {
   return StyleSheet.create({
-    header: {flexDirection: 'row', width: '100%', height: 40, zIndex: 1},
+    header: {flexDirection: 'row', width: '100%', height: 60, zIndex: 1},
     tabBarWrapper: {
       paddingTop: 10,
       flex: 1,
@@ -69,8 +69,7 @@ const getStyles = theme => {
       fontWeight: '400',
       lineHeight: 24,
       backgroundColor: '#1E1E1E',
-      textTransform: 'capitalize',
-      color: Colors[theme].textLightGray,
+      color: '#D2D2D2',
       textAlignVertical: 'top',
       letterSpacing: -0.64,
     },
@@ -138,7 +137,7 @@ const getStyles = theme => {
       bottom: 0,
       left: 16,
       right: 16,
-      height: 56,
+      height: 60,
       borderRadius: 28,
       overflow: 'hidden',
       borderWidth: 1,
@@ -392,10 +391,10 @@ const getStyles = theme => {
       top: 50,
     },
     promptHeading: {
-      fontSize: 24,
+      fontSize: 20,
       fontWeight: 'bold',
       color: '#FDF5E6',
-      paddingVertical: 10,
+      height: 30,
     },
     bottomSheetContainer: {
       flex: 1,
@@ -442,6 +441,20 @@ const getStyles = theme => {
     selectionInfoText: {
       color: Colors[theme].textBlack,
       fontSize: 14,
+    },
+    creditsContainer: {
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      // padding: 8,
+      borderRadius: 12,
+      alignSelf: 'flex-end',
+      marginTop: 8,
+      marginRight: 16,
+      // marginBottom: 16,
+    },
+    creditsText: {
+      color: '#959595',
+      // fontWeight: 'bold',
+      fontSize: 16,
     },
   });
 };

@@ -20,10 +20,8 @@ import PromoModal from './PromoBanner';
 import {useSelector} from 'react-redux';
 import fetcher from '../../../../dataProvider';
 import {useTheme} from '@react-navigation/native';
-import {
-  getAuthToken,
-  makeAuthenticatedRequest,
-} from '../../../../utils/authUtils';
+import {getAuthToken} from '../../../../utils/authUtils';
+import useCredits from '../../../../hooks/useCredits';
 
 const AIGenerator = ({pageHeading}) => {
   const authState = useSelector(state => state.auth);
@@ -300,6 +298,17 @@ const AIGenerator = ({pageHeading}) => {
     setSelectedVoice(voice);
   };
 
+  const {credits} = useCredits();
+
+  const getCreditsValue = creditsData => {
+    if (typeof creditsData === 'object' && creditsData !== null) {
+      return creditsData?.data?.balance || 0;
+    }
+    return typeof creditsData === 'number' ? creditsData : 0;
+  };
+
+  const creditsValue = getCreditsValue(credits);
+
   return (
     <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
       <CView style={styles.flatList}>
@@ -323,6 +332,9 @@ const AIGenerator = ({pageHeading}) => {
             }}
             onChangeText={handleInputChange}
           />
+          <View style={styles.creditsContainer}>
+            <CText style={styles.creditsText}>Song Left: {creditsValue}</CText>
+          </View>
           {errorMessage ? (
             <CText style={styles.errorText}>{errorMessage}</CText>
           ) : null}
