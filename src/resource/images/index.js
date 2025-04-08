@@ -158,7 +158,7 @@ const appImages = {
   subscribeIcon: require('../../../assets/images/icons/subscribeIcon.png'),
   downloadIcon: require('../../../assets/images/icons/downloadIcon.png'),
   recordingIcon: require('../../../assets/images/icons/recordingIcon.png'),
-  recordingImage: require('../../../assets/images/icons/recordingImage.png'),
+  recordingImage: require('../../../assets/images/icons/recordingImage.jpeg'),
   songPlaceHolder: require('../../../assets/images/icons/songPlaceHolder.jpeg'),
 };
 
