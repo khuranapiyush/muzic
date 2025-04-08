@@ -147,13 +147,8 @@ const GlobalPlayer = () => {
             {/* Song thumbnail */}
             <View style={styles.thumbnailContainer}>
               <Image
-                source={
-                  currentSong.poster || currentSong.thumbnail
-                    ? {uri: currentSong.poster || currentSong.thumbnail}
-                    : appImages.songPlaceHolder
-                }
+                source={{uri: currentSong.poster || currentSong.thumbnail}}
                 style={styles.thumbnail}
-                // defaultSource={appImages.songPlaceHolder}
                 onError={() =>
                   console.log('Mini player thumbnail failed to load')
                 }
@@ -221,14 +216,9 @@ const GlobalPlayer = () => {
 
           <View style={styles.albumArtContainer}>
             <Image
-              source={
-                currentSong.poster || currentSong.thumbnail
-                  ? {uri: currentSong.poster || currentSong.thumbnail}
-                  : appImages.songPlaceHolder
-              }
+              source={{uri: currentSong.poster || currentSong.thumbnail}}
               style={styles.albumArt}
               resizeMode="cover"
-              // defaultSource={appImages.songPlaceHolder}
               onError={() =>
                 console.log('Full player album art failed to load')
               }
@@ -316,13 +306,8 @@ const GlobalPlayer = () => {
                       }}>
                       <View style={styles.queueItemThumbnail}>
                         <Image
-                          source={
-                            song.thumbnail || song.poster
-                              ? {uri: song.thumbnail || song.poster}
-                              : appImages.songPlaceHolder
-                          }
+                          source={{uri: song.thumbnail || song.poster}}
                           style={styles.queueItemImage}
-                          // defaultSource={appImages.songPlaceHolder}
                           onError={() =>
                             console.log(
                               'Queue item thumbnail failed to load:',

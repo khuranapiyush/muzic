@@ -61,12 +61,9 @@ const SongItem = React.memo(
         style={[styles.songItem, isCurrentlyPlaying && styles.playingSongItem]}
         onPress={onPress}>
         <Image
-          source={
-            song.imageUrl ? {uri: song.imageUrl} : appImages.songPlaceHolder
-          }
+          source={{uri: song.imageUrl}}
           style={styles.songImage}
           resizeMode="cover"
-          // defaultSource={appImages.songPlaceHolder}
           onError={e => {
             console.log('Image failed to load:', song.title);
           }}
@@ -609,12 +606,9 @@ const LibraryScreen = () => {
               isCurrentlyPlaying && styles.playingSongItem,
             ]}>
             <Image
-              source={
-                item.imageUrl ? {uri: item.imageUrl} : appImages.songPlaceHolder
-              }
+              source={{uri: item.imageUrl}}
               style={styles.songImage}
               resizeMode="cover"
-              // defaultSource={appImages.songPlaceHolder}
               onError={e => {
                 console.log('Image failed to load:', item.title);
               }}
