@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Platform} from 'react-native';
 import Colors from '../../../common/Colors';
 import {screenHeight, screenWidth} from '../../../../utils/common';
 
@@ -46,16 +46,15 @@ const getStyles = theme => {
       fontWeight: '700',
       lineHeight: 36,
       letterSpacing: -0.8,
-      textTransform: 'uppercase',
+      textTransform: 'capitalize',
     },
     headingText: {
-      color: Colors[theme].textBlack,
       fontSize: 24,
-      fontFamily: 'Bricolage Grotesque',
       fontWeight: '700',
-      lineHeight: 30,
-      letterSpacing: -2,
-      textTransform: 'uppercase',
+      color: '#FDF5E6',
+      fontFamily: 'Bricolage Grotesque',
+      letterSpacing: -0.8,
+      textTransform: 'capitalize',
     },
     inputContainerStyles: {
       flex: 1,
@@ -345,7 +344,7 @@ const getStyles = theme => {
     headingContainer: {
       marginVertical: 16,
       color: Colors[theme].textBlack,
-      textTransform: 'uppercase',
+      textTransform: 'capitalize',
     },
     filterButtonContainer: {width: '95%'},
     tabBarContainer: {
@@ -387,14 +386,17 @@ const getStyles = theme => {
       borderBottomColor: Colors[theme].commonWhite,
     },
     loaderContainer: {
-      position: 'absolute',
-      top: 50,
+      display: 'none',
     },
     promptHeading: {
-      fontSize: 20,
-      fontWeight: 'bold',
+      fontSize: 24,
+      fontWeight: '700',
       color: '#FDF5E6',
-      height: 30,
+      lineHeight: 36,
+      paddingVertical: 10,
+      fontFamily: 'Bricolage Grotesque',
+      letterSpacing: -0.8,
+      textTransform: 'capitalize',
     },
     bottomSheetContainer: {
       flex: 1,
@@ -402,33 +404,36 @@ const getStyles = theme => {
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     bottomSheetContent: {
-      backgroundColor: '#1E1E1E',
-      padding: 20,
+      backgroundColor: '#1F2937',
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
-      alignItems: 'center',
+      padding: 20,
+      paddingBottom: Platform.OS === 'ios' ? 40 : 20,
     },
     bottomSheetTitle: {
-      color: Colors[theme].textBlack,
-      fontSize: 18,
+      color: '#FDF5E6',
+      fontSize: 24,
       fontWeight: 'bold',
-      marginBottom: 10,
+      marginBottom: 16,
+      textAlign: 'center',
     },
     bottomSheetText: {
-      color: Colors[theme].textLightGray,
-      fontSize: 14,
+      color: '#9CA3AF',
+      fontSize: 16,
+      marginBottom: 24,
       textAlign: 'center',
-      marginBottom: 20,
     },
     bottomSheetButton: {
-      backgroundColor: '#C87D48',
-      paddingVertical: 10,
-      paddingHorizontal: 30,
-      borderRadius: 25,
+      width: '100%',
+      height: 60,
+      borderRadius: 28,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: '#C87D48',
     },
     bottomSheetButtonText: {
       color: '#000',
-      fontSize: 16,
+      fontSize: 18,
       fontWeight: '600',
     },
     selectionInfoContainer: {

@@ -9,8 +9,11 @@ import {
 } from '../stores/slices/user';
 import {fetchUserCredits} from '../api/credits';
 
+// Cache duration in milliseconds (5 minutes)
+const CACHE_DURATION = 5 * 60 * 1000;
+
 /**
- * A custom hook for managing user credits
+ * A custom hook for managing user credits with caching
  */
 export const useCredits = () => {
   const dispatch = useDispatch();
@@ -18,6 +21,7 @@ export const useCredits = () => {
   const userState = useSelector(state => state.user);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
 
   // Handle both object and primitive credit values
   const getCreditsValue = creditsData => {
@@ -30,28 +34,41 @@ export const useCredits = () => {
   const credits = getCreditsValue(userState.credits);
 
   /**
-   * Fetch the latest credit information from the API
+   * Fetch the latest credit information from the API with caching
    */
-  const refreshCredits = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const creditData = await fetchUserCredits();
-      dispatch(updateCredits(creditData));
-      return creditData;
-    } catch (err) {
-      console.error('Failed to refresh credits:', err);
-      setError(err.message || 'Failed to refresh credits');
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [dispatch]);
+  const refreshCredits = useCallback(
+    async (force = false) => {
+      const now = Date.now();
 
-  // Fetch credits on hook initialization
+      // Check if we should use cached data
+      if (!force && now - lastFetchTime < CACHE_DURATION) {
+        return userState.credits;
+      }
+
+      try {
+        setIsLoading(true);
+        setError(null);
+        const creditData = await fetchUserCredits();
+        dispatch(updateCredits(creditData));
+        setLastFetchTime(now);
+        return creditData;
+      } catch (err) {
+        console.error('Failed to refresh credits:', err);
+        setError(err.message || 'Failed to refresh credits');
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [dispatch, lastFetchTime, userState.credits],
+  );
+
+  // Fetch credits on hook initialization if not cached
   useEffect(() => {
-    refreshCredits();
-  }, [refreshCredits]);
+    if (Date.now() - lastFetchTime >= CACHE_DURATION) {
+      refreshCredits();
+    }
+  }, [refreshCredits, lastFetchTime]);
 
   /**
    * Updates the user's credits to a specific amount
@@ -63,8 +80,8 @@ export const useCredits = () => {
         console.error('Invalid credits value:', amount);
         return;
       }
-      console.log('Updating credits to:', amount);
       dispatch(updateCredits(amount));
+      setLastFetchTime(Date.now());
     },
     [dispatch],
   );
@@ -79,15 +96,10 @@ export const useCredits = () => {
         console.error('Invalid credits value:', amount);
         return;
       }
-      console.log('Adding credits:', amount);
       dispatch(incrementCredits(amount));
-
-      // Refresh credits from the API after a short delay
-      setTimeout(() => {
-        refreshCredits();
-      }, 1000);
+      setLastFetchTime(Date.now());
     },
-    [dispatch, refreshCredits],
+    [dispatch],
   );
 
   /**
@@ -101,15 +113,10 @@ export const useCredits = () => {
         return false;
       }
       dispatch(decrementCredits(amount));
-
-      // Refresh credits from the API after a short delay
-      setTimeout(() => {
-        refreshCredits();
-      }, 1000);
-
+      setLastFetchTime(Date.now());
       return true;
     },
-    [credits, dispatch, refreshCredits],
+    [credits, dispatch],
   );
 
   /**
@@ -120,7 +127,7 @@ export const useCredits = () => {
   const handleCreditRequiredAction = useCallback(
     async (action, requiredCredits = 1) => {
       // First refresh credits to ensure we have the latest count
-      await refreshCredits();
+      await refreshCredits(true);
       const currentCredits = getCreditsValue(userState.credits);
 
       if (currentCredits >= requiredCredits) {
@@ -129,11 +136,7 @@ export const useCredits = () => {
         if (result !== false) {
           // Decrement credits if action didn't fail
           dispatch(decrementCredits(requiredCredits));
-
-          // Refresh credits from the API after a short delay
-          setTimeout(() => {
-            refreshCredits();
-          }, 1000);
+          setLastFetchTime(Date.now());
         }
         return true;
       } else {

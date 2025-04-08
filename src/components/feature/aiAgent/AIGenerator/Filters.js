@@ -1,5 +1,5 @@
 /* eslint-disable react/no-unstable-nested-components */
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -8,16 +8,13 @@ import {
   StyleSheet,
   Dimensions,
   SafeAreaView,
-  ScrollView,
-  ActivityIndicator,
 } from 'react-native';
 import {Svg, Path} from 'react-native-svg';
 import fetcher from '../../../../dataProvider';
 import config from 'react-native-config';
 import CText from '../../../common/core/Text';
 import {useSelector} from 'react-redux';
-import {useAuthUser} from '../../../../stores/selector';
-import {getAuthToken, checkAndRefreshTokens} from '../../../../utils/authUtils';
+import {getAuthToken} from '../../../../utils/authUtils';
 
 const {width} = Dimensions.get('window');
 // const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
@@ -33,8 +30,7 @@ const GenreSelectionScreen = ({
   const [filterList, setFilterList] = useState(null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedSingerType, setSelectedSingerType] = useState(null);
-  const {isLoggedIn} = useSelector(useAuthUser);
-  const [loading, setLoading] = useState(true);
+  const authState = useSelector(state => state.auth);
 
   // Reset selections when resetSelections changes
   useEffect(() => {
@@ -44,53 +40,42 @@ const GenreSelectionScreen = ({
     }
   }, [resetSelections]);
 
-  const fetchData = useCallback(async () => {
-    if (!isLoggedIn) {
-      console.log('User is not logged in');
-      return;
-    }
-
-    try {
-      // Check and refresh tokens before making the request
-      const tokensValid = await checkAndRefreshTokens();
-      if (!tokensValid) {
-        console.log('Authentication tokens are invalid');
-        return;
-      }
-
-      // Get the current auth token
-      const token = await getAuthToken();
-      if (!token) {
-        console.log('Authentication token not found');
-        return;
-      }
-
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      };
-
-      // Fetch genres
-      const genresResponse = await fetcher.get(`${API_BASE_URL}/v1/genres`, {
-        headers,
-      });
-      setGenreList(genresResponse.data.data);
-
-      // Fetch filters
-      const filtersResponse = await fetcher.get(`${API_BASE_URL}/v1/filters`, {
-        headers,
-      });
-      setFilterList(filtersResponse.data.data);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [API_BASE_URL, isLoggedIn]);
-
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Get the current auth token
+        const token = await getAuthToken();
+
+        const headers = {
+          'Content-Type': 'application/json',
+        };
+
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        // Fetch genres
+        const genresResponse = await fetcher.get(`${API_BASE_URL}/v1/genres`, {
+          headers,
+        });
+        setGenreList(genresResponse.data.data);
+
+        // Fetch filters
+        const filtersResponse = await fetcher.get(
+          `${API_BASE_URL}/v1/filters`,
+          {
+            headers,
+          },
+        );
+        setFilterList(filtersResponse.data.data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
     fetchData();
-  }, [fetchData]);
+  }, [API_BASE_URL, authState]);
 
   const CheckMarkIcon = () => (
     <View style={styles.checkmark}>
@@ -188,14 +173,6 @@ const GenreSelectionScreen = ({
       </TouchableOpacity>
     );
   };
-
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#0000ff" />
-      </View>
-    );
-  }
 
   return (
     <SafeAreaView style={styles.container}>
@@ -311,11 +288,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#A855F7',
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
 });
 

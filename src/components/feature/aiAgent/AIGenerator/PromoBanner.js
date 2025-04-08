@@ -31,8 +31,6 @@ const getUserCountryCode = async () => {
           NativeModules.SettingsManager.settings.AppleLanguages[0]
         : NativeModules.I18nManager.localeIdentifier;
 
-    console.log('Raw device locale:', deviceLocale);
-
     let countryCode = 'US'; // Default fallback
 
     if (deviceLocale) {
@@ -55,10 +53,8 @@ const getUserCountryCode = async () => {
       }
     }
 
-    console.log('Detected country code:', countryCode);
     return countryCode;
   } catch (error) {
-    console.error('Error getting country code:', error);
     return 'US'; // Default to US if we can't determine
   }
 };
@@ -99,7 +95,6 @@ const PromoModal = ({visible, onClose}) => {
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
   const [userCountry, setUserCountry] = useState('US');
-  // Get auth state from Redux
   const authState = useSelector(state => state.auth);
 
   useEffect(() => {
@@ -114,18 +109,13 @@ const PromoModal = ({visible, onClose}) => {
         // Get auth token
         const token = await getAuthToken();
         if (!token) {
-          console.error('Authentication token not found');
           setLoading(false);
           return;
         }
 
-        console.log('Fetching products with auth token');
-
         // Simple fetch from the API endpoint with authentication
         const response = await fetch(
-          `${
-            config.API_BASE_URL || 'http://localhost:3010'
-          }/v1/payments/play-store-products`,
+          `${config.API_BASE_URL}/v1/payments/play-store-products`,
           {
             method: 'GET',
             headers: {
@@ -137,20 +127,18 @@ const PromoModal = ({visible, onClose}) => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`API error: ${response.status} - ${errorText}`);
           setLoading(false);
           return;
         }
 
         const result = await response.json();
-        console.log('API Response:', result);
 
         if (result.success && result.data && result.data.length > 0) {
           // Use the first product from the data array
           setProductData(result.data[0]);
         }
       } catch (error) {
-        console.error('Error fetching product details:', error);
+        return;
       } finally {
         setLoading(false);
       }
@@ -174,18 +162,6 @@ const PromoModal = ({visible, onClose}) => {
     return productData.defaultPrice;
   };
 
-  // Extract product title
-  const getProductTitle = () => {
-    if (
-      !productData ||
-      !productData.listings ||
-      !productData.listings['en-US']
-    ) {
-      return '';
-    }
-    return productData.listings['en-US'].title || '';
-  };
-
   // Extract product description and convert to features
   const getProductFeatures = () => {
     if (
@@ -201,8 +177,6 @@ const PromoModal = ({visible, onClose}) => {
 
     return description.split('\n').filter(line => line.trim().length > 0);
   };
-
-  console.log(productData, 'productData');
 
   // Calculate "original" price for display (50% markup)
   const getOriginalPrice = () => {

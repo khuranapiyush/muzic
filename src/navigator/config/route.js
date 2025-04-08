@@ -1,21 +1,60 @@
 import ROUTE_NAME from './routeName';
-import React from 'react';
+import React, {Suspense} from 'react';
 import CText from '../../components/common/core/Text';
-import HomeStackNavigator from '../HomeStackNavigator';
-import RootStackNavigator from '../RootStackNavigator';
-import GenerateAIScreen from '../../screens/AIGenerator/AIGenerator.screen';
-import VoiceRecordScreen from '../../screens/VoiceRecordScreen';
-import SubscriptionScreen from '../../screens/subscriptionScreen/subscription.screen';
-import AuthStackNavigator from '../AuthStackNavigator';
+import {ActivityIndicator, View} from 'react-native';
+
+// Lazy load screens
+const HomeStackNavigator = React.lazy(() => import('../HomeStackNavigator'));
+const RootStackNavigator = React.lazy(() => import('../RootStackNavigator'));
+const GenerateAIScreen = React.lazy(() =>
+  import('../../screens/AIGenerator/AIGenerator.screen'),
+);
+const VoiceRecordScreen = React.lazy(() =>
+  import('../../screens/VoiceRecordScreen'),
+);
+const SubscriptionScreen = React.lazy(() =>
+  import('../../screens/subscriptionScreen/subscription.screen'),
+);
+const AuthStackNavigator = React.lazy(() => import('../AuthStackNavigator'));
+
+// Loading component for Suspense
+const LoadingComponent = () => (
+  <View
+    style={{
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#000',
+    }}>
+    <ActivityIndicator size="large" color="#FE954A" />
+  </View>
+);
+
+// Wrapper component to handle lazy loading
+const withSuspense = Component => props =>
+  (
+    <Suspense fallback={<LoadingComponent />}>
+      <Component {...props} />
+    </Suspense>
+  );
+
+// Memoize the header title component
+const HeaderTitle = React.memo(({title}) => (
+  <CText
+    size="bricolageHeading"
+    style={{flex: 1, marginTop: 20}}
+    text={title}
+  />
+));
 
 export const mainAppRoutes = [
-  {name: ROUTE_NAME.HomeStack, component: HomeStackNavigator},
+  {name: ROUTE_NAME.HomeStack, component: withSuspense(HomeStackNavigator)},
 ];
 
 export const appStackRoutes = [
   {
     name: ROUTE_NAME.RootStack,
-    component: RootStackNavigator,
+    component: withSuspense(RootStackNavigator),
     options: {
       headerShown: false,
     },
@@ -23,25 +62,16 @@ export const appStackRoutes = [
   },
   {
     name: ROUTE_NAME.AIGenerator,
-    component: GenerateAIScreen,
+    component: withSuspense(GenerateAIScreen),
     key: ROUTE_NAME.AIGenerator,
     options: {
       headerShown: false,
-      headerTitle: props => {
-        const title = 'Generate Song';
-        return (
-          <CText
-            size="bricolageHeading"
-            style={{flex: 1, marginTop: 20}}
-            text={title}
-          />
-        );
-      },
+      headerTitle: () => <HeaderTitle title="Generate Song" />,
     },
   },
   {
     name: ROUTE_NAME.VoiceRecord,
-    component: VoiceRecordScreen,
+    component: withSuspense(VoiceRecordScreen),
     key: ROUTE_NAME.AIHistory,
     options: {
       headerShown: false,
@@ -49,7 +79,7 @@ export const appStackRoutes = [
   },
   {
     name: ROUTE_NAME.SubscriptionScreen,
-    component: SubscriptionScreen,
+    component: withSuspense(SubscriptionScreen),
     key: ROUTE_NAME.SubscriptionScreen,
     options: {
       headerShown: false,
@@ -57,7 +87,7 @@ export const appStackRoutes = [
   },
   {
     name: ROUTE_NAME.AuthStack,
-    component: AuthStackNavigator,
+    component: withSuspense(AuthStackNavigator),
     key: ROUTE_NAME.AuthStack,
     options: {
       headerShown: false,

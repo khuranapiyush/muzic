@@ -22,6 +22,10 @@ const initialState = {
   progress: 0,
   duration: 0,
   showGlobalPlayer: false,
+  isLoading: false,
+  isTransitioning: false,
+  isGeneratingSong: false,
+  generatingSongId: null,
 };
 
 const player = createSlice({
@@ -52,7 +56,8 @@ const player = createSlice({
     },
     setCurrentSong: (state, action) => {
       state.currentSong = action.payload;
-      state.showGlobalPlayer = !!action.payload;
+      state.showGlobalPlayer = true;
+      state.isPlaying = true;
     },
     setQueue: (state, action) => {
       state.queue = action.payload;
@@ -61,15 +66,21 @@ const player = createSlice({
       state.currentSongIndex = action.payload;
     },
     togglePlayPause: state => {
-      state.isPlaying = !state.isPlaying;
+      if (state.currentSong) {
+        state.isPlaying = !state.isPlaying;
+        state.showGlobalPlayer = true;
+      }
     },
     setIsPlaying: (state, action) => {
-      state.isPlaying = action.payload;
+      if (state.currentSong) {
+        state.isPlaying = action.payload;
+        state.showGlobalPlayer = true;
+      }
     },
     setSource: (state, action) => {
       state.source = action.payload;
     },
-    updateProgress: (state, action) => {
+    setProgress: (state, action) => {
       state.progress = action.payload;
     },
     setDuration: (state, action) => {
@@ -77,15 +88,21 @@ const player = createSlice({
     },
     hidePlayer: state => {
       state.showGlobalPlayer = false;
+      state.isPlaying = false;
+    },
+    showPlayer: state => {
+      if (state.currentSong) {
+        state.showGlobalPlayer = true;
+      }
     },
     resetPlayer: state => {
-      state.currentSong = null;
-      state.queue = [];
-      state.currentSongIndex = 0;
-      state.isPlaying = false;
-      state.progress = 0;
-      state.duration = 0;
-      state.showGlobalPlayer = false;
+      return initialState;
+    },
+    setGeneratingSong: (state, action) => {
+      state.isGeneratingSong = action.payload;
+    },
+    setGeneratingSongId: (state, action) => {
+      state.generatingSongId = action.payload;
     },
   },
   extraReducers: builder => {
@@ -128,10 +145,13 @@ export const {
   togglePlayPause,
   setIsPlaying,
   setSource,
-  updateProgress,
+  setProgress,
   setDuration,
   hidePlayer,
+  showPlayer,
   resetPlayer,
+  setGeneratingSong,
+  setGeneratingSongId,
 } = player.actions;
 
 export default player.reducer;

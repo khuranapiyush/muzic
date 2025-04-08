@@ -47,24 +47,31 @@ const getStyles = theme => {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 16,
-      marginBottom: 16,
+      marginVertical: 20,
     },
     sectionTitle: {
-      fontSize: 20,
-      fontWeight: 'bold',
+      fontSize: 24,
+      fontWeight: '700',
       color: '#FDF5E6',
+      lineHeight: 36,
       paddingVertical: 10,
+      fontFamily: 'Bricolage Grotesque',
+      letterSpacing: -0.8,
+      textTransform: 'capitalize',
     },
     moreText: {
       color: '#666',
       fontSize: 16,
     },
     songCard: {
-      height: 250,
-      width: 170,
+      minHeight: 250,
+      minWidth: 180,
+      height: 'fit-content',
+      width: 'fit-content',
       marginLeft: 16,
       borderRadius: 12,
       overflow: 'hidden',
+      backgroundColor: '#3C3129',
     },
     songThumbnail: {
       width: '100%',
@@ -194,6 +201,7 @@ const getStyles = theme => {
       width: '100%',
       height: 40,
       overflow: 'hidden',
+      backgroundColor: '#3C3129',
     },
     contentContainer: {
       padding: 12,
@@ -203,14 +211,12 @@ const getStyles = theme => {
       fontWeight: '600',
       color: '#FFFFFF',
       marginBottom: 4,
-      // fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif'
     },
     subtitle: {
       fontSize: 32,
       fontWeight: '600',
       color: '#FFFFFF',
       marginBottom: 8,
-      // fontFamily: Platform.OS === 'ios' ? 'System' : 'sans-serif'
     },
     loadingContainer: {
       flex: 1,

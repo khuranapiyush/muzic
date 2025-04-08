@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState} from 'react';
 import {Image, TouchableOpacity, Platform} from 'react-native';
 import appImages from '../../../resource/images';
 import CText from '../core/Text';

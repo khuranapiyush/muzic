@@ -156,6 +156,10 @@ const appImages = {
   libraryIcon: require('../../../assets/images/icons/libraryIcon.png'),
   micIcon: require('../../../assets/images/icons/micIcon.png'),
   subscribeIcon: require('../../../assets/images/icons/subscribeIcon.png'),
+  downloadIcon: require('../../../assets/images/icons/downloadIcon.png'),
+  recordingIcon: require('../../../assets/images/icons/recordingIcon.png'),
+  recordingImage: require('../../../assets/images/icons/recordingImage.png'),
+  songPlaceHolder: require('../../../assets/images/icons/songPlaceHolder.jpeg'),
 };
 
 export default appImages;

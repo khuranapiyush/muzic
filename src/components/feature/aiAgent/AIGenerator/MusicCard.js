@@ -12,43 +12,52 @@ import CText from '../../../common/core/Text';
 import {formatTime} from '../../../../utils/common';
 import useMusicPlayer from '../../../../hooks/useMusicPlayer';
 
-const MusicCard = ({item, index}) => {
+const MusicCard = ({item, index, songList}) => {
   const {mode} = useTheme();
   const touchable = useRef();
   const styles = getStyles(mode);
   const [showPopover, setShowPopover] = useState(false);
 
   // Use our custom music player hook
-  const {play, isPlaying, currentSong, togglePlayPause} =
-    useMusicPlayer('AIGeneratorScreen');
+  const {play, currentSong, isPlaying, togglePlayPause} =
+    useMusicPlayer('AIGenerator');
 
-  const shareOptions = useMemo(
-    () => ({
-      title: 'AI Generated Muzic',
-      url: item?.audioUrl,
-    }),
-    [item],
-  );
+  const shareOptions = {
+    title: item?.title,
+    message: 'Check out this awesome song!',
+    url: item?.audioUrl,
+  };
 
   const handleSongPress = () => {
-    if (item) {
+    if (item?.audioUrl) {
       // Format the song to match the expected format for the global player
       const formattedSong = {
         id: item.audioUrl, // Use audioUrl as unique ID
         title: item.title,
-        artist: item.subHeading || 'AI Generated',
+        artist: item.artist || 'Artist',
         uri: item.audioUrl,
         thumbnail: item.imageUrl,
         poster: item.imageUrl,
         duration: item.duration,
       };
 
+      // Format the songList if available
+      const formattedSongList = songList?.map(song => ({
+        id: song.audioUrl,
+        title: song.title,
+        artist: song.artist || 'Artist',
+        uri: song.audioUrl,
+        thumbnail: song.imageUrl,
+        poster: song.imageUrl,
+        duration: song.duration,
+      }));
+
       // If the same song is playing, toggle play/pause
       if (currentSong && currentSong.uri === item.audioUrl) {
         togglePlayPause();
       } else {
         // Otherwise play the new song
-        play(formattedSong);
+        play(formattedSong, formattedSongList);
       }
     }
   };
