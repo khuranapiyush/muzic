@@ -11,7 +11,6 @@ import CView from '../components/common/core/View';
 import AIGenerator from '../components/feature/aiAgent/AIGenerator/AIGenerator';
 import CoverCreationScreen from '../components/feature/aiAgent/AIGenerator/AiCover';
 import LibraryScreen from '../components/feature/library';
-// import AddFund from '../components/feature/wallet/AddFund'
 
 const Tab = createBottomTabNavigator();
 
@@ -100,7 +99,6 @@ const HomeStackNavigator = () => {
 
       <Tab.Screen
         name={'Library'}
-        // component={AddFund}
         component={LibraryScreen}
         options={{
           headerShown: !isPlayerFullScreen ? true : false,
