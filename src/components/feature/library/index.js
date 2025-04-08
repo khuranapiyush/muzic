@@ -14,9 +14,11 @@ import {
 } from 'react-native';
 import config from 'react-native-config';
 import {useMutation} from '@tanstack/react-query';
+import {useSelector} from 'react-redux';
+import {useAuthUser} from '../../../stores/selector';
 import fetcher from '../../../dataProvider';
 import {formatTime} from '../../../utils/common';
-import {getAuthToken, makeAuthenticatedRequest} from '../../../utils/authUtils';
+import {getAuthToken, checkAndRefreshTokens} from '../../../utils/authUtils';
 import useMusicPlayer from '../../../hooks/useMusicPlayer';
 import {useNavigation} from '@react-navigation/native';
 // import ROUTE_NAME from '../../../navigator/config/routeName';
@@ -59,7 +61,7 @@ const LibraryScreen = () => {
   const {API_BASE_URL} = config;
   const [audioList, setAudioList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
-  const navigation = useNavigation();
+  const {isLoggedIn} = useSelector(useAuthUser);
 
   // Use our global music player hook
   const {play, isPlaying, currentSong, togglePlayPause} =
@@ -68,24 +70,31 @@ const LibraryScreen = () => {
   // Fetch audio list mutation
   const {mutate: fetchAudioList, isLoading: isListLoading} = useMutation(
     async () => {
-      return await makeAuthenticatedRequest(async () => {
-        // Get the current auth token
-        const token = await getAuthToken();
+      if (!isLoggedIn) {
+        throw new Error('User is not logged in');
+      }
 
-        const headers = {
-          'Content-Type': 'application/json',
-        };
+      // Check and refresh tokens before making the request
+      const tokensValid = await checkAndRefreshTokens();
+      if (!tokensValid) {
+        throw new Error('Authentication tokens are invalid');
+      }
 
-        // Add authorization header if token exists
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+      // Get the current auth token
+      const token = await getAuthToken();
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
 
-        const response = await fetcher.get(`${API_BASE_URL}/v1/library`, {
-          headers,
-        });
-        return response;
+      const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      };
+
+      const response = await fetcher.get(`${API_BASE_URL}/v1/library`, {
+        headers,
       });
+      return response;
     },
     {
       onSuccess: response => {
@@ -95,12 +104,36 @@ const LibraryScreen = () => {
       },
       onError: error => {
         console.error('Error fetching audio list:', error);
+        if (error.message === 'User is not logged in') {
+          Alert.alert(
+            'Authentication Required',
+            'Please log in to access your library',
+          );
+        } else if (error.message === 'Authentication tokens are invalid') {
+          Alert.alert(
+            'Session Expired',
+            'Your session has expired. Please log in again.',
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            'Failed to load your library. Please try again.',
+          );
+        }
       },
     },
   );
 
   // Handle pull-to-refresh
   const onRefresh = useCallback(() => {
+    if (!isLoggedIn) {
+      Alert.alert(
+        'Authentication Required',
+        'Please log in to access your library',
+      );
+      return;
+    }
+
     setRefreshing(true);
     console.log('Refreshing library...');
 
@@ -118,15 +151,16 @@ const LibraryScreen = () => {
         setRefreshing(false);
       },
       onSettled: () => {
-        // This executes regardless of success or failure
         setRefreshing(false);
       },
     });
-  }, [fetchAudioList]);
+  }, [fetchAudioList, isLoggedIn]);
 
   useEffect(() => {
-    fetchAudioList();
-  }, [fetchAudioList]);
+    if (isLoggedIn) {
+      fetchAudioList();
+    }
+  }, [fetchAudioList, isLoggedIn]);
 
   const handleSongPress = (audioUrl, title, duration, imageUrl) => {
     // Format the song for the global player
