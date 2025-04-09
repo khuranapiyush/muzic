@@ -89,7 +89,7 @@ const getStyles = theme => {
       bottom: 8,
       width: 32,
       height: 32,
-      backgroundColor: '#ff6b6b',
+      backgroundColor: '#FD893A',
       borderRadius: 16,
       justifyContent: 'center',
       alignItems: 'center',
@@ -98,6 +98,7 @@ const getStyles = theme => {
       width: 0,
       height: 0,
       backgroundColor: 'transparent',
+      borderRadius: 4,
       borderStyle: 'solid',
       borderLeftWidth: 8,
       borderRightWidth: 8,
@@ -222,6 +223,11 @@ const getStyles = theme => {
       flex: 1,
       justifyContent: 'center',
       alignItems: 'center',
+    },
+    playPauseIcon: {
+      width: 24,
+      height: 24,
+      tintColor: '#FFFFFF',
     },
   });
 };

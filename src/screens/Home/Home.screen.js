@@ -21,6 +21,12 @@ import LinearGradient from 'react-native-linear-gradient';
 import useMusicPlayer from '../../hooks/useMusicPlayer';
 import appImages from '../../resource/images';
 
+// Add helper function to clean song titles
+const cleanSongTitle = title => {
+  if (!title) return 'Untitled Song';
+  return title.replace(/"/g, '').trim();
+};
+
 const SongCard = ({
   title,
   duration,
@@ -28,7 +34,6 @@ const SongCard = ({
   imageUrl,
   onPress,
   isPlaying,
-  createdAt,
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
@@ -43,7 +48,12 @@ const SongCard = ({
           // defaultSource={appImages.songPlaceHolder}
         />
         <View style={[styles.playButton, isPlaying && styles.playButtonActive]}>
-          <View style={styles.playIcon} />
+          <Image
+            source={
+              isPlaying ? appImages.playerPauseIcon : appImages.playerPlayIcon
+            }
+            style={styles.playPauseIcon}
+          />
         </View>
       </View>
       <LinearGradient
@@ -53,7 +63,9 @@ const SongCard = ({
         locations={[0.35, 1]}
         style={styles.gradient}>
         <View style={styles.contentContainer}>
-          <Text style={styles.songTitle}>{title.slice(0, 18)}...</Text>
+          <Text style={styles.songTitle}>
+            {cleanSongTitle(title).slice(0, 18)}...
+          </Text>
           <Text style={styles.duration}>{formatTime(duration)}</Text>
           {/* <Text style={styles.duration}>{formatDate(createdAt)}</Text> */}
         </View>
@@ -140,7 +152,7 @@ export default function HomeScreen() {
     {
       onSuccess: response => {
         if (response) {
-          setAudioList(response.data.data);
+          setAudioList(response.data.data.slice(0, 10));
           setTrendingList(
             response.data.data.slice(
               response.data.data.length - 10,
@@ -184,7 +196,7 @@ export default function HomeScreen() {
     // Format the song to match the expected format for the global player
     const formattedSong = {
       id: song.audioUrl, // Use audioUrl as unique ID
-      title: song.title,
+      title: cleanSongTitle(song.title),
       artist: 'Artist', // Add a default artist or get it from your data
       uri: song.audioUrl,
       thumbnail: song.imageUrl,
@@ -195,7 +207,7 @@ export default function HomeScreen() {
     // Format the full section list of songs
     const formattedSongList = sectionData.map(item => ({
       id: item.audioUrl,
-      title: item.title,
+      title: cleanSongTitle(item.title),
       artist: 'Artist',
       uri: item.audioUrl,
       thumbnail: item.imageUrl,

@@ -24,7 +24,6 @@ import {useSelector, useDispatch} from 'react-redux';
 import useToaster from '../../../hooks/useToaster';
 import LinearGradient from 'react-native-linear-gradient';
 import appImages from '../../../resource/images';
-import BottomSheet from '@gorhom/bottom-sheet';
 import RNFS from 'react-native-fs';
 import {PermissionsAndroid} from 'react-native';
 import {
@@ -53,6 +52,12 @@ const EmptyLibrary = React.memo(() => {
   );
 });
 
+// Add helper function to clean song titles
+const cleanSongTitle = title => {
+  if (!title) return 'Untitled Song';
+  return title.replace(/"/g, '').trim();
+};
+
 // Memoized Song Item Component
 const SongItem = React.memo(
   ({song, isCurrentlyPlaying, onPress, onDownload}) => {
@@ -78,7 +83,7 @@ const SongItem = React.memo(
         )}
         <View style={styles.songInfo}>
           <Text style={styles.songTitle} numberOfLines={1}>
-            {song.title}
+            {cleanSongTitle(song.title)}
           </Text>
           <Text style={styles.songGenres}>{formatTime(song.duration)}</Text>
         </View>
@@ -168,11 +173,9 @@ const LibraryScreen = () => {
   // Memoize the refresh handler
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    console.log('Refreshing library...');
 
     fetchAudioList(undefined, {
       onSuccess: () => {
-        console.log('Library refresh complete');
         setRefreshing(false);
       },
       onError: error => {
@@ -184,7 +187,6 @@ const LibraryScreen = () => {
         setRefreshing(false);
       },
       onSettled: () => {
-        // This executes regardless of success or failure
         setRefreshing(false);
       },
     });
@@ -247,25 +249,24 @@ const LibraryScreen = () => {
   }, [isGeneratingSong]);
 
   // Add effect to handle the generating toast
-  useEffect(() => {
-    // Show toast when song generation starts
-    if (isGeneratingSong && isLibraryScreen.current) {
-      console.log('Showing generating song toast in library');
-      showToaster({
-        type: 'info',
-        text1: 'Song Generation in Progress',
-        text2:
-          'Your song is being created. It will appear in your library soon.',
-        visibilityTime: 4000,
-        autoHide: false,
-        topOffset: 50,
-      });
-    } else if (!isGeneratingSong && prevGeneratingState) {
-      // Song generation completed or was canceled
-      console.log('Hiding generating song toast - generation complete');
-      hideToaster();
-    }
-  }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
+  // useEffect(() => {
+  //   // Show toast when song generation starts
+  //   if (isGeneratingSong && isLibraryScreen.current) {
+  //     showToaster({
+  //       type: 'info',
+  //       text1: 'Song Generation in Progress',
+  //       text2:
+  //         'Your song is being created. It will appear in your library soon.',
+  //       visibilityTime: 4000,
+  //       autoHide: false,
+  //       topOffset: 50,
+  //     });
+  //   } else if (!isGeneratingSong && prevGeneratingState) {
+  //     // Song generation completed or was canceled
+  //     console.log('Hiding generating song toast - generation complete');
+  //     hideToaster();
+  //   }
+  // }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
 
   // Fetch library data every 15 seconds while a song is generating
   useEffect(() => {
@@ -289,8 +290,6 @@ const LibraryScreen = () => {
   // Memoize the song press handler
   const handleSongPress = useCallback(
     (audioUrl, title, duration, imageUrl) => {
-      console.log('Song pressed:', {audioUrl, title});
-
       // Verify audioUrl is valid before attempting to play
       if (!audioUrl) {
         console.error('Cannot play song with empty audio URL:', title);
@@ -319,27 +318,11 @@ const LibraryScreen = () => {
         duration: song.duration || 0,
       }));
 
-      console.log('Current song URI:', currentSong?.uri);
-      console.log('New song URI:', audioUrl);
-      console.log('Queue size:', formattedQueue.length);
-
-      // Comprehensive logging to debug playback
-      console.log('Song data check:', {
-        songHasValidUri: !!audioUrl,
-        uriIsString: typeof audioUrl === 'string',
-        uriLength: audioUrl?.length,
-        uriStartsWith: audioUrl?.substring(0, 10) + '...',
-        formattedSongHasValidUri: !!formattedSong.uri,
-        queueHasValidUris: formattedQueue.every(s => !!s.uri),
-      });
-
       // If the same song is playing, toggle play/pause
       if (currentSong && currentSong.uri === audioUrl) {
-        console.log('Same song - toggling play/pause');
         togglePlayPause();
       } else {
         // Otherwise play the new song with the library queue
-        console.log('New song - playing with queue');
         play(formattedSong, formattedQueue);
       }
     },
@@ -406,9 +389,6 @@ const LibraryScreen = () => {
         // Show a download starting alert
         Alert.alert('Download Started', 'Preparing to download your song...');
 
-        console.log('Starting download process for song:', song.title);
-        console.log('Song data:', song);
-
         // For modern Android, we'll use a different approach
         const isModernAndroid =
           Platform.OS === 'android' && Platform.Version >= 30;
@@ -417,7 +397,6 @@ const LibraryScreen = () => {
         if (Platform.OS === 'android' && !isModernAndroid) {
           const hasPermission = await requestAndroidPermissions();
           if (!hasPermission) {
-            console.log('Permission denied for older Android');
             Alert.alert(
               'Permission Denied',
               'Storage permission is required to download songs',
@@ -436,9 +415,7 @@ const LibraryScreen = () => {
         const downloadDir =
           Platform.OS === 'ios'
             ? RNFS.DocumentDirectoryPath
-            : isModernAndroid
-            ? RNFS.ExternalCachesDirectoryPath
-            : RNFS.DownloadDirectoryPath;
+            : RNFS.DownloadDirectoryPath; // Always use Downloads directory for Android
 
         // Remove special characters from filename
         const filename = `${song.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
@@ -523,34 +500,8 @@ const LibraryScreen = () => {
               console.error('Error opening document:', error);
               throw new Error('Could not open the downloaded file');
             }
-          } else if (isModernAndroid) {
-            // For Android 11+, show a success message with instructions
-            Alert.alert(
-              'Download Complete',
-              `${song.title} saved to app storage`,
-              [
-                {
-                  text: 'OK',
-                  style: 'cancel',
-                },
-                {
-                  text: 'Share File',
-                  onPress: async () => {
-                    try {
-                      // Show file sharing options
-                      Alert.alert(
-                        'Access Your File',
-                        'To access your file, go to Files app > Internal storage > Android > data > [your app package name] > files',
-                      );
-                    } catch (error) {
-                      console.error('Error sharing file:', error);
-                    }
-                  },
-                },
-              ],
-            );
           } else {
-            // For older Android versions, we already saved to Downloads
+            // For Android, show success message
             Alert.alert(
               'Download Complete',
               `${song.title} saved to Downloads folder`,
@@ -570,7 +521,7 @@ const LibraryScreen = () => {
     [API_BASE_URL],
   );
 
-  // Update the renderItem function to include the download handler
+  // Update the renderItem function to use cleanSongTitle
   const renderItem = useCallback(
     ({item}) => {
       // Check if audioUrl is missing or invalid
@@ -588,7 +539,7 @@ const LibraryScreen = () => {
           onPress={() =>
             handleSongPress(
               item.audioUrl,
-              item.title,
+              cleanSongTitle(item.title),
               item.duration,
               item.imageUrl,
             )
@@ -615,7 +566,7 @@ const LibraryScreen = () => {
             />
             <View style={styles.songInfo}>
               <Text style={styles.songTitle} numberOfLines={1}>
-                {item.title}
+                {cleanSongTitle(item.title)}
               </Text>
               <Text style={styles.songGenres}>{formatTime(item.duration)}</Text>
             </View>
@@ -679,18 +630,18 @@ const LibraryScreen = () => {
     );
   };
 
+  console.log(audioList, 'audioList');
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {isGeneratingSong ||
-          (generatingSongId && (
-            <View style={styles.generatingContainer}>
-              <ActivityIndicator color="#F4A460" size="small" />
-              <Text style={styles.generatingText}>
-                Generating your song... Please wait
-              </Text>
-            </View>
-          ))}
+        {isGeneratingSong && (
+          <View style={styles.generatingContainer}>
+            <ActivityIndicator color="#F4A460" size="small" />
+            <Text style={styles.generatingText}>
+              Generating your song... Please wait
+            </Text>
+          </View>
+        )}
         {isListLoading && audioList.length === 0 ? (
           <View style={styles.loaderContainer}>
             <ActivityIndicator size="large" color="#F4A460" />

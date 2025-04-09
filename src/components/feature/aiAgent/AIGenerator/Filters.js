@@ -77,18 +77,18 @@ const GenreSelectionScreen = ({
     fetchData();
   }, [API_BASE_URL, authState]);
 
-  const CheckMarkIcon = () => (
-    <View style={styles.checkmark}>
-      <Svg
-        width={16}
-        height={16}
-        viewBox="0 0 24 24"
-        stroke="white"
-        strokeWidth={2}>
-        <Path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-      </Svg>
-    </View>
-  );
+  // const CheckMarkIcon = () => (
+  //   <View style={styles.checkmark}>
+  //     <Svg
+  //       width={16}
+  //       height={16}
+  //       viewBox="0 0 24 24"
+  //       stroke="white"
+  //       strokeWidth={2}>
+  //       <Path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+  //     </Svg>
+  //   </View>
+  // );
 
   // Handle genre selection and notify parent component
   const handleGenreSelect = (genreId, genreName) => {
@@ -139,7 +139,11 @@ const GenreSelectionScreen = ({
           <View
             style={[styles.overlay, isSelected && styles.selectedOverlay]}
           />
-          {isSelected && <CheckMarkIcon />}
+          {isSelected && (
+            <View style={styles.checkmarkContainer}>
+              <Text style={styles.checkmarkIcon}>✓</Text>
+            </View>
+          )}
         </View>
         <Text style={[styles.itemText, isSelected && styles.selectedText]}>
           {item.name}
@@ -165,7 +169,11 @@ const GenreSelectionScreen = ({
           <View
             style={[styles.overlay, isSelected && styles.selectedOverlay]}
           />
-          {isSelected && <CheckMarkIcon />}
+          {isSelected && (
+            <View style={styles.checkmarkContainer}>
+              <Text style={styles.checkmarkIcon}>✓</Text>
+            </View>
+          )}
         </View>
         <Text style={[styles.itemText, isSelected && styles.selectedText]}>
           {item.name}
@@ -264,7 +272,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   selectedOverlay: {
-    backgroundColor: 'rgba(147, 51, 234, 0.4)',
+    opacity: 0.4,
   },
   selectedItem: {
     transform: [{scale: 1.05}],
@@ -276,7 +284,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   selectedText: {
-    color: '#A855F7', // purple-500
+    color: '#FD893A', // purple-500
   },
   checkmark: {
     position: 'absolute',
@@ -285,9 +293,25 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#A855F7',
+    backgroundColor: '#FD893A',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkmarkContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F4A460',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmarkIcon: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
