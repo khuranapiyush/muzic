@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   },
   mobileTextContainer: {marginBottom: 10},
   mobileContainer: {
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     alignItems: 'center',
   },
   msgContainer: {
