@@ -87,7 +87,7 @@ const CoverCreationScreen = () => {
     refreshCredits();
   }, [refreshCredits]);
 
-  // Add pagination states
+  // Remove pagination states
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
@@ -103,9 +103,6 @@ const CoverCreationScreen = () => {
   const [recordingsLoaded, setRecordingsLoaded] = useState(false);
 
   const dispatch = useDispatch();
-  const {isGeneratingSong, isGeneratingSongId} = useSelector(
-    state => state.player,
-  );
 
   const navigation = useNavigation();
 
@@ -202,6 +199,8 @@ const CoverCreationScreen = () => {
           throw new Error('Authentication required. Please log in again.');
         }
 
+        console.log(link, 'link');
+
         // Format request data
         const requestData = {
           url: link.trim(), // Ensure URL is trimmed
@@ -235,6 +234,7 @@ const CoverCreationScreen = () => {
         // Make the API request to the url-to-voice endpoint
         const apiUrl = `${config.API_BASE_URL}/v1/integration/url-to-voice`;
 
+        console.log(requestData, 'requestData');
         fetcher
           .post(apiUrl, requestData, {
             headers: {
@@ -254,20 +254,14 @@ const CoverCreationScreen = () => {
               dispatch(setGeneratingSongId(response.data._id));
             }
 
-            // Show success message for direct UI feedback only
-            Alert.alert(
-              'Success',
-              'Your cover is being generated. Check the library in a few minutes.',
-            );
-
             // Make sure to refresh credits after successful generation
             setTimeout(() => {
               refreshCredits();
-            }, 1000);
+            }, 500);
 
             // On success - we keep the generating state active
             // It will be reset when the song appears in the library
-            setShowBottomSheet(true);
+            dispatch(setGeneratingSong(false));
 
             return true; // Return true to indicate success
           })
@@ -281,6 +275,10 @@ const CoverCreationScreen = () => {
               error.response.data &&
               error.response.data.message
             ) {
+              console.log(
+                error.response.data.message,
+                'error.response.data.message',
+              );
               errorMessage = error.response.data.message;
             } else if (error.message) {
               errorMessage = error.message;
@@ -461,6 +459,7 @@ const CoverCreationScreen = () => {
     }
   }, [userId, fetchUserRecordings, getVoiceSamples, recordingsLoaded]);
 
+  // Modify getVoiceSamples to only fetch initial data
   const getVoiceSamples = useCallback(
     async (pageNum = 1, shouldAppend = false) => {
       try {
@@ -483,47 +482,19 @@ const CoverCreationScreen = () => {
         const responseData = await response.json();
         const newData = responseData.data || [];
 
-        // Check if we have more data to load
-        if (newData.length < PAGE_SIZE) {
-          setHasMoreData(false);
-        } else {
-          setHasMoreData(true);
-        }
-
-        // Update state based on whether we're appending or replacing
-        if (shouldAppend) {
-          setSampleVoice(prevData => {
-            // Filter out duplicates based on id
-            const existingIds = new Set(prevData.map(item => item.id));
-            const uniqueNewData = newData.filter(
-              item => !existingIds.has(item.id),
-            );
-            return [...prevData, ...uniqueNewData];
-          });
-        } else {
-          setSampleVoice(newData);
-        }
+        // Update state with initial data only
+        setSampleVoice(newData);
 
         return responseData;
       } catch (error) {
         console.error('Failed to fetch voice samples:', error);
         Alert.alert('Error', 'Failed to fetch voice samples');
-        setHasMoreData(false);
       } finally {
         setIsLoadingMore(false);
       }
     },
     [API_TOKEN, PAGE_SIZE],
   );
-
-  // Update the handleLoadMore function
-  const handleLoadMore = useCallback(() => {
-    if (!isLoadingMore && hasMoreData) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      getVoiceSamples(nextPage, true);
-    }
-  }, [isLoadingMore, hasMoreData, page, getVoiceSamples]);
 
   // Handler for playing voice samples with improved logging
   const handlePlaySample = sample => {
@@ -584,15 +555,7 @@ const CoverCreationScreen = () => {
             styles.vocalCardContainer,
             isSelected && styles.selectedCardContainer,
           ]}>
-          <View style={styles.topBorder} />
-          <LinearGradient
-            colors={['#18181B', '#231F1F', '#3A2F28']}
-            locations={[0.35, 0.75, 1]}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
-            style={styles.vocalGradient}
-            activeOpacity={0.7}
-            angle={175}>
+          <View style={styles.vocalGradient}>
             <View style={styles.plusContainer}>
               {!hasValidImageUrl || imageError ? (
                 <View style={styles.fallbackImageContainer}>
@@ -619,7 +582,7 @@ const CoverCreationScreen = () => {
                 <Text style={styles.checkmark}>✓</Text>
               </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
         <Text style={[styles.cardText, isSelected && styles.selectedCardText]}>
           {recording.title?.length > 15
@@ -655,15 +618,7 @@ const CoverCreationScreen = () => {
             styles.vocalCardContainer,
             isSelected && styles.selectedCardContainer,
           ]}>
-          <View style={styles.topBorder} />
-          <LinearGradient
-            colors={['#18181B', '#231F1F', '#3A2F28']}
-            locations={[0.35, 0.75, 1]}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
-            style={styles.vocalGradient}
-            activeOpacity={0.7}
-            angle={175}>
+          <View style={styles.vocalGradient}>
             <View style={styles.plusContainer}>
               <Image
                 source={appImages.recordingImage}
@@ -681,11 +636,11 @@ const CoverCreationScreen = () => {
                 <Text style={styles.checkmark}>✓</Text>
               </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
         <Text style={[styles.cardText, isSelected && styles.selectedCardText]}>
           {recording.name?.length > 15
-            ? recording.name.substring(0, 15) + '...'
+            ? recording.name.substring(0, 8) + '...'
             : recording.name || 'My Recording'}
         </Text>
       </TouchableOpacity>
@@ -746,18 +701,9 @@ const CoverCreationScreen = () => {
     );
   };
 
-  // Footer component to show loading indicator when loading more data
+  // Remove ListFooter component since we won't be loading more
   const ListFooter = () => {
-    if (!isLoadingMore) {
-      return null;
-    }
-
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#F4A460" />
-        <Text style={styles.loadingMoreText}>Loading more voices...</Text>
-      </View>
-    );
+    return null;
   };
 
   return (
@@ -807,8 +753,6 @@ const CoverCreationScreen = () => {
               contentContainerStyle={styles.vocalsContainerGrid}
               showsVerticalScrollIndicator={true}
               columnWrapperStyle={styles.row}
-              onEndReachedThreshold={0.5}
-              onEndReached={handleLoadMore}
               refreshControl={
                 <RefreshControl
                   refreshing={isRefreshing}
@@ -982,11 +926,11 @@ const styles = StyleSheet.create({
   plusContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
-    backgroundColor: '#333',
+    // borderRadius: 20,
+    // backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    // marginBottom: 8,
     overflow: 'hidden',
   },
   plusIcon: {
@@ -1042,7 +986,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 5,
     marginHorizontal: 5,
   },
   topBorder: {
@@ -1075,6 +1019,7 @@ const styles = StyleSheet.create({
   selectedCardContainer: {
     borderWidth: 2,
     borderColor: '#F4A460',
+    borderRadius: 12,
   },
   selectedCardText: {
     color: '#F4A460',

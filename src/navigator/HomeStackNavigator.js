@@ -1,7 +1,13 @@
 /* eslint-disable react-native/no-inline-styles */
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React, {useMemo, useCallback} from 'react';
-import {Image, StyleSheet, Text, Platform} from 'react-native';
+import {
+  Image,
+  StyleSheet,
+  Text,
+  Platform,
+  TouchableOpacity,
+} from 'react-native';
 import {useSelector} from 'react-redux';
 import CustomHeader from '../components/common/Header';
 import appImages from '../resource/images';
@@ -90,6 +96,10 @@ const HomeStackNavigator = () => {
       lazy: true,
       detachInactiveScreens: true,
       tabBarHideOnKeyboard: true, // Hide when keyboard is visible
+      // Remove touch animation
+      tabBarButton: props => (
+        <TouchableOpacity {...props} activeOpacity={1} style={props.style} />
+      ),
       // Optimize transition animations
       ...(Platform.OS === 'android' && {
         animationEnabled: false,

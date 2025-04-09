@@ -404,7 +404,7 @@ const getStyles = theme => {
       backgroundColor: 'rgba(0, 0, 0, 0.5)',
     },
     bottomSheetContent: {
-      backgroundColor: '#1F2937',
+      backgroundColor: '#1E1E1E',
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
       padding: 20,
@@ -416,6 +416,9 @@ const getStyles = theme => {
       fontWeight: 'bold',
       marginBottom: 16,
       textAlign: 'center',
+      fontFamily: 'Nohemi',
+      fontStyle: 'normal',
+      lineHeight: 32,
     },
     bottomSheetText: {
       color: '#9CA3AF',
