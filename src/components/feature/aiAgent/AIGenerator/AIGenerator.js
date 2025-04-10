@@ -335,9 +335,7 @@ const AIGenerator = ({pageHeading}) => {
             />
             <View style={styles.creditsContainer}>
               <CText style={styles.creditsText}>
-                Songs Left: {Math.floor(creditsValue / creditsPerSong)} (
-                {creditsPerSong} credit
-                {creditsPerSong !== 1 ? 's' : ''} per song)
+                Songs Left: {Math.floor(creditsValue / creditsPerSong)}
               </CText>
             </View>
             {errorMessage ? (

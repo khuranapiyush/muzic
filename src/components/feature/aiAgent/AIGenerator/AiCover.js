@@ -733,9 +733,7 @@ const CoverCreationScreen = () => {
           </View>
           <View style={styles.creditsContainer}>
             <Text style={styles.creditsText}>
-              Songs Left: {Math.floor(creditsValue / creditsPerSong)} (
-              {creditsPerSong} credit
-              {creditsPerSong !== 1 ? 's' : ''} per song)
+              Songs Left: {Math.floor(creditsValue / creditsPerSong)}
             </Text>
           </View>
         </View>

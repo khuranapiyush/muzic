@@ -9,10 +9,8 @@ import {
   Dimensions,
   SafeAreaView,
 } from 'react-native';
-import {Svg, Path} from 'react-native-svg';
 import fetcher from '../../../../dataProvider';
 import config from 'react-native-config';
-import CText from '../../../common/core/Text';
 import {useSelector} from 'react-redux';
 import {getAuthToken} from '../../../../utils/authUtils';
 
@@ -188,9 +186,7 @@ const GenreSelectionScreen = ({
       <View style={styles.content}>
         {/* Genre Section */}
         <View style={styles.section}>
-          <CText size="largeBold" style={styles.sectionTitle}>
-            Genre
-          </CText>
+          <Text style={styles.sectionTitle}>Genre</Text>
           <View style={styles.genreGrid}>
             {genreList?.map(item => (
               <GenreItem key={item._id} item={item} />
@@ -200,9 +196,7 @@ const GenreSelectionScreen = ({
 
         {/* Singer Type Section */}
         <View style={styles.section}>
-          <CText size="largeBold" style={styles.sectionTitle}>
-            Select Singer
-          </CText>
+          <Text style={styles.sectionTitle}>Select Singer</Text>
           <View style={styles.singerGrid}>
             {filterList
               ?.filter(item => item.type === 'singer')

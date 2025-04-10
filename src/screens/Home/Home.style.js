@@ -47,7 +47,7 @@ const getStyles = theme => {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 16,
-      marginVertical: 20,
+      marginVertical: 18,
     },
     sectionTitle: {
       fontSize: 24,

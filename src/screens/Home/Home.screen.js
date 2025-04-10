@@ -55,7 +55,7 @@ const SongCard = ({
                 ? appImages.playerPauseIcon
                 : appImages.playerPlayIcon
             }
-            style={styles.playPauseIcon}
+            style={[styles.playPauseIcon, !isPlaying && {marginLeft: 4}]}
           />
         </View>
       </View>
