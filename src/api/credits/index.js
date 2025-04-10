@@ -13,15 +13,12 @@ export const fetchUserCredits = async () => {
       throw new Error('Authentication required');
     }
 
-    const response = await axios.get(
-      `${config.API_BASE_URL || 'http://localhost:8000'}/v1/credits`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+    const response = await axios.get(`${config.API_BASE_URL}/v1/credits`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
-    );
+    });
 
     return response.data;
   } catch (error) {

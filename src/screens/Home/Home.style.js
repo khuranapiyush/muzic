@@ -47,7 +47,7 @@ const getStyles = theme => {
       justifyContent: 'space-between',
       alignItems: 'center',
       paddingHorizontal: 16,
-      marginVertical: 20,
+      marginVertical: 18,
     },
     sectionTitle: {
       fontSize: 24,
@@ -85,14 +85,16 @@ const getStyles = theme => {
     },
     playButton: {
       position: 'absolute',
-      right: 8,
-      bottom: 8,
-      width: 32,
-      height: 32,
+      left: '50%',
+      top: '50%',
+      transform: [{translateX: -20}, {translateY: -20}],
+      width: 50,
+      height: 50,
       backgroundColor: '#FD893A',
-      borderRadius: 16,
+      borderRadius: 25,
       justifyContent: 'center',
       alignItems: 'center',
+      zIndex: 1,
     },
     playIcon: {
       width: 0,
@@ -100,9 +102,9 @@ const getStyles = theme => {
       backgroundColor: 'transparent',
       borderRadius: 4,
       borderStyle: 'solid',
-      borderLeftWidth: 8,
-      borderRightWidth: 8,
-      borderBottomWidth: 12,
+      borderLeftWidth: 12,
+      borderRightWidth: 12,
+      borderBottomWidth: 18,
       borderLeftColor: 'transparent',
       borderRightColor: 'transparent',
       borderBottomColor: '#fff',
@@ -174,7 +176,7 @@ const getStyles = theme => {
       fontSize: 12,
     },
     playButtonActive: {
-      backgroundColor: '#4CAF50',
+      // backgroundColor: '#4CAF50',
     },
     pauseIconActive: {
       width: 20,
@@ -228,6 +230,10 @@ const getStyles = theme => {
       width: 24,
       height: 24,
       tintColor: '#FFFFFF',
+      zIndex: 1,
+      alignSelf: 'center',
+      alignItems: 'center',
+      justifyContent: 'center',
     },
   });
 };

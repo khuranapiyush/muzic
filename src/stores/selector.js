@@ -24,6 +24,21 @@ export const selectDeviceId = createSelector(
   app => app.deviceId,
 );
 
+// Selectors for credit settings
+const selectCreditSettingsState = state => state.creditSettings;
+export const selectCreditsPerSong = createSelector(
+  selectCreditSettingsState,
+  creditSettings => creditSettings.creditsPerSong,
+);
+export const selectCreditSettingsLoading = createSelector(
+  selectCreditSettingsState,
+  creditSettings => creditSettings.isLoading,
+);
+export const selectCreditSettingsError = createSelector(
+  selectCreditSettingsState,
+  creditSettings => creditSettings.error,
+);
+
 // Combined selector
 export const useAuthUser = createSelector(
   [selectIsLoggedIn, selectUserId, selectDeviceId],

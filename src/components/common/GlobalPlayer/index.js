@@ -274,6 +274,7 @@ const GlobalPlayer = () => {
                   style={[
                     styles.fullPlayerPlayPauseIcon,
                     {tintColor: '#121212'},
+                    !isPlaying && {marginLeft: 5},
                   ]}
                 />
               </LinearGradient>

@@ -33,6 +33,7 @@ import {
 } from '../../../../stores/slices/player';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
+import {selectCreditsPerSong} from '../../../../stores/selector';
 
 const AIGenerator = ({pageHeading}) => {
   const dispatch = useDispatch();
@@ -138,6 +139,7 @@ const AIGenerator = ({pageHeading}) => {
             dispatch(setGeneratingSong(false));
           }
 
+          dispatch(setGeneratingSong(false));
           // Only show toast for direct UI feedback about generation success
           // Don't show song generation progress notifications here
           showToaster({
@@ -254,6 +256,7 @@ const AIGenerator = ({pageHeading}) => {
         genre: genreToSend,
         voice: voiceToSend,
       });
+      dispatch(setGeneratingSong(true));
     } catch (error) {
       dispatch(setGeneratingSong(false));
       dispatch(setGeneratingSongId(null));
@@ -304,6 +307,8 @@ const AIGenerator = ({pageHeading}) => {
 
   const creditsValue = getCreditsValue(credits);
 
+  const creditsPerSong = useSelector(selectCreditsPerSong);
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
@@ -330,7 +335,7 @@ const AIGenerator = ({pageHeading}) => {
             />
             <View style={styles.creditsContainer}>
               <CText style={styles.creditsText}>
-                Song Left: {creditsValue}
+                Songs Left: {Math.floor(creditsValue / creditsPerSong)}
               </CText>
             </View>
             {errorMessage ? (

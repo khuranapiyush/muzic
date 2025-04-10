@@ -37,6 +37,8 @@ const SongCard = ({
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
+  const {isPlaying: globalIsPlaying} = useMusicPlayer('HomeScreen');
+
   return (
     <TouchableOpacity
       style={styles.songCard}
@@ -45,14 +47,15 @@ const SongCard = ({
         <Image
           source={imageUrl ? {uri: imageUrl} : appImages.songPlaceHolder}
           style={styles.thumbnailImage}
-          // defaultSource={appImages.songPlaceHolder}
         />
         <View style={[styles.playButton, isPlaying && styles.playButtonActive]}>
           <Image
             source={
-              isPlaying ? appImages.playerPauseIcon : appImages.playerPlayIcon
+              isPlaying && globalIsPlaying
+                ? appImages.playerPauseIcon
+                : appImages.playerPlayIcon
             }
-            style={styles.playPauseIcon}
+            style={[styles.playPauseIcon, !isPlaying && {marginLeft: 4}]}
           />
         </View>
       </View>
@@ -175,12 +178,9 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      console.log('Refreshing home screen data...');
 
       // Call the mutation to fetch fresh data
       await fetchAudioList();
-
-      console.log('Home screen data refreshed successfully');
     } catch (error) {
       console.error('Error refreshing data:', error);
       Alert.alert(

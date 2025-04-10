@@ -1,8 +1,8 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {useWatch} from 'react-hook-form';
 import {Image, TouchableOpacity} from 'react-native';
 import appImages from '../../../../resource/images';
-import CheckBoxFC from '../../../common/FormComponents/CheckBoxFC';
+// import CheckBoxFC from '../../../common/FormComponents/CheckBoxFC';
 import CountryPickerDropdownFC from '../../../common/FormComponents/CountryPickerDropdownFC';
 import MobileInputFC from '../../../common/FormComponents/MobileInputFC';
 import CText from '../../../common/core/Text';
@@ -21,6 +21,7 @@ const Login = ({
   handleAppleLogin: propsHandleAppleLogin,
 }) => {
   const countryCode = useWatch({control, name: 'phoneCountryCode'});
+  const [isTermsAccepted, setIsTermsAccepted] = useState(true);
 
   // const handleEmailLogin = () => {
   //   !!propsHandleModeChange && propsHandleModeChange('emailLogin');
@@ -33,6 +34,10 @@ const Login = ({
   // const handleAppleLogin = () => {
   //   !!propsHandleAppleLogin && propsHandleAppleLogin();
   // };
+
+  const toggleTermsAcceptance = () => {
+    setIsTermsAccepted(!isTermsAccepted);
+  };
 
   return (
     <CView style={styles.container}>
@@ -77,48 +82,44 @@ const Login = ({
           style={styles.createButton}
           onPress={handleLogin}
           customStyles={styles.submitBtn}
-          disabled={!isValid}
+          disabled={!isValid || !isTermsAccepted}
           isLoading={isLoading}>
           <LinearGradient
             colors={['#F4A460', '#DEB887']}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
-            style={{...styles.gradient, opacity: !isValid ? 0.6 : 1}}>
+            style={{
+              ...styles.gradient,
+              opacity: !isValid || !isTermsAccepted ? 0.6 : 1,
+            }}>
             <CText style={styles.createButtonText}>Continue</CText>
           </LinearGradient>
         </TouchableOpacity>
       </CView>
 
       <CView row style={styles.termsContainer}>
-        <CheckBoxFC
-          control={control}
-          name="terms"
-          rules={{required: 'Please agree to terms and conditions'}}
-          customStyles={{
-            containerStyle: {
-              padding: 0,
-              marginLeft: 0,
-              marginRight: 4,
-              backgroundColor: 'transparent',
-            },
-          }}
-          textStyle={{
-            color: '#fff',
-            fontSize: 12,
-            marginLeft: 4,
-          }}
-        />
+        <TouchableOpacity
+          onPress={toggleTermsAcceptance}
+          style={styles.checkmarkContainer}>
+          <CView
+            style={[
+              styles.checkmarkBox,
+              isTermsAccepted && styles.checkmarkBoxSelected,
+            ]}>
+            {isTermsAccepted && <CText style={styles.checkmarkIcon}>✓</CText>}
+          </CView>
+        </TouchableOpacity>
         <CView style={styles.termsTextContainer}>
           <CText size="smallBold" style={{color: 'white'}}>
             By proceeding you agree to the Terms & Conditions and Privacy Policy
-            of Muzic
+            of MakeMySong
           </CText>
         </CView>
       </CView>
 
       {/* <CView style={styles.socialAuthContainer}>
         <CView row style={styles.signInContainer}>
-          <CText style={styles.signInText}>or signin with</CText>
+          <CText style={styles.signInText}>Or Sign-in With</CText>
         </CView>
         <CView row>
           <TouchableOpacity

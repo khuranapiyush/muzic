@@ -630,7 +630,6 @@ const LibraryScreen = () => {
     );
   };
 
-  console.log(audioList, 'audioList');
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
@@ -688,7 +687,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#000',
     paddingTop: 15,
-    paddingHorizontal: 16,
+    marginHorizontal: 10,
   },
   list: {
     flex: 1,
@@ -760,7 +759,7 @@ const styles = StyleSheet.create({
     marginBottom: 80,
   },
   songItemContainer: {
-    marginHorizontal: 0,
+    marginHorizontal: 5,
     marginVertical: 6,
     borderRadius: 12,
     elevation: 4,
