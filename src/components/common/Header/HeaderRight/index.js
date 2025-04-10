@@ -20,14 +20,14 @@ const HeaderRight = ({mode}) => {
     return typeof credits === 'number' ? credits : 0;
   })();
 
-  // Refresh credits when component mounts and every 15 minutes
+  // Refresh credits when component mounts and every 3 minutes
   useEffect(() => {
     refreshCredits();
 
-    // Set up an interval to refresh credits every 15 minutes
+    // Set up an interval to refresh credits every 3 minutes
     const intervalId = setInterval(() => {
       refreshCredits();
-    }, 15 * 60000); // 15 minutes
+    }, 3 * 60000); // 3 minutes
 
     return () => clearInterval(intervalId);
   }, [refreshCredits]);

@@ -587,7 +587,7 @@ const CoverCreationScreen = () => {
         </View>
         <Text style={[styles.cardText, isSelected && styles.selectedCardText]}>
           {recording.title?.length > 15
-            ? recording.title.substring(0, 15) + '...'
+            ? recording.title.substring(0, 9) + '...'
             : recording.title || 'Voice'}
         </Text>
       </TouchableOpacity>

@@ -187,7 +187,7 @@ const AIGenerator = ({pageHeading}) => {
     return {
       heading: 'Music Description',
       placeholderText:
-        'Describe the style of music and the topic you want, AI will generate video for you',
+        'Tell us the vibe and topic, and let AI create your perfect soundtrack!',
       component: generatedListResponse ? (
         <CView key={generatedListResponse?.id}>
           <MusicCard
