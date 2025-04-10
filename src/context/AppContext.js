@@ -75,7 +75,10 @@ export const AppProvider = ({children}) => {
                 isValid ? 'Valid' : 'Invalid',
               );
 
-              if (!isValid) {
+              if (isValid) {
+                // If tokens are valid, set user as logged in
+                dispatch(setUser({isLoggedIn: true}));
+              } else {
                 dispatch(setUser({isLoggedIn: false}));
               }
             } catch (error) {

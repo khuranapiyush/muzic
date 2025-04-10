@@ -35,11 +35,10 @@ import {
   setGeneratingSongId,
 } from '../../../../stores/slices/player';
 import appImages from '../../../../resource/images';
+import {selectCreditsPerSong} from '../../../../stores/selector';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
-// Define how many credits a cover generation costs
-const COVER_GENERATION_COST = 1;
 
 // Helper function to safely display credits
 const getCreditsValue = creditsData => {
@@ -105,6 +104,8 @@ const CoverCreationScreen = () => {
   const dispatch = useDispatch();
 
   const navigation = useNavigation();
+
+  const creditsPerSong = useSelector(selectCreditsPerSong);
 
   // Basic network check function (simplified)
   const checkNetworkConnectivity = useCallback(async () => {
@@ -309,7 +310,7 @@ const CoverCreationScreen = () => {
         setIsRetrying(false);
         retryAttempts.current = 0;
       }
-    }, COVER_GENERATION_COST);
+    }, creditsPerSong);
   };
 
   const handlePaste = async () => {
@@ -731,7 +732,11 @@ const CoverCreationScreen = () => {
             </TouchableOpacity>
           </View>
           <View style={styles.creditsContainer}>
-            <Text style={styles.creditsText}>Songs Left: {creditsValue}</Text>
+            <Text style={styles.creditsText}>
+              Songs Left: {Math.floor(creditsValue / creditsPerSong)} (
+              {creditsPerSong} credit
+              {creditsPerSong !== 1 ? 's' : ''} per song)
+            </Text>
           </View>
         </View>
 

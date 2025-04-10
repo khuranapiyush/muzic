@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useState} from 'react';
-import {useSelector, useDispatch} from 'react-redux';
+import {useDispatch, useSelector} from 'react-redux';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../navigator/config/routeName';
 import {
@@ -7,10 +7,19 @@ import {
   incrementCredits,
   decrementCredits,
 } from '../stores/slices/user';
+import {selectCreditsPerSong} from '../stores/selector';
 import {fetchUserCredits} from '../api/credits';
 
 // Cache duration in milliseconds (5 minutes)
 const CACHE_DURATION = 5 * 60 * 1000;
+
+// Helper function to safely get credit value
+const getCreditsValue = creditsData => {
+  if (creditsData !== null) {
+    return creditsData || 0;
+  }
+  return typeof creditsData === 'number' ? creditsData : 0;
+};
 
 /**
  * A custom hook for managing user credits with caching
@@ -18,18 +27,11 @@ const CACHE_DURATION = 5 * 60 * 1000;
 export const useCredits = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
-  const userState = useSelector(state => state.user);
+  const [lastFetchTime, setLastFetchTime] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [lastFetchTime, setLastFetchTime] = useState(0);
-
-  // Handle both object and primitive credit values
-  const getCreditsValue = creditsData => {
-    if (typeof creditsData === 'object' && creditsData !== null) {
-      return creditsData?.data?.balance || 0;
-    }
-    return typeof creditsData === 'number' ? creditsData : 0;
-  };
+  const userState = useSelector(state => state.user);
+  const creditsPerSong = useSelector(selectCreditsPerSong);
 
   const credits = getCreditsValue(userState.credits);
 
@@ -38,29 +40,23 @@ export const useCredits = () => {
    */
   const refreshCredits = useCallback(
     async (force = false) => {
-      const now = Date.now();
-
-      // Check if we should use cached data
-      if (!force && now - lastFetchTime < CACHE_DURATION) {
-        return userState.credits;
-      }
-
-      try {
+      // Only refresh if cache is expired or force refresh is requested
+      if (force || Date.now() - lastFetchTime >= CACHE_DURATION) {
         setIsLoading(true);
         setError(null);
-        const creditData = await fetchUserCredits();
-        dispatch(updateCredits(creditData));
-        setLastFetchTime(now);
-        return creditData;
-      } catch (err) {
-        console.error('Failed to refresh credits:', err);
-        setError(err.message || 'Failed to refresh credits');
-        return null;
-      } finally {
-        setIsLoading(false);
+        try {
+          const response = await fetchUserCredits();
+          dispatch(updateCredits(response?.data?.balance));
+          setLastFetchTime(Date.now());
+        } catch (err) {
+          setError(err.message);
+          console.error('Error refreshing credits:', err);
+        } finally {
+          setIsLoading(false);
+        }
       }
     },
-    [dispatch, lastFetchTime, userState.credits],
+    [dispatch, lastFetchTime],
   );
 
   // Fetch credits on hook initialization if not cached
@@ -108,7 +104,7 @@ export const useCredits = () => {
    * @returns {boolean} Whether the decrement was successful
    */
   const decrementUserCredits = useCallback(
-    (amount = 1) => {
+    (amount = creditsPerSong) => {
       if (credits < amount) {
         return false;
       }
@@ -116,7 +112,7 @@ export const useCredits = () => {
       setLastFetchTime(Date.now());
       return true;
     },
-    [credits, dispatch],
+    [credits, dispatch, creditsPerSong],
   );
 
   /**
@@ -125,7 +121,7 @@ export const useCredits = () => {
    * @param {number} requiredCredits - The number of credits required (default: 1)
    */
   const handleCreditRequiredAction = useCallback(
-    async (action, requiredCredits = 1) => {
+    async (action, requiredCredits = creditsPerSong) => {
       // First refresh credits to ensure we have the latest count
       await refreshCredits(true);
       const currentCredits = getCreditsValue(userState.credits);
@@ -145,7 +141,7 @@ export const useCredits = () => {
         return false;
       }
     },
-    [userState.credits, dispatch, navigation, refreshCredits],
+    [userState.credits, dispatch, navigation, refreshCredits, creditsPerSong],
   );
 
   return {
@@ -157,6 +153,7 @@ export const useCredits = () => {
     refreshCredits,
     isLoading,
     error,
+    creditsPerSong,
   };
 };
 

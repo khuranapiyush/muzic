@@ -16,6 +16,7 @@ import CText from '../../components/common/core/Text';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
 import useCredits from '../../hooks/useCredits';
+import {selectCreditsPerSong} from '../../stores/selector';
 
 // Define PlanCard component outside of SubscriptionScreen
 const PlanCard = ({
@@ -1628,6 +1629,8 @@ const SubscriptionScreen = () => {
     return null;
   };
 
+  const creditsPerSong = useSelector(selectCreditsPerSong);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -1659,9 +1662,9 @@ const SubscriptionScreen = () => {
         <View style={styles.creditsContainer}>
           <Text style={styles.creditsTitle}>Credits</Text>
           <Text style={styles.creditsNumber}>{displayCredits()}</Text>
-          {/* <Text style={styles.creditsSubtitle}>Songs left</Text> */}
           <Text style={styles.creditsSubtitleText}>
-            *1 Credit = 1 Song Generation
+            *{creditsPerSong} Credit{creditsPerSong !== 1 ? 's' : ''} = 1 Song
+            Generation
           </Text>
         </View>
 

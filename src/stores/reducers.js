@@ -12,6 +12,7 @@ import walletStats from './slices/walletStats';
 import trade from './slices/trade';
 import community from './slices/community';
 import shortiePlayer from './slices/shortiePlayer';
+import creditSettings from './slices/creditSettings';
 
 const authPersistConfig = {
   key: 'auth',
@@ -44,6 +45,7 @@ const rootReducer = combineReducers({
   trade,
   community,
   shortiePlayer,
+  creditSettings,
 });
 
 export default rootReducer;
