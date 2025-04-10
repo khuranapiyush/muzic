@@ -89,6 +89,24 @@ const formatPriceWithSymbol = priceObj => {
   return `${symbol}${amount}`;
 };
 
+const calculateDiscountPercentage = (originalPrice, currentPrice) => {
+  // Handle case where prices are not available
+  if (!originalPrice || !currentPrice) {
+    return 0;
+  }
+
+  // Extract numeric values from price objects
+  const original = parseFloat(originalPrice.amount);
+  const current = parseFloat(currentPrice.amount);
+
+  if (isNaN(original) || isNaN(current) || original <= current) {
+    return 0;
+  }
+
+  const discount = ((original - current) / original) * 100;
+  return Math.round(discount);
+};
+
 // Component that displays product data from API
 const PromoModal = ({visible, onClose}) => {
   const navigation = useNavigation();
@@ -224,7 +242,13 @@ const PromoModal = ({visible, onClose}) => {
                 <ActivityIndicator size="large" color="#F97316" />
               ) : (
                 <>
-                  <Text style={styles.discountText}>33% OFF</Text>
+                  <Text style={styles.discountText}>
+                    {calculateDiscountPercentage(
+                      getOriginalPrice(),
+                      getProductPrice(),
+                    )}
+                    % OFF
+                  </Text>
 
                   <View style={styles.featuresContainer}>
                     {getProductFeatures().map((feature, index) => (
