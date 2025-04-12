@@ -10,7 +10,9 @@ export const authEmailSignup = async data => {
 };
 
 export const authGoogleLogin = async data => {
-  return fetcher.post(`${config.API_URL}/v1/auth/login-google-ios`, data);
+  return fetcher.post(`${config.API_BASE_URL}/auth/google/verify-token`, {
+    idToken: data.idToken,
+  });
 };
 
 export const authAppleLogin = async data => {

@@ -27,9 +27,9 @@ const Login = ({
   //   !!propsHandleModeChange && propsHandleModeChange('emailLogin');
   // };
 
-  // const handleGoogleLogin = () => {
-  //   !!propsHandleGoogleLogin && propsHandleGoogleLogin();
-  // };
+  const handleGoogleLogin = () => {
+    !!propsHandleGoogleLogin && propsHandleGoogleLogin();
+  };
 
   // const handleAppleLogin = () => {
   //   !!propsHandleAppleLogin && propsHandleAppleLogin();
@@ -117,7 +117,7 @@ const Login = ({
         </CView>
       </CView>
 
-      {/* <CView style={styles.socialAuthContainer}>
+      <CView style={styles.socialAuthContainer}>
         <CView row style={styles.signInContainer}>
           <CText style={styles.signInText}>Or Sign-in With</CText>
         </CView>
@@ -130,16 +130,16 @@ const Login = ({
               style={styles.googleLogoIcon}
             />
           </TouchableOpacity>
-          <TouchableOpacity
+          {/* <TouchableOpacity
             onPress={handleEmailLogin}
             style={styles.socialBtnWrapper}>
             <Image source={appImages.emailIcon} style={styles.emailIcon} />
           </TouchableOpacity>
           <TouchableOpacity onPress={handleAppleLogin}>
             <Image source={appImages.appleLogoIcon} style={styles.emailIcon} />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </CView>
-      </CView> */}
+      </CView>
     </CView>
   );
 };

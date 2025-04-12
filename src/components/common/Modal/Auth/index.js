@@ -7,7 +7,12 @@ import {useNavigation, useTheme} from '@react-navigation/native';
 import {useMutation} from '@tanstack/react-query';
 import React, {useCallback, useEffect, useState} from 'react';
 import {useForm} from 'react-hook-form';
-import {BackHandler, KeyboardAvoidingView, SafeAreaView} from 'react-native';
+import {
+  BackHandler,
+  KeyboardAvoidingView,
+  SafeAreaView,
+  Platform,
+} from 'react-native';
 import Modal from 'react-native-modal';
 import {useDispatch, useSelector} from 'react-redux';
 import {
@@ -363,34 +368,226 @@ const AuthModal = ({
     verifyOtpApi(data);
   };
 
+  const [isGoogleSignInInProgress, setIsGoogleSignInInProgress] =
+    useState(false);
+
   const handleGoogleLogin = useCallback(async () => {
+    if (isGoogleSignInInProgress) {
+      console.log('Google Sign In already in progress, ignoring request');
+      return;
+    }
+
     try {
-      GoogleSignin.configure({
+      setIsGoogleSignInInProgress(true);
+      console.log('Starting Google Sign In process...');
+
+      // First, ensure we're signed out and clean up any existing state
+      try {
+        const isSignedIn = await GoogleSignin.isSignedIn();
+        if (isSignedIn) {
+          console.log('Found existing sign in session, signing out...');
+          await GoogleSignin.signOut();
+          console.log('Signed out from existing session');
+        }
+      } catch (signOutError) {
+        console.log('No previous session to sign out from');
+      }
+
+      // Configure Google Sign In with minimal configuration
+      console.log('Configuring Google Sign In with minimal configuration...');
+      const config = {
         webClientId:
-          '513197452057-mk7k51dvhfi8qrd7hlmlhjgn7u384ha4.apps.googleusercontent.com',
+          '920222123505-1b6147gr46g7bp0bkjvn02i056g2e34d.apps.googleusercontent.com',
+        offlineAccess: false,
+        forceCodeForRefreshToken: false,
+        scopes: ['email'],
+      };
+
+      // Log configuration before applying
+      console.log('Google Sign In Configuration:', {
+        ...config,
+        platform: Platform.OS,
+        version: Platform.Version,
+        packageName: 'com.muzic',
+        buildType: __DEV__ ? 'debug' : 'release',
       });
 
-      await GoogleSignin.hasPlayServices({
+      GoogleSignin.configure(config);
+
+      // Check Play Services
+      console.log('Checking Play Services...');
+      const hasPlayServices = await GoogleSignin.hasPlayServices({
         showPlayServicesUpdateDialog: true,
       });
-      const {idToken} = await GoogleSignin.signIn();
+      console.log('Play Services available:', hasPlayServices);
 
-      googleLoginApi({
-        id_token: idToken,
-        userId,
-      });
+      // Sign in with retry mechanism
+      let retryCount = 0;
+      const maxRetries = 3;
+      let lastError = null;
+
+      while (retryCount < maxRetries) {
+        try {
+          console.log(
+            `Attempting sign in (attempt ${retryCount + 1}/${maxRetries})...`,
+          );
+
+          // Start new sign-in attempt
+          const userInfo = await GoogleSignin.signIn();
+
+          console.log('Sign in successful, user info:', {
+            ...userInfo,
+            idToken: userInfo.idToken ? 'Present' : 'Missing',
+          });
+
+          if (!userInfo.idToken) {
+            throw new Error('No ID token received from Google');
+          }
+
+          console.log('Calling backend API with ID token...');
+          googleLoginApi({
+            id_token: userInfo.idToken,
+            userId,
+          });
+          return; // Success, exit the function
+        } catch (error) {
+          lastError = error;
+          console.error(`Sign in attempt ${retryCount + 1} failed:`, {
+            code: error.code,
+            message: error.message,
+            stack: error.stack,
+            platform: Platform.OS,
+            version: Platform.Version,
+            buildType: __DEV__ ? 'debug' : 'release',
+          });
+
+          if (error.code === statusCodes.IN_PROGRESS) {
+            // If sign in is in progress, wait and try again
+            console.log('Sign in in progress, waiting before retry...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            retryCount++;
+            continue;
+          } else if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+            showToaster({
+              type: 'error',
+              text1: 'Sign In Cancelled',
+              text2: 'You cancelled the sign in process',
+            });
+            break;
+          } else if (error.code === statusCodes.DEVELOPER_ERROR) {
+            console.error('Developer Error Details:', {
+              message:
+                'This error usually occurs due to incorrect configuration in Google Cloud Console',
+              possibleCauses: [
+                'Incorrect webClientId',
+                'Missing SHA-1 fingerprint (Android)',
+                'Missing bundle ID (iOS)',
+                'OAuth consent screen not configured',
+                'API not enabled in Google Cloud Console',
+                'Package name mismatch',
+                'Incorrect OAuth client type',
+                'Using debug keystore instead of production keystore',
+              ],
+              currentConfig: {
+                webClientId:
+                  '920222123505-1b6147gr46g7bp0bkjvn02i056g2e34d.apps.googleusercontent.com',
+                packageName: 'com.muzic',
+                platform: Platform.OS,
+                version: Platform.Version,
+                buildType: __DEV__ ? 'debug' : 'release',
+              },
+            });
+            showToaster({
+              type: 'error',
+              text1: 'Configuration Error',
+              text2:
+                'Please check Google Sign-In configuration in Google Cloud Console',
+            });
+            break;
+          } else {
+            // For other errors, throw immediately
+            throw error;
+          }
+        }
+      }
+
+      // If we've exhausted all retries
+      if (retryCount === maxRetries) {
+        showToaster({
+          type: 'error',
+          text1: 'Sign In Failed',
+          text2: 'Please try again in a few moments',
+        });
+        console.error('Max retries reached, last error:', lastError);
+      }
     } catch (error) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log('User cancelled the google login', error.code);
+      console.error('Detailed Google Sign In Error:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack,
+        fullError: error,
+        platform: Platform.OS,
+        appVersion: Platform.Version,
+        buildType: __DEV__ ? 'debug' : 'release',
+      });
+
+      if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        showToaster({
+          type: 'error',
+          text1: 'Play Services Not Available',
+          text2: 'Please update Google Play Services',
+        });
+      } else if (error.code === statusCodes.DEVELOPER_ERROR) {
+        console.error('Developer Error Details:', {
+          message:
+            'This error usually occurs due to incorrect configuration in Google Cloud Console',
+          possibleCauses: [
+            'Incorrect webClientId',
+            'Missing SHA-1 fingerprint (Android)',
+            'Missing bundle ID (iOS)',
+            'OAuth consent screen not configured',
+            'API not enabled in Google Cloud Console',
+            'Package name mismatch',
+            'Incorrect OAuth client type',
+            'Using debug keystore instead of production keystore',
+          ],
+          currentConfig: {
+            webClientId:
+              '920222123505-1b6147gr46g7bp0bkjvn02i056g2e34d.apps.googleusercontent.com',
+            packageName: 'com.muzic',
+            platform: Platform.OS,
+            version: Platform.Version,
+            buildType: __DEV__ ? 'debug' : 'release',
+          },
+        });
+        showToaster({
+          type: 'error',
+          text1: 'Configuration Error',
+          text2:
+            'Please check Google Sign-In configuration in Google Cloud Console',
+        });
       } else {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: 'Some Error occurred',
+          text2: error.message || 'An error occurred during sign in',
         });
       }
+    } finally {
+      setIsGoogleSignInInProgress(false);
     }
-  }, [googleLoginApi, showToaster, userId]);
+  }, [googleLoginApi, showToaster, userId, isGoogleSignInInProgress]);
+
+  // Add cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (isGoogleSignInInProgress) {
+        GoogleSignin.signOut().catch(() => {
+          console.log('Error during cleanup sign out');
+        });
+      }
+    };
+  }, [isGoogleSignInInProgress]);
 
   const handleAppleLogin = async () => {
     try {
