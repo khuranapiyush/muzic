@@ -89,24 +89,6 @@ const formatPriceWithSymbol = priceObj => {
   return `${symbol}${amount}`;
 };
 
-const calculateDiscountPercentage = (originalPrice, currentPrice) => {
-  // Handle case where prices are not available
-  if (!originalPrice || !currentPrice) {
-    return 0;
-  }
-
-  // Extract numeric values from price objects
-  const original = parseFloat(originalPrice.amount);
-  const current = parseFloat(currentPrice.amount);
-
-  if (isNaN(original) || isNaN(current) || original <= current) {
-    return 0;
-  }
-
-  const discount = ((original - current) / original) * 100;
-  return Math.round(discount);
-};
-
 // Component that displays product data from API
 const PromoModal = ({visible, onClose}) => {
   const navigation = useNavigation();
@@ -196,19 +178,6 @@ const PromoModal = ({visible, onClose}) => {
     return description.split('\n').filter(line => line.trim().length > 0);
   };
 
-  // Calculate "original" price for display (50% markup)
-  const getOriginalPrice = () => {
-    const priceObj = getProductPrice();
-    if (!priceObj) return '';
-
-    const originalPriceObj = {
-      amount: Math.round(priceObj.amount * 1.5),
-      currency: priceObj.currency,
-    };
-
-    return formatPriceWithSymbol(originalPriceObj);
-  };
-
   return (
     <Modal
       animationType="slide"
@@ -242,14 +211,6 @@ const PromoModal = ({visible, onClose}) => {
                 <ActivityIndicator size="large" color="#F97316" />
               ) : (
                 <>
-                  <Text style={styles.discountText}>
-                    {calculateDiscountPercentage(
-                      getOriginalPrice(),
-                      getProductPrice(),
-                    )}
-                    % OFF
-                  </Text>
-
                   <View style={styles.featuresContainer}>
                     {getProductFeatures().map((feature, index) => (
                       <Text key={index} style={styles.featureText}>
@@ -259,11 +220,10 @@ const PromoModal = ({visible, onClose}) => {
                   </View>
 
                   <View style={styles.priceContainer}>
-                    <Text style={styles.oldPrice}>{getOriginalPrice()}</Text>
-                    <Text style={styles.newPrice}>
+                    <Text style={styles.priceText}>
                       {formatPriceWithSymbol(getProductPrice())}
+                      <Text style={styles.perMonthText}> per month</Text>
                     </Text>
-                    <Text style={styles.newPriceText}> per month</Text>
                   </View>
                 </>
               )}
@@ -333,12 +293,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     padding: 10,
   },
-  discountText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#F97316',
-    marginBottom: 10,
-  },
   featuresContainer: {
     width: '85%',
     backgroundColor: 'rgba(255, 213, 169, 0.30)',
@@ -358,21 +312,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
+    justifyContent: 'center',
   },
-  oldPrice: {
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-    marginRight: 10,
-    fontSize: 24,
-  },
-  newPrice: {
-    color: 'red',
-    fontWeight: 'bold',
-    fontSize: 24,
-  },
-  newPriceText: {
+  priceText: {
     color: 'white',
+    fontSize: 28,
     fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  perMonthText: {
+    color: 'white',
     fontSize: 24,
   },
   renewalText: {

@@ -23,7 +23,6 @@ const PlanCard = ({
   title,
   price,
   features,
-  originalPrice,
   onPurchase,
   selectedPlan,
   disabled,
@@ -40,9 +39,6 @@ const PlanCard = ({
     <View style={styles.planHeader}>
       <Text style={styles.planTitle}>{title}</Text>
       <View style={styles.priceContainer}>
-        {originalPrice && (
-          <Text style={styles.originalPrice}>{originalPrice}</Text>
-        )}
         <Text style={styles.planPrice}>{price}</Text>
       </View>
     </View>
@@ -1591,9 +1587,6 @@ const SubscriptionScreen = () => {
               key={product.productId || product.sku}
               title={product.title || 'Credit Pack'}
               price={product.localizedPrice || product.price}
-              originalPrice={calculateOriginalPrice(
-                product.price || product.localizedPrice,
-              )}
               features={features}
               onPurchase={() => {
                 // Set the selected product ID to this product
@@ -1608,25 +1601,6 @@ const SubscriptionScreen = () => {
         })}
       </View>
     );
-  };
-
-  // Helper function to calculate "original price" for showing a discount
-  const calculateOriginalPrice = price => {
-    if (!price) return null;
-
-    try {
-      // Parse the price to add a "discount"
-      const match = price.match(/([^\d]*)(\d+(\.\d+)?)(.*)/);
-      if (match) {
-        const [_, currencySymbol, numericPrice, decimalPart, suffix] = match;
-        const inflatedPrice = Math.round(parseFloat(numericPrice) * 1.3);
-        return `${currencySymbol}${inflatedPrice}${suffix}`;
-      }
-    } catch (e) {
-      console.log('Error calculating original price:', e);
-    }
-
-    return null;
   };
 
   const creditsPerSong = useSelector(selectCreditsPerSong);
@@ -1793,12 +1767,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: '#000',
-  },
-  originalPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    textDecorationLine: 'line-through',
   },
   featureText: {
     marginBottom: 10,
