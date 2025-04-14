@@ -1,15 +1,8 @@
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
-import React, {
-  useContext,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-} from 'react';
+import React, {useEffect, useState, useCallback, useMemo} from 'react';
 import {useSelector, useDispatch} from 'react-redux';
 import AppProvider from '../context/AppContext';
 import {ModalProvider} from '../context/ModalContext';
-import {ThemeContext} from '../context/ThemeContext';
 import Toaster from '../components/common/Toaster';
 import {useAuthUser} from '../stores/selector';
 import {ActivityIndicator, View} from 'react-native';
@@ -33,11 +26,20 @@ const LoadingComponent = () => (
 );
 
 const AppNavigator = () => {
-  const {theme} = useContext(ThemeContext);
   const {isLoggedIn} = useSelector(useAuthUser);
   const {tokenChecked} = useSelector(state => state.app);
   const [showFallback, setShowFallback] = useState(false);
   const dispatch = useDispatch();
+
+  const [forceRender, setForceRender] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceRender(prev => prev + 1);
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isLoggedIn]);
 
   // Memoize theme to prevent unnecessary re-renders
   const DarkTheme = useMemo(
@@ -65,7 +67,7 @@ const AppNavigator = () => {
 
     const Navigator = isLoggedIn ? AppStackNavigator : AuthStackNavigator;
     return <Navigator />;
-  }, [isLoggedIn, tokenChecked, showFallback]);
+  }, [isLoggedIn, tokenChecked, showFallback, forceRender]);
 
   // Add fallback timer for loading state
   useEffect(() => {

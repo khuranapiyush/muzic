@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import {useForm} from 'react-hook-form';
 import {useMutation} from '@tanstack/react-query';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch} from 'react-redux';
 import {authGoogleLogin, authLoginSignup} from '../../../api/auth';
 import fetcher, {addAuthInterceptor} from '../../../dataProvider';
 import {useNavigation} from '@react-navigation/native';
@@ -20,10 +20,11 @@ import {
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import {setUser} from '../../../stores/slices/user';
-import {updateToken} from '../../../stores/slices/auth';
+import {updateToken, setLoggedIn} from '../../../stores/slices/auth';
 import {handleLoginEvent} from '../../../events/auth';
 import useEvent from '../../../hooks/useEvent';
 import {loginSource} from '../../../constants/event';
+import {setTokenChecked} from '../../../stores/slices/app';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,10 +34,6 @@ const LoginScreen = () => {
 
   // Initialize Google Sign-In when component mounts
   useEffect(() => {
-    if (__DEV__) {
-      GoogleSignin.DEBUG_MODE = true;
-    }
-
     const initializeGoogleSignIn = async () => {
       try {
         // Configure inside the component to ensure it runs in the correct context
@@ -142,59 +139,63 @@ const LoginScreen = () => {
 
   const {mutate: googleLoginApi} = useMutation(data => authGoogleLogin(data), {
     onSuccess: res => {
-      // Extract token information
-      const accessToken = res.data?.tokens?.access?.token;
-      const refreshToken = res.data?.tokens?.refresh?.token;
+      // Log the complete response for debugging
+      console.log('Google login success response:', JSON.stringify(res.data));
 
-      // Prepare user data for the store - matching your actual API response structure
-      const userData = {
-        isGuest: false,
-        isLoggedIn: true,
-        user: res.data?.user,
-        accessToken: accessToken,
-        refreshToken: refreshToken,
-      };
-
-      // Save auth data to Redux store
-      dispatch(setUser(userData));
-
-      // Store token in your data provider for API calls
       try {
+        // Extract token information for data provider
+        const accessToken = res.data?.tokens?.access?.token;
+        const refreshToken = res.data?.tokens?.refresh?.token;
+
+        console.log('Extracted tokens:', {accessToken, refreshToken});
+
+        // Set auth token for API calls if available
         if (fetcher && fetcher.setAuthToken) {
           fetcher.setAuthToken(accessToken);
-
-          // Also update in your auth store if needed
-          if (updateToken) {
-            dispatch(
-              updateToken({
-                access: accessToken,
-                refresh: refreshToken,
-              }),
-            );
-          }
         }
+
+        // Update tokens in Redux store
+        if (updateToken) {
+          dispatch(
+            updateToken({
+              access: accessToken,
+              refresh: refreshToken,
+            }),
+          );
+        }
+
+        // IMPORTANT: Update Redux state with isLoggedIn=true
+        dispatch(setUser({isLoggedIn: true, ...res.data}));
+
+        // Force isLoggedIn to true in auth slice as well
+        dispatch(setLoggedIn(true));
+
+        // Make sure tokenChecked is true
+        dispatch(setTokenChecked(true));
+
+        // Force the app to re-evaluate login state immediately
+        console.log(
+          'Google login successful, forcing AppNavigator to re-evaluate login state',
+        );
 
         // Initialize auth interceptor to handle token refresh
         if (typeof addAuthInterceptor === 'function') {
           addAuthInterceptor();
         }
-      } catch (tokenError) {
-        // Silently handle token errors
+
+        // Track login event
+        handleLoginEvent(res?.data?.user, {
+          ...defaultEventData,
+          CurrentSourceName: loginSource.loginGoogleSource,
+        });
+
+        // DON'T USE NAVIGATION HERE - let AppNavigator handle the switch based on Redux state
+
+        setIsGoogleSignInProgress(false);
+      } catch (error) {
+        console.error('Error during login process:', error);
+        setIsGoogleSignInProgress(false);
       }
-
-      // Track login event
-      handleLoginEvent(res?.data?.user, {
-        ...defaultEventData,
-        CurrentSourceName: loginSource.loginGoogleSource,
-      });
-
-      // Navigate to home or redirect path
-      const destination = navigation?.redirectToPath || ROUTE_NAME.Home;
-      navigation?.redirectToPath
-        ? navigation.navigate(navigation?.redirectToPath)
-        : navigation.navigate(ROUTE_NAME.Home);
-
-      setIsGoogleSignInProgress(false);
     },
     onError: err => {
       showToaster({
@@ -210,16 +211,13 @@ const LoginScreen = () => {
   });
 
   const handleGoogleLogin = async () => {
-    // Prevent multiple sign-in attempts
     if (isGoogleSignInProgress) {
       return;
     }
 
     try {
-      // Set flag to prevent multiple sign-in attempts
       setIsGoogleSignInProgress(true);
 
-      // Re-configure before using to ensure proper initialization
       GoogleSignin.configure({
         webClientId:
           '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
