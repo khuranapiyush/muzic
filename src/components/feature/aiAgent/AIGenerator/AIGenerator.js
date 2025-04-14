@@ -1,7 +1,14 @@
 /* eslint-disable react-native/no-inline-styles */
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, {useEffect, useState} from 'react';
-import {Keyboard, SafeAreaView, Modal, View} from 'react-native';
+import {
+  Keyboard,
+  SafeAreaView,
+  Modal,
+  View,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+} from 'react-native';
 import CView from '../../../common/core/View';
 import CText from '../../../common/core/Text';
 import TextInputFC from '../../../common/FormComponents/TextInputFC';
@@ -12,24 +19,30 @@ import {useMutation} from '@tanstack/react-query';
 import config from 'react-native-config';
 import MusicCard from './MusicCard';
 import useToaster from '../../../../hooks/useToaster';
-import AudioPlayer from '../../../../screens/Home/AudioPlayer';
 import GenreSelectionScreen from './Filters';
-import {TouchableOpacity} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import PromoModal from './PromoBanner';
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
 import fetcher from '../../../../dataProvider';
 import {useTheme} from '@react-navigation/native';
 import {getAuthToken} from '../../../../utils/authUtils';
 import useCredits from '../../../../hooks/useCredits';
+import {
+  setGeneratingSong,
+  setGeneratingSongId,
+} from '../../../../stores/slices/player';
+import {useNavigation} from '@react-navigation/native';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
+import {selectCreditsPerSong} from '../../../../stores/selector';
 
 const AIGenerator = ({pageHeading}) => {
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
   const authState = useSelector(state => state.auth);
   const {API_BASE_URL} = config;
   const {mode} = useTheme();
   const {showToaster} = useToaster();
   const styles = getStyles(mode);
-  // const navigation = useNavigation();
   const [response, setResponse] = useState(null);
   const [videoGenerating, setVideoGenerating] = useState({
     status: 'COMPLETED',
@@ -77,19 +90,12 @@ const AIGenerator = ({pageHeading}) => {
     // Add genre if selected - ensure it's added with the correct field name
     if (genreToUse && genreToUse.trim() !== '') {
       requestPayload.genre = genreToUse.trim();
-      console.log('Including genre in request:', genreToUse);
     }
 
     // Add voice if selected - ensure it's added with the correct field name
     if (voiceToUse && voiceToUse.trim() !== '') {
       requestPayload.voice = voiceToUse.trim();
-      console.log('Including voice in request:', voiceToUse);
     }
-
-    console.log(
-      'Final request payload:',
-      JSON.stringify(requestPayload, null, 2),
-    );
 
     // Get auth token
     const token = await getAuthToken();
@@ -123,10 +129,19 @@ const AIGenerator = ({pageHeading}) => {
     {
       onSuccess: data => {
         if (!data?.errorCode) {
-          console.log('Song generation successful:', data);
           setResponse(data);
           setGeneratedListResponse(data);
           setErrorMessage('');
+
+          // Store the generated song ID for tracking
+          if (data._id) {
+            dispatch(setGeneratingSongId(data._id));
+            dispatch(setGeneratingSong(false));
+          }
+
+          dispatch(setGeneratingSong(false));
+          // Only show toast for direct UI feedback about generation success
+          // Don't show song generation progress notifications here
           showToaster({
             type: 'success',
             text1: 'Success',
@@ -142,11 +157,6 @@ const AIGenerator = ({pageHeading}) => {
         }
       },
       onError: error => {
-        // We'll handle errors in a more user-friendly way
-        console.log('Song generation error:', error);
-
-        // Don't show error toasts for timeouts - the user already knows their song is being generated
-        // Only show errors for clear server issues
         if (
           error.response &&
           error.response.status >= 400 &&
@@ -164,6 +174,10 @@ const AIGenerator = ({pageHeading}) => {
             text1: 'Generation Failed',
             text2: errorMsg,
           });
+
+          // Reset the generation state on error
+          dispatch(setGeneratingSong(false));
+          dispatch(setGeneratingSongId(null));
         }
       },
     },
@@ -173,13 +187,14 @@ const AIGenerator = ({pageHeading}) => {
     return {
       heading: 'Music Description',
       placeholderText:
-        'Describe the style of music and the topic you want, AI will generate video for you',
+        'Tell us the vibe and topic, and let AI create your perfect soundtrack!',
       component: generatedListResponse ? (
         <CView key={generatedListResponse?.id}>
           <MusicCard
             item={generatedListResponse?.data}
             index={generatedListResponse?.id}
             videoGenerating={videoGenerating}
+            songList={[generatedListResponse?.data]}
           />
         </CView>
       ) : null,
@@ -203,6 +218,13 @@ const AIGenerator = ({pageHeading}) => {
       return;
     }
 
+    // Check if user has sufficient credits
+    if (creditsValue <= 0) {
+      // Navigate to subscription screen
+      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+      return;
+    }
+
     // Store current selections before showing UI changes
     const genreToSend = selectedGenre;
     const voiceToSend = selectedVoice;
@@ -210,7 +232,9 @@ const AIGenerator = ({pageHeading}) => {
     // Show the bottom sheet immediately to inform the user
     setShowBottomSheet(true);
 
-    // Reset the form and selections immediately for better UX
+    // Set global generating state - this will trigger the library indicator
+    dispatch(setGeneratingSong(true));
+
     reset();
     setPrompt('');
 
@@ -225,47 +249,23 @@ const AIGenerator = ({pageHeading}) => {
       setResetSelections(false);
     }, 100);
 
-    // Call the mutation with the stored values
-    generateSong({
-      promptText: promptText,
-      genre: genreToSend,
-      voice: voiceToSend,
-    });
-
-    // No need for try/catch here as the mutation handles errors
+    try {
+      // Call the mutation with the stored values
+      await generateSong({
+        promptText: promptText,
+        genre: genreToSend,
+        voice: voiceToSend,
+      });
+      dispatch(setGeneratingSong(true));
+    } catch (error) {
+      dispatch(setGeneratingSong(false));
+      dispatch(setGeneratingSongId(null));
+      throw error;
+    }
   };
 
   const handleInputChange = text => {
     setPrompt(text);
-  };
-
-  const [currentTrack, setCurrentTrack] = useState(null);
-  const [sound, setSound] = useState(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (sound) {
-        sound.release();
-      }
-    };
-  }, []);
-
-  const handlePlayPause = () => {
-    if (sound) {
-      if (isPlaying) {
-        sound.pause(() => {
-          setIsPlaying(false);
-        });
-      } else {
-        sound.play(success => {
-          if (!success) {
-            return;
-          }
-        });
-        setIsPlaying(true);
-      }
-    }
   };
 
   const [modalVisible, setModalVisible] = useState(false);
@@ -288,13 +288,11 @@ const AIGenerator = ({pageHeading}) => {
 
   // Handle genre selection from the GenreSelectionScreen
   const handleGenreSelect = genre => {
-    console.log('Genre selected in AIGenerator:', genre);
     setSelectedGenre(genre);
   };
 
   // Handle voice selection from the GenreSelectionScreen
   const handleVoiceSelect = voice => {
-    console.log('Voice selected in AIGenerator:', voice);
     setSelectedVoice(voice);
   };
 
@@ -309,96 +307,111 @@ const AIGenerator = ({pageHeading}) => {
 
   const creditsValue = getCreditsValue(credits);
 
-  return (
-    <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
-      <CView style={styles.flatList}>
-        <CView style={styles.wrapper}>
-          <CText size="largeBold" style={styles.promptHeading}>
-            Write your Prompt
-          </CText>
-          <TextInputFC
-            control={control}
-            name={'promptText'}
-            autoComplete={'off'}
-            autoCorrect={false}
-            placeholder={getRenderDetail(pageHeading).placeholderText}
-            multiline={true}
-            numberOfLines={5}
-            placeholderTextColor={Colors[mode].textLightGray}
-            customStyles={styles.inputContainerStyles}
-            style={{
-              color: Colors[mode].textLightGray,
-              textAlignVertical: 'top',
-            }}
-            onChangeText={handleInputChange}
-          />
-          <View style={styles.creditsContainer}>
-            <CText style={styles.creditsText}>Song Left: {creditsValue}</CText>
-          </View>
-          {errorMessage ? (
-            <CText style={styles.errorText}>{errorMessage}</CText>
-          ) : null}
-        </CView>
-        <GenreSelectionScreen
-          onGenreSelect={handleGenreSelect}
-          onVoiceSelect={handleVoiceSelect}
-          resetSelections={resetSelections}
-        />
-        <CView style={styles.buttonContainer}>
-          <TouchableOpacity
-            style={styles.createButton}
-            activeOpacity={0.8}
-            onPress={handleSubmit}
-            disabled={!prompt}>
-            <LinearGradient
-              colors={['#F4A460', '#DEB887']}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.gradient}>
-              <CText
-                style={[
-                  styles.createButtonText,
-                  !prompt && styles.disabledButtonText,
-                ]}>
-                {'Create Song'}
-              </CText>
-            </LinearGradient>
-          </TouchableOpacity>
-        </CView>
-      </CView>
-      <AudioPlayer
-        currentTrack={currentTrack}
-        isPlaying={isPlaying}
-        onPlayPause={handlePlayPause}
-      />
-      {authState.isLoggedIn && (
-        <PromoModal visible={modalVisible} onClose={handleCloseModal} />
-      )}
+  const creditsPerSong = useSelector(selectCreditsPerSong);
 
-      {/* Bottom Sheet Notification */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showBottomSheet}
-        onRequestClose={() => setShowBottomSheet(false)}>
-        <View style={styles.bottomSheetContainer}>
-          <View style={styles.bottomSheetContent}>
-            <CText size="largeBold" style={styles.bottomSheetTitle}>
-              Song Generation Started
+  return (
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
+        <CView style={styles.flatList}>
+          <CView style={styles.wrapper}>
+            <CText size="largeBold" style={styles.promptHeading}>
+              Write your Prompt
             </CText>
-            <CText style={styles.bottomSheetText}>
-              Your song will be generated in 10 mins. Come back and check in the
-              library.
-            </CText>
+            <TextInputFC
+              control={control}
+              name={'promptText'}
+              autoComplete={'off'}
+              autoCorrect={false}
+              placeholder={getRenderDetail(pageHeading).placeholderText}
+              multiline={true}
+              numberOfLines={5}
+              placeholderTextColor={Colors[mode].textLightGray}
+              customStyles={styles.inputContainerStyles}
+              style={{
+                color: Colors[mode].textLightGray,
+                textAlignVertical: 'top',
+              }}
+              onChangeText={handleInputChange}
+            />
+            <View style={styles.creditsContainer}>
+              <CText style={styles.creditsText}>
+                Songs Left: {Math.floor(creditsValue / creditsPerSong)}
+              </CText>
+            </View>
+            {errorMessage ? (
+              <CText style={styles.errorText}>{errorMessage}</CText>
+            ) : null}
+          </CView>
+          <GenreSelectionScreen
+            onGenreSelect={handleGenreSelect}
+            onVoiceSelect={handleVoiceSelect}
+            resetSelections={resetSelections}
+          />
+          <CView style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.bottomSheetButton}
-              onPress={() => setShowBottomSheet(false)}>
-              <CText style={styles.bottomSheetButtonText}>Got it</CText>
+              style={styles.createButton}
+              activeOpacity={0.8}
+              onPress={handleSubmit}
+              disabled={!prompt}>
+              <LinearGradient
+                colors={['#F4A460', '#DEB887']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.gradient}>
+                <CText
+                  style={[
+                    styles.createButtonText,
+                    !prompt && styles.disabledButtonText,
+                  ]}>
+                  {creditsValue <= 0 ? 'Insufficient Credits' : 'Create Song'}
+                </CText>
+              </LinearGradient>
             </TouchableOpacity>
+          </CView>
+        </CView>
+        {authState.isLoggedIn && (
+          <PromoModal visible={modalVisible} onClose={handleCloseModal} />
+        )}
+
+        {/* Bottom Sheet Notification */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showBottomSheet}
+          onRequestClose={() => setShowBottomSheet(false)}
+          onBackdropPress={() => setShowBottomSheet(false)}
+          onBackButtonPress={() => setShowBottomSheet(false)}
+          swipeDirection={['down']}
+          propagateSwipe
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.5}
+          avoidKeyboard={true}>
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetContent}>
+              <CText size="largeBold" style={styles.bottomSheetTitle}>
+                Song Generation Started
+              </CText>
+              <CText style={styles.bottomSheetText}>
+                Your song will be generated in 10 mins. Come back and check in
+                the library.
+              </CText>
+              <TouchableOpacity
+                style={styles.bottomSheetButton}
+                onPress={() => setShowBottomSheet(false)}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </TouchableWithoutFeedback>
   );
 };
 

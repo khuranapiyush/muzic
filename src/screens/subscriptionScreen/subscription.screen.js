@@ -16,68 +16,82 @@ import CText from '../../components/common/core/Text';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
 import useCredits from '../../hooks/useCredits';
+import {selectCreditsPerSong} from '../../stores/selector';
 
-// Define PlanCard component outside of SubscriptionScreen
 const PlanCard = ({
   title,
   price,
   features,
-  originalPrice,
   onPurchase,
-  selectedPlan,
+  // selectedPlan,
   disabled,
-}) => (
-  <LinearGradient
-    colors={[
-      'rgba(255, 213, 169, 0.60)',
-      '#FFD5A9',
-      'rgba(255, 213, 169, 0.60)',
-    ]}
-    start={{x: -0.3553, y: 0}}
-    end={{x: 1.0777, y: 0}}
-    style={styles.planCard}>
-    <View style={styles.planHeader}>
-      <Text style={styles.planTitle}>{title}</Text>
-      <View style={styles.priceContainer}>
-        {originalPrice && (
-          <Text style={styles.originalPrice}>{originalPrice}</Text>
-        )}
-        <Text style={styles.planPrice}>{price}</Text>
+  originalPrice,
+  discount,
+  discountedPrice,
+  // credits,
+  // creditsPerSong,
+  // currency,
+}) => {
+  const hasDiscount = discount && discountedPrice && originalPrice;
+
+  return (
+    <LinearGradient
+      colors={[
+        'rgba(255, 213, 169, 0.60)',
+        '#FFD5A9',
+        'rgba(255, 213, 169, 0.60)',
+      ]}
+      start={{x: -0.3553, y: 0}}
+      end={{x: 1.0777, y: 0}}
+      style={styles.planCard}>
+      <View style={styles.planHeader}>
+        <Text style={styles.planTitle}>{title}</Text>
+        <View style={styles.priceContainer}>
+          {hasDiscount && (
+            <>
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>{discount}% OFF</Text>
+              </View>
+              <Text style={styles.planOriginalPrice}>{originalPrice}</Text>
+              <Text style={styles.planPrice}>
+                {hasDiscount ? discountedPrice : price}
+              </Text>
+            </>
+          )}
+        </View>
       </View>
-    </View>
-    {features.map((feature, index) => (
-      <Text key={index} style={styles.featureText}>
-        {feature}
-      </Text>
-    ))}
-    <TouchableOpacity
-      style={[styles.createButton, disabled && styles.disabledButton]}
-      activeOpacity={0.8}
-      onPress={onPurchase}
-      disabled={disabled}>
-      <LinearGradient
-        colors={['#F4A460', '#DEB887']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.gradient}>
-        <CText
-          style={[
-            styles.createButtonText,
-            disabled && styles.disabledButtonText,
-          ]}>
-          Purchase Now
-        </CText>
-      </LinearGradient>
-    </TouchableOpacity>
-  </LinearGradient>
-);
+      {features.map((feature, index) => (
+        <Text key={index} style={styles.featureText}>
+          {feature}
+        </Text>
+      ))}
+      <TouchableOpacity
+        style={[styles.createButton, disabled && styles.disabledButton]}
+        activeOpacity={0.8}
+        onPress={onPurchase}
+        disabled={disabled}>
+        <LinearGradient
+          colors={['#F4A460', '#DEB887']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.gradient}>
+          <CText
+            style={[
+              styles.createButtonText,
+              disabled && styles.disabledButtonText,
+            ]}>
+            Purchase Now
+          </CText>
+        </LinearGradient>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+};
 
 const API_URL = config.API_BASE_URL;
 
-// Track processed purchases globally to prevent duplicate processing
 const processedPurchases = new Set();
 
-// API integration functions
 const createPendingPayment = async (productId, amount, token) => {
   try {
     if (!token) {
@@ -99,10 +113,6 @@ const createPendingPayment = async (productId, amount, token) => {
         );
       }
     }
-
-    console.log(
-      `Creating pending payment for ${productId} with amount ${amount}`,
-    );
 
     // Make sure amount is a number, not a string
     amount = Number(amount);
@@ -574,6 +584,15 @@ const handlePendingPurchases = async () => {
 
 // Add a helper function to determine credits based on product ID
 const getCreditsForProduct = productId => {
+  // First try to get credits from the products list
+  const product = global.availableProducts?.find(
+    p => p.productId === productId,
+  );
+  if (product && product.credits) {
+    return product.credits;
+  }
+
+  // Fallback to hardcoded map only if product not found
   const creditMap = {
     payment_100: 100,
     premium_pack: 200,
@@ -587,10 +606,6 @@ const getCreditsForProduct = productId => {
 const getUserCountryCode = async () => {
   try {
     // Get country code from device locale
-    console.log(
-      NativeModules.I18nManager.localeIdentifier,
-      'NativeModules.I18nManager.localeIdentifier',
-    );
     const deviceLocale =
       Platform.OS === 'ios'
         ? NativeModules.SettingsManager.settings.AppleLocale ||
@@ -598,9 +613,7 @@ const getUserCountryCode = async () => {
         : NativeModules.I18nManager.localeIdentifier;
 
     // Extract the country code (last 2 characters of locale like 'en-US')
-    console.log(deviceLocale, 'deviceLocale');
     const countryCode = deviceLocale.slice(-2).toUpperCase();
-    console.log('Device country code:', countryCode);
     return countryCode;
   } catch (error) {
     console.error('Error getting country code:', error);
@@ -609,16 +622,10 @@ const getUserCountryCode = async () => {
 };
 
 // New function to fetch products directly from Google Play API
-const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
+const fetchPlayStoreProducts = async (accessToken, regionCode) => {
   try {
-    console.log(
-      `Fetching Play Store products for package: ${packageName}, region: ${regionCode}`,
-    );
-
     // Instead of directly calling Google Play API, use our backend endpoint
     const endpoint = `${API_URL}/v1/payments/play-store-products`;
-
-    console.log(`Using endpoint: ${endpoint}`);
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -647,14 +654,22 @@ const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
         const description = product.listings?.['en-US']?.description || '';
 
         // Get price for user's country or default price
-        const price = product.prices?.[regionCode] || product.defaultPrice;
+        const discountedPrice =
+          product.prices?.[regionCode] || product?.defaultPrice;
+
+        const originalPrice =
+          product.prices?.[regionCode] || product?.originalPrice;
 
         // Extract features from description
         const features = extractFeaturesFromDescription(description);
 
         // Format the price for display
-        const formattedPrice = price
-          ? `${price.currency} ${price.amount}`
+        const formattedDiscountedPrice = discountedPrice
+          ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
+          : 'Not available';
+
+        const formattedOriginalPrice = originalPrice
+          ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
           : 'Not available';
 
         return {
@@ -663,20 +678,23 @@ const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
           title: title,
           description: description,
           features: features,
-          price: formattedPrice,
-          localizedPrice: formattedPrice,
+          price: formattedDiscountedPrice,
+          localizedPrice: formattedDiscountedPrice,
           countryPrices: product.prices || {},
+          credits: product?.credits,
+          discount: product?.discountPercentage,
+          localizedOriginalPrice: formattedOriginalPrice,
         };
       });
 
       return localizedProducts;
+    } else {
+      console.log('No products found in API response');
+      return [];
     }
-
-    // If the API doesn't return data in the expected format
-    return [];
   } catch (error) {
     console.error('Error fetching Play Store products:', error);
-    return [];
+    throw error;
   }
 };
 
@@ -713,47 +731,12 @@ const extractFeaturesFromDescription = description => {
   return featureMatches;
 };
 
-// Add debug helper function for purchases
-const debugPurchaseRequest = (productId, products, operation = 'Purchase') => {
-  console.log(`\n========== ${operation} DEBUG INFO ==========`);
-  console.log(`Operation: ${operation}`);
-  console.log(`Product ID: ${productId}`);
-  console.log(`Is product ID undefined? ${productId === undefined}`);
-  console.log(`Is product ID null? ${productId === null}`);
-
-  if (products) {
-    console.log(`Available products: ${products.length}`);
-    const productIds = products.map(p => p.productId || p.sku || 'unknown');
-    console.log(`Product IDs: ${JSON.stringify(productIds)}`);
-
-    const matchingProduct = products.find(
-      p => p.productId === productId || p.sku === productId,
-    );
-    console.log(`Matching product found: ${matchingProduct ? 'YES' : 'NO'}`);
-
-    if (matchingProduct) {
-      console.log(
-        `Matching product details: ${JSON.stringify({
-          productId: matchingProduct.productId,
-          sku: matchingProduct.sku,
-          title: matchingProduct.title,
-          price: matchingProduct.price || matchingProduct.localizedPrice,
-        })}`,
-      );
-    }
-  } else {
-    console.log('Products array is null or undefined');
-  }
-  console.log('===========================================\n');
-};
-
 const SubscriptionScreen = () => {
-  // Replace the selectedPlan state with selectedProductId
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [purchasePending, setPurchasePending] = useState(false);
-  const [userCountry, setUserCountry] = useState('US'); // Default country code
+  const [userCountry, setUserCountry] = useState('US');
   const authState = useSelector(state => state.auth);
 
   // Replace local credits state with Redux
@@ -774,11 +757,60 @@ const SubscriptionScreen = () => {
     refreshCredits();
   }, [refreshCredits]);
 
+  // Add connection state tracking
+  const [connectionState, setConnectionState] = useState('disconnected');
+
+  // Add reconnection function
+  const reconnectIAP = useCallback(async () => {
+    try {
+      console.log('Attempting to reconnect IAP...');
+      setConnectionState('connecting');
+
+      // End any existing connection first
+      try {
+        await RNIap.endConnection();
+      } catch (endErr) {
+        console.log('Error ending existing connection:', endErr);
+      }
+
+      // Initialize new connection
+      await RNIap.initConnection();
+      setConnectionState('connected');
+      console.log('IAP reconnected successfully');
+
+      // Refresh products after reconnection
+      if (Platform.OS === 'android') {
+        console.log('IF CONDITION');
+        const directProducts = await fetchDirectPlayStoreProducts();
+        if (directProducts && directProducts.length > 0) {
+          setProducts(directProducts);
+          global.availableProducts = directProducts;
+        }
+      } else {
+        console.log('ELSE CONDITION');
+        const subscriptions = await RNIap.getSubscriptions([]);
+        const oneTimeProducts = await RNIap.getProducts([]);
+        const allProducts = [...subscriptions, ...oneTimeProducts];
+        if (allProducts.length > 0) {
+          console.log(allProducts, 'allProducts');
+          setProducts(allProducts);
+          global.availableProducts = allProducts;
+        }
+      }
+    } catch (err) {
+      console.error('Error reconnecting IAP:', err);
+      setConnectionState('error');
+      Alert.alert(
+        'Connection Error',
+        'Failed to connect to the store. Please try again later.',
+      );
+    }
+  }, [fetchDirectPlayStoreProducts]);
+
   // Add function to fetch direct Google Play products
   const fetchDirectPlayStoreProducts = useCallback(async () => {
     try {
       if (Platform.OS !== 'android') {
-        console.log('Not an Android device, skipping direct Play Store fetch');
         return [];
       }
 
@@ -795,13 +827,11 @@ const SubscriptionScreen = () => {
       const accessToken = authState.accessToken;
 
       if (!accessToken) {
-        console.log('No access token available for Google Play API');
         return [];
       }
 
       // Fetch products directly from Google Play
       const playStoreProducts = await fetchPlayStoreProducts(
-        packageName,
         accessToken,
         countryCode,
       );
@@ -813,23 +843,18 @@ const SubscriptionScreen = () => {
     }
   }, [authState.accessToken]);
 
-  // Handle existing purchase
+  // Update handleExistingPurchase to properly handle credit updates
   const handleExistingPurchase = useCallback(
     async productId => {
       try {
         console.log('Checking for existing purchases...');
         setPurchasePending(true);
 
-        // Refresh credits before processing purchase
-        await refreshCredits();
-
         const purchases = await RNIap.getAvailablePurchases();
         console.log('Available purchases:', purchases);
 
         if (purchases.length === 0) {
-          console.log(
-            'No existing purchases found, despite E_ALREADY_OWNED error',
-          );
+          console.log('No existing purchases found');
           setPurchasePending(false);
           return;
         }
@@ -875,88 +900,71 @@ const SubscriptionScreen = () => {
 
           try {
             if (authState.accessToken) {
-              try {
-                const pendingPayment = await createPendingPayment(
-                  existingPurchase.productId,
-                  getAmountFromProductId(existingPurchase.productId),
-                  authState.accessToken,
-                );
-                console.log('Pending payment created for existing purchase');
+              const pendingPayment = await createPendingPayment(
+                existingPurchase.productId,
+                getAmountFromProductId(existingPurchase.productId),
+                authState.accessToken,
+              );
+              console.log('Pending payment created for existing purchase');
 
-                const processResult = await processPurchase(
-                  existingPurchase,
-                  authState.accessToken,
-                );
-                console.log('Existing purchase processed');
+              const processResult = await processPurchase(
+                existingPurchase,
+                authState.accessToken,
+              );
+              console.log('Existing purchase processed');
 
-                const purchaseToken =
-                  Platform.OS === 'android'
-                    ? existingPurchase.purchaseToken
-                    : existingPurchase.transactionReceipt;
+              const purchaseToken =
+                Platform.OS === 'android'
+                  ? existingPurchase.purchaseToken
+                  : existingPurchase.transactionReceipt;
 
-                const verifyResult = await verifyPurchase(
-                  purchaseToken,
-                  existingPurchase.productId,
-                  authState.accessToken,
-                );
-                console.log('Existing purchase verified:', verifyResult);
+              const verifyResult = await verifyPurchase(
+                purchaseToken,
+                existingPurchase.productId,
+                authState.accessToken,
+              );
+              console.log('Existing purchase verified:', verifyResult);
 
-                if (verifyResult && verifyResult.status === 'SUCCESS') {
-                  if (verifyResult.credits) {
-                    // Update Redux state with absolute value instead of local state
-                    updateUserCredits(verifyResult.credits);
-                  } else {
-                    const creditsToAdd = getCreditsForProduct(
-                      existingPurchase.productId,
-                    );
-                    addCredits(creditsToAdd);
-                  }
-
-                  // Refresh credits after purchase is processed
+              if (verifyResult && verifyResult.status === 'SUCCESS') {
+                if (verifyResult.credits) {
+                  // Update Redux state with server-provided value
+                  updateUserCredits(verifyResult.credits);
+                  // Force refresh credits to ensure latest data
                   await refreshCredits();
-
-                  Alert.alert(
-                    'Purchase Processed',
-                    'Your previous purchase has been processed successfully!',
-                  );
                 } else {
-                  Alert.alert(
-                    'Verification Failed',
-                    'Your purchase could not be verified. Please contact support.',
+                  const creditsToAdd = getCreditsForProduct(
+                    existingPurchase.productId,
                   );
+                  addCredits(creditsToAdd);
+                  // Force refresh credits to ensure latest data
+                  await refreshCredits();
                 }
 
-                // Skip finishTransaction for Android
-                if (Platform.OS === 'ios') {
-                  // Finish the transaction for iOS
-                  try {
-                    await RNIap.finishTransaction({
-                      purchase: existingPurchase,
-                      isConsumable: true,
-                    });
-                    console.log(
-                      'iOS transaction finished for existing purchase',
-                    );
-                  } catch (finishErr) {
-                    console.log(
-                      'Error finishing iOS transaction, but continuing:',
-                      finishErr,
-                    );
-                  }
-                } else {
-                  console.log(
-                    'Skipping finishTransaction for Android existing purchase',
-                  );
-                }
-              } catch (apiErr) {
-                console.error(
-                  'API error during existing purchase flow:',
-                  apiErr,
-                );
                 Alert.alert(
-                  'Purchase Processing Error',
-                  'We had trouble processing your previous purchase. Please contact support if credits are not added.',
+                  'Purchase Processed',
+                  'Your previous purchase has been processed successfully!',
                 );
+              } else {
+                Alert.alert(
+                  'Verification Failed',
+                  'Your purchase could not be verified. Please contact support.',
+                );
+              }
+
+              // Skip finishTransaction for Android
+              if (Platform.OS === 'ios') {
+                try {
+                  await RNIap.finishTransaction({
+                    purchase: existingPurchase,
+                    isConsumable: true,
+                  });
+                  console.log('iOS transaction finished for existing purchase');
+                } catch (finishErr) {
+                  console.log(
+                    'Error finishing iOS transaction, but continuing:',
+                    finishErr,
+                  );
+                }
               }
             } else {
               Alert.alert(
@@ -970,10 +978,6 @@ const SubscriptionScreen = () => {
               'Error',
               'Failed to process existing purchase: ' + err.message,
             );
-          } finally {
-            setPurchasePending(false);
-            // Final refresh to ensure latest credit data
-            refreshCredits();
           }
         }
       } catch (err) {
@@ -984,50 +988,17 @@ const SubscriptionScreen = () => {
         );
       } finally {
         setPurchasePending(false);
-        // Final refresh to ensure latest credit data
-        refreshCredits();
       }
     },
     [authState.accessToken, addCredits, updateUserCredits, refreshCredits],
   );
 
-  // Add a restore purchases function
-  const restorePurchases = useCallback(async () => {
-    try {
-      console.log('Restoring purchases...');
-      setPurchasePending(true);
-
-      // Refresh credits before processing purchase
-      await refreshCredits();
-
-      // Check for auth token first
-      if (!authState.accessToken) {
-        Alert.alert(
-          'Authentication Required',
-          'Please log in to restore your purchases.',
-        );
-        setPurchasePending(false);
-        return;
-      }
-
-      // Get all available purchases
-      const purchases = await RNIap.getAvailablePurchases();
-      console.log('Purchases to restore:', purchases);
-
-      if (purchases.length === 0) {
-        Alert.alert('No Purchases', 'No previous purchases found to restore.');
-        setPurchasePending(false);
-        return;
-      }
-
-      let restoredCount = 0;
-      let totalCreditsAdded = 0;
-      const errors = [];
-
-      // Process each purchase sequentially to avoid race conditions
-      for (const purchase of purchases) {
+  // Update purchaseUpdatedListener to properly handle credit updates
+  const setupPurchaseListeners = useCallback(() => {
+    const purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
+      async purchase => {
+        console.log('Purchase updated:', purchase);
         try {
-          // Check if already processed
           const purchaseKey =
             Platform.OS === 'android'
               ? purchase.purchaseToken
@@ -1035,125 +1006,143 @@ const SubscriptionScreen = () => {
 
           if (processedPurchases.has(purchaseKey)) {
             console.log('Purchase already processed, skipping:', purchaseKey);
-            continue;
+            return;
           }
 
-          // Mark as processed immediately
           processedPurchases.add(purchaseKey);
-          console.log('Purchase marked as processed for restore:', purchaseKey);
+          console.log('Purchase marked as processed:', purchaseKey);
 
-          console.log('Restoring purchase:', purchase.productId);
+          setPurchasePending(true);
 
-          // Create pending payment
-          const pendingPayment = await createPendingPayment(
-            purchase.productId,
-            getAmountFromProductId(purchase.productId),
-            authState.accessToken,
-          );
-          console.log('Pending payment created for restore');
+          const receipt = purchase.transactionReceipt;
+          if (receipt) {
+            console.log('Purchase receipt:', receipt);
 
-          // Process the purchase
-          const processResult = await processPurchase(
-            purchase,
-            authState.accessToken,
-          );
-          console.log('Purchase processed for restore');
-
-          // Verify the purchase
-          const purchaseToken =
-            Platform.OS === 'android'
-              ? purchase.purchaseToken
-              : purchase.transactionReceipt;
-
-          const verifyResult = await verifyPurchase(
-            purchaseToken,
-            purchase.productId,
-            authState.accessToken,
-          );
-          console.log('Purchase verified for restore:', verifyResult);
-
-          if (verifyResult && verifyResult.status === 'SUCCESS') {
-            if (verifyResult.credits) {
-              // Use Redux to update credits with server-provided value
-              updateUserCredits(verifyResult.credits);
-              // We just use the last value if there are multiple purchases
-              totalCreditsAdded = verifyResult.credits;
-            } else {
-              const creditsForProduct = getCreditsForProduct(
-                purchase.productId,
-              );
-              totalCreditsAdded += creditsForProduct;
-              addCredits(creditsForProduct);
-            }
-            restoredCount++;
-          } else {
-            errors.push(`Failed to verify ${purchase.productId}`);
-          }
-
-          // Skip finishTransaction for Android
-          if (Platform.OS === 'ios') {
             try {
-              await RNIap.finishTransaction({purchase, isConsumable: true});
-              console.log('iOS transaction finished for restore');
-            } catch (finishErr) {
-              console.log(
-                'Error finishing iOS restore transaction, but continuing:',
-                finishErr,
+              const pendingPayment = await createPendingPayment(
+                purchase.productId,
+                getAmountFromProductId(purchase.productId),
+                authState.accessToken,
+              );
+              console.log('Pending payment created:', pendingPayment);
+
+              const processResult = await processPurchase(
+                purchase,
+                authState.accessToken,
+              );
+              console.log('Purchase processed:', processResult);
+
+              const purchaseToken =
+                Platform.OS === 'android'
+                  ? purchase.purchaseToken
+                  : purchase.transactionReceipt;
+
+              const verifyResult = await verifyPurchase(
+                purchaseToken,
+                purchase.productId,
+                authState.accessToken,
+              );
+              console.log('Purchase verified:', verifyResult);
+
+              if (verifyResult && verifyResult.status === 'SUCCESS') {
+                if (verifyResult.credits) {
+                  // Use server-provided credits value
+                  updateUserCredits(verifyResult.credits);
+                  // Force refresh credits to ensure latest data
+                  await refreshCredits();
+                } else {
+                  const creditsToAdd = getCreditsForProduct(purchase.productId);
+                  addCredits(creditsToAdd);
+                  // Force refresh credits to ensure latest data
+                  await refreshCredits();
+                }
+
+                Alert.alert(
+                  'Success',
+                  `Purchase completed! Added ${
+                    verifyResult.credits ||
+                    getCreditsForProduct(purchase.productId)
+                  } credits.`,
+                );
+              } else {
+                Alert.alert(
+                  'Verification Failed',
+                  'Your purchase could not be verified. Please contact support.',
+                );
+              }
+
+              if (Platform.OS === 'ios') {
+                try {
+                  await RNIap.finishTransaction({
+                    purchase,
+                    isConsumable: true,
+                  });
+                  console.log('Transaction finished successfully for iOS');
+                } catch (finishErr) {
+                  console.log(
+                    'Error finishing iOS transaction, but continuing:',
+                    finishErr,
+                  );
+                }
+              }
+            } catch (apiErr) {
+              console.error('API error during purchase flow:', apiErr);
+              Alert.alert(
+                'Purchase Processing Error',
+                'Your purchase was successful, but we had trouble processing it. Please contact support if credits are not added.',
               );
             }
-          } else {
-            console.log('Skipping finishTransaction for Android restore');
           }
-        } catch (purchaseErr) {
-          console.error('Error restoring purchase:', purchaseErr);
-          errors.push(purchaseErr.message || 'Unknown error');
+        } catch (err) {
+          console.log('Error handling purchase update:', err);
+        } finally {
+          setPurchasePending(false);
         }
+      },
+    );
+
+    const purchaseErrorSubscription = RNIap.purchaseErrorListener(error => {
+      console.log('Purchase error:', error);
+
+      if (error.code === 'E_ALREADY_OWNED') {
+        console.log('Product already owned, handling existing purchase...');
+        handleExistingPurchase(selectedProductId)
+          .then(() => console.log('Existing purchase handled successfully'))
+          .catch(err =>
+            console.error('Failed to handle existing purchase:', err),
+          );
+      } else if (error.code !== 'E_USER_CANCELLED') {
+        Alert.alert('Purchase Error', `Something went wrong: ${error.message}`);
       }
 
-      // Show appropriate message based on results
-      if (restoredCount > 0) {
-        // Refresh credits after restore
-        await refreshCredits();
-
-        Alert.alert(
-          'Success',
-          `Successfully restored ${restoredCount} purchase${
-            restoredCount !== 1 ? 's' : ''
-          }. Total credits: ${totalCreditsAdded}.`,
-        );
-      } else if (errors.length > 0) {
-        Alert.alert(
-          'Restore Failed',
-          'Could not restore purchases. Please try again later or contact support.',
-        );
-      } else {
-        Alert.alert(
-          'No Purchases to Restore',
-          'No eligible purchases found to restore.',
-        );
-      }
-    } catch (err) {
-      console.error('Error restoring purchases:', err);
-      Alert.alert('Error', `Failed to restore purchases: ${err.message}`);
-    } finally {
       setPurchasePending(false);
-      // Final refresh to ensure latest credit data
-      refreshCredits();
-    }
-  }, [authState.accessToken, addCredits, updateUserCredits, refreshCredits]);
+    });
 
-  // Update useEffect with proper dependency
+    return {
+      purchaseUpdateSubscription,
+      purchaseErrorSubscription,
+    };
+  }, [
+    authState.accessToken,
+    handleExistingPurchase,
+    addCredits,
+    updateUserCredits,
+    selectedProductId,
+    refreshCredits,
+  ]);
+
+  // Update useEffect to handle connection state
   useEffect(() => {
     const initializeIAP = async () => {
       try {
-        console.log('Initializing IAP connection...');
+        setConnectionState('connecting');
         await RNIap.initConnection();
+        setConnectionState('connected');
+        console.log('IAP connection initialized successfully');
 
         // Get user's country code
         const countryCode = await getUserCountryCode();
         setUserCountry(countryCode);
-
-        console.log(countryCode, 'countryCode');
 
         // Clear the processed purchases set on initialization
         processedPurchases.clear();
@@ -1161,8 +1150,6 @@ const SubscriptionScreen = () => {
 
         // First clear any pending purchases without processing them
         await clearPendingPurchases();
-
-        let productsToDisplay = [];
 
         // First try to fetch products directly from Google Play API
         if (Platform.OS === 'android') {
@@ -1177,7 +1164,6 @@ const SubscriptionScreen = () => {
                 'Successfully fetched products from Google Play API:',
                 directProducts,
               );
-              productsToDisplay = directProducts;
               setProducts(directProducts);
 
               // Store products globally for amount calculations
@@ -1332,6 +1318,7 @@ const SubscriptionScreen = () => {
         }
       } catch (err) {
         console.log('Error initializing IAP:', err);
+        setConnectionState('error');
         Alert.alert(
           'Error',
           `Failed to initialize in-app purchases: ${err.message}`,
@@ -1341,177 +1328,22 @@ const SubscriptionScreen = () => {
       }
     };
 
-    // Define setupPurchaseListeners inside useEffect to avoid dependency issues
-    const setupPurchaseListeners = () => {
-      const purchaseUpdateSubscription = RNIap.purchaseUpdatedListener(
-        async purchase => {
-          console.log('Purchase updated:', purchase);
-          try {
-            // Check if we've already processed this purchase
-            const purchaseKey =
-              Platform.OS === 'android'
-                ? purchase.purchaseToken
-                : purchase.transactionId;
-
-            if (processedPurchases.has(purchaseKey)) {
-              console.log('Purchase already processed, skipping:', purchaseKey);
-              return;
-            }
-
-            // Mark as processed immediately to prevent duplicate processing
-            processedPurchases.add(purchaseKey);
-            console.log('Purchase marked as processed:', purchaseKey);
-
-            setPurchasePending(true);
-
-            // Process the purchase
-            const receipt = purchase.transactionReceipt;
-            if (receipt) {
-              console.log('Purchase receipt:', receipt);
-
-              try {
-                // First API call: Create pending payment
-                console.log('Step 1: Creating pending payment');
-                const pendingPayment = await createPendingPayment(
-                  purchase.productId,
-                  getAmountFromProductId(purchase.productId),
-                  authState.accessToken,
-                );
-                console.log('Pending payment created:', pendingPayment);
-
-                // Second API call: Process the purchase
-                console.log('Step 2: Processing purchase');
-                const processResult = await processPurchase(
-                  purchase,
-                  authState.accessToken,
-                );
-                console.log('Purchase processed:', processResult);
-
-                // Third API call: Verify the purchase
-                console.log('Step 3: Verifying purchase');
-                const purchaseToken =
-                  Platform.OS === 'android'
-                    ? purchase.purchaseToken
-                    : purchase.transactionReceipt;
-
-                const verifyResult = await verifyPurchase(
-                  purchaseToken,
-                  purchase.productId,
-                  authState.accessToken,
-                );
-                console.log('Purchase verified:', verifyResult);
-
-                // Important: Update credits BEFORE trying to finish the transaction
-                if (verifyResult && verifyResult.status === 'SUCCESS') {
-                  console.log('verifyResult', verifyResult);
-                  if (verifyResult.credits) {
-                    // If server returns specific credit amount, use it as total
-                    // Use Redux to update credits with server-provided value
-                    updateUserCredits(verifyResult.credits);
-                    console.log('Credits set to:', verifyResult.credits);
-                  } else {
-                    // Otherwise use a default amount based on the product
-                    const creditsToAdd = getCreditsForProduct(
-                      purchase.productId,
-                    );
-                    addCredits(creditsToAdd);
-                    console.log('Credits added:', creditsToAdd);
-                  }
-
-                  // Show success message
-                  const creditsAdded = getCreditsForProduct(purchase.productId);
-                  Alert.alert(
-                    'Success',
-                    `Purchase completed! Added ${creditsAdded} credits.`,
-                  );
-                } else {
-                  Alert.alert(
-                    'Verification Failed',
-                    'Your purchase could not be verified. Please contact support.',
-                  );
-                }
-
-                // For Android, we'll skip the finishTransaction call
-                if (Platform.OS === 'ios') {
-                  console.log('Step 4: Finishing transaction for iOS');
-                  try {
-                    await RNIap.finishTransaction({
-                      purchase,
-                      isConsumable: true,
-                    });
-                    console.log('Transaction finished successfully for iOS');
-                  } catch (finishErr) {
-                    console.log(
-                      'Error finishing iOS transaction, but continuing:',
-                      finishErr,
-                    );
-                  }
-                } else {
-                  console.log(
-                    'Skipping finishTransaction for Android as purchase is already processed',
-                  );
-                }
-              } catch (apiErr) {
-                console.error('API error during purchase flow:', apiErr);
-                Alert.alert(
-                  'Purchase Processing Error',
-                  'Your purchase was successful, but we had trouble processing it. Please contact support if credits are not added.',
-                );
-              } finally {
-                setPurchasePending(false);
-              }
-            }
-          } catch (err) {
-            console.log('Error handling purchase update:', err);
-            setPurchasePending(false);
-          }
-        },
-      );
-
-      const purchaseErrorSubscription = RNIap.purchaseErrorListener(error => {
-        console.log('Purchase error:', error);
-
-        // Check for the already-owned error
-        if (error.code === 'E_ALREADY_OWNED') {
-          console.log('Product already owned, handling existing purchase...');
-
-          // Handle the already owned product
-          handleExistingPurchase(selectedProductId)
-            .then(() => console.log('Existing purchase handled successfully'))
-            .catch(err =>
-              console.error('Failed to handle existing purchase:', err),
-            );
-        }
-        // Don't show alert for user cancellation or already owned errors
-        else if (error.code !== 'E_USER_CANCELLED') {
-          Alert.alert(
-            'Purchase Error',
-            `Something went wrong: ${error.message}`,
-          );
-        }
-
-        setPurchasePending(false);
-      });
-
-      return {
-        purchaseUpdateSubscription,
-        purchaseErrorSubscription,
-      };
-    };
-
-    // Initialize IAP and set up listeners
     initializeIAP();
     const listeners = setupPurchaseListeners();
 
     return () => {
-      // Clean up listeners
       if (listeners.purchaseUpdateSubscription) {
         listeners.purchaseUpdateSubscription.remove();
       }
       if (listeners.purchaseErrorSubscription) {
         listeners.purchaseErrorSubscription.remove();
       }
-      RNIap.endConnection();
+      try {
+        RNIap.endConnection();
+        setConnectionState('disconnected');
+      } catch (err) {
+        console.error('Error ending IAP connection:', err);
+      }
     };
   }, [
     authState,
@@ -1520,18 +1352,20 @@ const SubscriptionScreen = () => {
     updateUserCredits,
     fetchDirectPlayStoreProducts,
     selectedProductId,
+    setupPurchaseListeners,
   ]);
 
   const handlePurchase = useCallback(
     async productId => {
       try {
-        console.log('\n===== PURCHASE ATTEMPT STARTED =====');
         console.log('handlePurchase called with productId:', productId);
-        console.log('Selected product ID state:', selectedProductId);
-        console.log(
-          'Available products:',
-          products.map(p => p.productId).join(', '),
-        );
+        console.log('Connection state:', connectionState);
+
+        // Check connection state and reconnect if needed
+        if (connectionState !== 'connected') {
+          console.log('Connection not active, attempting to reconnect...');
+          await reconnectIAP();
+        }
 
         // Detailed product ID validation
         if (!productId) {
@@ -1626,10 +1460,6 @@ const SubscriptionScreen = () => {
             const availableProducts = await RNIap.getProducts({
               skus: [productId],
             });
-            console.log(
-              'Refreshed products:',
-              availableProducts.map(p => p.productId).join(', '),
-            );
 
             if (availableProducts.length === 0) {
               console.error(
@@ -1648,7 +1478,6 @@ const SubscriptionScreen = () => {
 
           // Check for already owned error
           if (purchaseErr.code === 'E_ALREADY_OWNED') {
-            console.log('Handling already owned product...');
             await handleExistingPurchase(productId);
           } else if (purchaseErr.code !== 'E_USER_CANCELLED') {
             console.error('❌ Purchase error:', purchaseErr.message);
@@ -1664,6 +1493,18 @@ const SubscriptionScreen = () => {
         }
       } catch (err) {
         console.error('❌ General purchase error:', err);
+
+        // Handle connection errors specifically
+        if (
+          err.message?.includes('Connection has been closed') ||
+          err.message?.includes('Connection is not initialized')
+        ) {
+          console.log('Connection error detected, attempting to reconnect...');
+          await reconnectIAP();
+          // Retry the purchase after reconnection
+          return handlePurchase(productId);
+        }
+
         Alert.alert('Error', `Failed to process purchase: ${err.message}`);
         setPurchasePending(false);
       } finally {
@@ -1675,6 +1516,8 @@ const SubscriptionScreen = () => {
       products,
       selectedProductId,
       handleExistingPurchase,
+      connectionState,
+      reconnectIAP,
     ],
   );
 
@@ -1708,9 +1551,6 @@ const SubscriptionScreen = () => {
               key={product.productId || product.sku}
               title={product.title || 'Credit Pack'}
               price={product.localizedPrice || product.price}
-              originalPrice={calculateOriginalPrice(
-                product.price || product.localizedPrice,
-              )}
               features={features}
               onPurchase={() => {
                 // Set the selected product ID to this product
@@ -1720,6 +1560,11 @@ const SubscriptionScreen = () => {
               }}
               selectedPlan={selectedProductId === product.productId}
               disabled={purchasePending}
+              originalPrice={product.localizedOriginalPrice}
+              discount={product.discount}
+              discountedPrice={product.localizedPrice}
+              credits={product.credits}
+              creditsPerSong={creditsPerSong}
             />
           );
         })}
@@ -1727,24 +1572,7 @@ const SubscriptionScreen = () => {
     );
   };
 
-  // Helper function to calculate "original price" for showing a discount
-  const calculateOriginalPrice = price => {
-    if (!price) return null;
-
-    try {
-      // Parse the price to add a "discount"
-      const match = price.match(/([^\d]*)(\d+(\.\d+)?)(.*)/);
-      if (match) {
-        const [_, currencySymbol, numericPrice, decimalPart, suffix] = match;
-        const inflatedPrice = Math.round(parseFloat(numericPrice) * 1.3);
-        return `${currencySymbol}${inflatedPrice}${suffix}`;
-      }
-    } catch (e) {
-      console.log('Error calculating original price:', e);
-    }
-
-    return null;
-  };
+  const creditsPerSong = useSelector(selectCreditsPerSong);
 
   return (
     <View style={styles.container}>
@@ -1768,7 +1596,7 @@ const SubscriptionScreen = () => {
           {/* Add Restore Purchases button */}
           <TouchableOpacity
             style={styles.restoreButton}
-            onPress={restorePurchases}
+            onPress={handlePendingPurchases}
             disabled={purchasePending}>
             <Text style={styles.restoreButtonText}>Restore</Text>
           </TouchableOpacity>
@@ -1777,9 +1605,9 @@ const SubscriptionScreen = () => {
         <View style={styles.creditsContainer}>
           <Text style={styles.creditsTitle}>Credits</Text>
           <Text style={styles.creditsNumber}>{displayCredits()}</Text>
-          {/* <Text style={styles.creditsSubtitle}>Songs left</Text> */}
           <Text style={styles.creditsSubtitleText}>
-            *1 Credit = 1 Song Generation
+            *{creditsPerSong} Credit{creditsPerSong !== 1 ? 's' : ''} = 1 Song
+            Generation
           </Text>
         </View>
 
@@ -1909,12 +1737,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
   },
-  originalPrice: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#000',
-    textDecorationLine: 'line-through',
-  },
   featureText: {
     marginBottom: 10,
     fontSize: 16,
@@ -1988,6 +1810,25 @@ const styles = StyleSheet.create({
   overlayText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  planOriginalPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#564A3F',
+    textDecorationLine: 'line-through',
+    marginBottom: 4,
+  },
+  discountBadge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  discountText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

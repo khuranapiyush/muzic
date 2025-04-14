@@ -54,13 +54,13 @@ const styles = StyleSheet.create({
     marginRight: 10,
   },
   checkboxChecked: {
-    backgroundColor: '#6B61FF',
+    backgroundColor: '#FD893A',
     borderWidth: 0,
   },
   checkboxUnchecked: {
     backgroundColor: 'transparent',
     borderWidth: 2,
-    borderColor: '#6B61FF',
+    borderColor: '#FD893A',
   },
   checkIcon: {
     marginTop: 0,

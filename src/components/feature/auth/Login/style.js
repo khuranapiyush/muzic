@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   },
   mobileTextContainer: {marginBottom: 10},
   mobileContainer: {
-    justifyContent: 'space-between',
+    // justifyContent: 'space-between',
     alignItems: 'center',
   },
   msgContainer: {
@@ -71,14 +71,18 @@ const styles = StyleSheet.create({
   },
   socialAuthContainer: {
     position: 'absolute',
-    bottom: '4%',
-    left: '29%',
+    bottom: '5%',
+    left: '25%',
     width: '50%',
     margin: 'auto',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  signInContainer: {marginBottom: 17},
+  signInContainer: {
+    marginBottom: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   signInText: {fontWeight: '500'},
   socialBtnWrapper: {
     marginRight: 16,
@@ -114,6 +118,41 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
+  },
+  checkmark: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#FD893A',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkmarkContainer: {
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmarkBox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: '#fff',
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  checkmarkBoxSelected: {
+    backgroundColor: '#F4A460',
+    borderColor: '#F4A460',
+  },
+  checkmarkIcon: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 

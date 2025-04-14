@@ -5,7 +5,7 @@ const getStyles = theme => {
   return StyleSheet.create({
     dropdownContainer: {
       alignItems: 'center',
-      width: 120,
+      width: 110,
       height: 44,
       borderRadius: 12,
       borderWidth: 1,
@@ -27,14 +27,14 @@ const getStyles = theme => {
     },
     selectedCountryText: {
       flex: 1,
-      fontSize: 16,
+      fontSize: 14,
     },
     arrowIcon: {
       tintColor: Colors[theme]?.white,
       width: 16,
       height: 16,
     },
-    flagIcon: {fontSize: 20, marginHorizontal: 10},
+    flagIcon: {fontSize: 18, marginHorizontal: 5},
   });
 };
 export default getStyles;

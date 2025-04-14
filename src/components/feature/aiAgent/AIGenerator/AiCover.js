@@ -17,28 +17,28 @@ import {
   Modal,
   ToastAndroid,
   Platform,
-  ScrollView,
+  FlatList,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import fetcher from '../../../../dataProvider';
-import {FlatList} from 'react-native-gesture-handler';
 import CText from '../../../common/core/Text';
 import Clipboard from '@react-native-clipboard/clipboard';
 import useMusicPlayer from '../../../../hooks/useMusicPlayer';
 import config from 'react-native-config';
 import {getAuthToken} from '../../../../utils/authUtils';
-import {useSelector} from 'react-redux';
+import {useSelector, useDispatch} from 'react-redux';
 import NetInfo from '@react-native-community/netinfo';
-import axios from 'axios';
 import useCredits from '../../../../hooks/useCredits';
+import {
+  setGeneratingSong,
+  setGeneratingSongId,
+} from '../../../../stores/slices/player';
+import appImages from '../../../../resource/images';
+import {selectCreditsPerSong} from '../../../../stores/selector';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
-const MAX_RETRY_ATTEMPTS = 3;
-const RETRY_DELAY = 2000; // 2 seconds
-// Define how many credits a cover generation costs
-const COVER_GENERATION_COST = 1;
 
 // Helper function to safely display credits
 const getCreditsValue = creditsData => {
@@ -52,7 +52,6 @@ const CoverCreationScreen = () => {
   const [link, setLink] = useState('');
   const [sampleVoice, setSampleVoice] = useState([]);
   const [selectedVoiceId, setSelectedVoiceId] = useState(null);
-  // const [isRecordVoiceSelected, setIsRecordVoiceSelected] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [userRecordings, setUserRecordings] = useState([]);
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false);
@@ -60,14 +59,6 @@ const CoverCreationScreen = () => {
   const [selectedRecordingFile, setSelectedRecordingFile] = useState(null);
   const [songTitle, setSongTitle] = useState('');
   const [artistName, setArtistName] = useState('');
-  const [apiRequestStatus, setApiRequestStatus] = useState({
-    lastAttempt: null,
-    lastError: null,
-    debugMode: false,
-  });
-
-  // State for managing conversions
-  const [conversions, setConversions] = useState([]);
 
   // Add state for modal visibility
   const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -95,156 +86,86 @@ const CoverCreationScreen = () => {
     refreshCredits();
   }, [refreshCredits]);
 
-  // Add pagination states
+  // Remove pagination states
   const [page, setPage] = useState(1);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMoreData, setHasMoreData] = useState(true);
   const PAGE_SIZE = 9; // Number of items to load per page
 
-  const [networkStatus, setNetworkStatus] = useState({
-    isConnected: true,
-    isInternetReachable: true,
-  });
   const [isRetrying, setIsRetrying] = useState(false);
   const retryAttempts = useRef(0);
 
   // Add refresh state
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Add network state listener
-  useEffect(() => {
-    // Subscribe to network state updates
-    const unsubscribe = NetInfo.addEventListener(state => {
-      console.log('Network state changed:', state);
-      setNetworkStatus({
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-      });
+  // Add a state to track if recordings have been loaded
+  const [recordingsLoaded, setRecordingsLoaded] = useState(false);
 
-      // If connection is restored and we were previously disconnected, show a message
-      if (state.isConnected && !networkStatus.isConnected) {
-        Alert.alert(
-          'Connection Restored',
-          'Your internet connection has been restored.',
-        );
-      }
-    });
+  const dispatch = useDispatch();
 
-    // Check current network state on mount
-    NetInfo.fetch().then(state => {
-      setNetworkStatus({
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-      });
-    });
+  const navigation = useNavigation();
 
-    // Cleanup subscription
-    return () => unsubscribe();
-  }, [networkStatus.isConnected]);
+  const creditsPerSong = useSelector(selectCreditsPerSong);
 
-  // Enhanced network check function
+  // Basic network check function (simplified)
   const checkNetworkConnectivity = useCallback(async () => {
     try {
-      // Update last attempt timestamp
-      setApiRequestStatus(prev => ({
-        ...prev,
-        lastAttempt: new Date().toISOString(),
-      }));
-
-      // First check the current network state from our stored state
-      if (!networkStatus.isConnected) {
-        const errorMsg =
-          'You appear to be offline. Please check your internet connection and try again.';
-        setApiRequestStatus(prev => ({
-          ...prev,
-          lastError: errorMsg,
-        }));
-        throw new Error(errorMsg);
-      }
-
-      // Double-check with a fresh fetch for the most up-to-date status
       const state = await NetInfo.fetch();
-
-      if (!state.isConnected) {
-        const errorMsg =
-          'You appear to be offline. Please check your internet connection and try again.';
-        setApiRequestStatus(prev => ({
-          ...prev,
-          lastError: errorMsg,
-        }));
-        throw new Error(errorMsg);
-      }
-
-      // If connected but not internet reachable, try to ping a reliable server
-      if (state.isConnected && state.isInternetReachable === false) {
-        try {
-          // Use a small timeout to quickly test connectivity
-          await axios.get('https://www.google.com', {timeout: 3000});
-        } catch (e) {
-          const errorMsg =
-            'Internet connection appears to be unstable. Please check your connection and try again.';
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: errorMsg,
-          }));
-          throw new Error(errorMsg);
-        }
-      }
-
-      // Reset error state when network is good
-      setApiRequestStatus(prev => ({
-        ...prev,
-        lastError: null,
-      }));
-
-      return true;
+      return state.isConnected;
     } catch (error) {
-      console.error('Network connectivity check failed:', error);
-      Alert.alert(
-        'Network Error',
-        error.message ||
-          'Network connection failed. Please check your internet connection and try again.',
-      );
+      console.error('Network check failed:', error);
       return false;
     }
-  }, [networkStatus.isConnected]);
+  }, []);
 
-  // Enhanced retry mechanism
-  const retryRequestWithBackoff = async requestFn => {
-    setIsRetrying(true);
-    try {
-      retryAttempts.current += 1;
-      console.log(
-        `Retry attempt ${retryAttempts.current}/${MAX_RETRY_ATTEMPTS}`,
-      );
+  // Function to validate YouTube or Spotify URL
+  const validateMediaURL = url => {
+    if (!url) return false;
 
-      // Wait with exponential backoff
-      const delay = RETRY_DELAY * Math.pow(2, retryAttempts.current - 1);
-      await new Promise(resolve => setTimeout(resolve, delay));
+    // Trim whitespace and normalize
+    const trimmedUrl = url.trim();
 
-      // Check network before retrying
-      const isConnected = await checkNetworkConnectivity();
-      if (!isConnected) {
-        throw new Error('Still offline. Please check your connection.');
-      }
+    // YouTube URL patterns
+    const youtubePatterns = [
+      /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+/i,
+      /^(https?:\/\/)?(www\.)?youtube\.com\/watch\?v=.+/i,
+      /^(https?:\/\/)?(www\.)?youtu\.be\/.+/i,
+    ];
 
-      return await requestFn();
-    } catch (error) {
-      if (retryAttempts.current < MAX_RETRY_ATTEMPTS) {
-        return retryRequestWithBackoff(requestFn);
-      } else {
-        retryAttempts.current = 0;
-        throw error;
-      }
-    } finally {
-      if (retryAttempts.current >= MAX_RETRY_ATTEMPTS) {
-        retryAttempts.current = 0;
-        setIsRetrying(false);
-      }
-    }
+    // Spotify URL patterns
+    const spotifyPatterns = [
+      /^(https?:\/\/)?(open\.)?spotify\.com\/.+/i,
+      /^(https?:\/\/)?(open\.)?spotify\.com\/track\/.+/i,
+    ];
+
+    // Check if URL matches any of the patterns
+    const isYouTubeUrl = youtubePatterns.some(pattern =>
+      pattern.test(trimmedUrl),
+    );
+    const isSpotifyUrl = spotifyPatterns.some(pattern =>
+      pattern.test(trimmedUrl),
+    );
+
+    return isYouTubeUrl || isSpotifyUrl;
   };
 
   const createVoiceConversion = async () => {
+    // Credit check - navigate to subscription if credits are insufficient
+    if (creditsValue <= 0) {
+      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+      return;
+    }
+
+    // Basic connectivity check
+    const isConnected = await checkNetworkConnectivity();
+    if (!isConnected) {
+      Alert.alert(
+        'Error',
+        'No internet connection. Please try again when you are connected.',
+      );
+      return;
+    }
+
     if (!selectedVoiceId && !selectedRecordingFile) {
       Alert.alert('Error', 'Please select a voice first');
       return;
@@ -255,71 +176,35 @@ const CoverCreationScreen = () => {
       return;
     }
 
-    // Refresh credits to ensure we have the latest count
-    await refreshCredits();
-
-    // First check if user has enough credits
-    if (creditsValue < COVER_GENERATION_COST) {
-      // Redirect to subscription screen
-      Alert.alert(
-        'Insufficient Credits',
-        'You need more credits to generate a cover. Would you like to purchase more?',
-        [
-          {text: 'Cancel', style: 'cancel'},
-          {
-            text: 'Get Credits',
-            onPress: () => navigation.navigate(ROUTE_NAME.SUBSCRIPTION_SCREEN),
-          },
-        ],
-      );
+    // Validate the URL format
+    if (!validateMediaURL(link)) {
+      Alert.alert('Error', 'Please enter a valid YouTube or Spotify URL');
       return;
     }
 
-    // Use the handleCreditRequiredAction to handle credit check and deduction
-    return handleCreditRequiredAction(async () => {
-      // Reset API request status
-      setApiRequestStatus({
-        lastAttempt: new Date().toISOString(),
-        lastError: null,
-        debugMode: apiRequestStatus.debugMode,
-      });
+    // Refresh credits to ensure we have the latest count
+    await refreshCredits();
 
-      console.log('Starting voice conversion with:');
-      console.log('- Link:', link);
-      console.log(
-        '- Voice Model ID:',
-        selectedVoiceId || 'Not using voice model',
-      );
-      console.log('- Using My Vocal:', isUsingMyVocal);
-      console.log(
-        '- Recording File ID:',
-        selectedRecordingFile?._id || 'Not using recording',
-      );
+    return handleCreditRequiredAction(async () => {
+      setIsLoading(true);
+      setShowBottomSheet(true);
+
+      // Set global generating state - this will trigger the library indicator
+      dispatch(setGeneratingSong(true));
+      // We'll set the song ID after successful generation
 
       try {
-        setIsLoading(true);
-
-        // Enhanced network connectivity check
-        const isConnected = await checkNetworkConnectivity();
-        if (!isConnected) {
-          setIsLoading(false);
-          return false; // Return false to indicate failure so credits aren't deducted
-        }
-
         // Get auth token
         const token = await getAuthToken();
         if (!token) {
-          const errorMsg = 'Authentication required. Please log in again.';
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: errorMsg,
-          }));
-          throw new Error(errorMsg);
+          throw new Error('Authentication required. Please log in again.');
         }
+
+        console.log(link, 'link');
 
         // Format request data
         const requestData = {
-          url: link,
+          url: link.trim(), // Ensure URL is trimmed
           title: songTitle || 'My Cover',
           artist: artistName || 'AI Cover',
         };
@@ -328,60 +213,29 @@ const CoverCreationScreen = () => {
         if (isUsingMyVocal && selectedRecordingFile) {
           // Using user's own vocal recording
           if (!selectedRecordingFile._id) {
-            const errorMsg =
-              'Invalid recording ID. Please select a different recording.';
-            setApiRequestStatus(prev => ({
-              ...prev,
-              lastError: errorMsg,
-            }));
-            throw new Error(errorMsg);
+            throw new Error(
+              'Invalid recording ID. Please select a different recording.',
+            );
           }
-          console.log(
-            'Using user recording with ID:',
-            selectedRecordingFile._id,
-          );
-          requestData.voiceRecordingId = selectedRecordingFile._id;
+          // Send recording ID as voiceModelId
+          requestData.voiceModelId = selectedRecordingFile?._id;
         } else if (selectedVoiceId) {
           // Using voice model from the sample catalog
-          if (!selectedVoiceId) {
-            const errorMsg =
-              'Invalid voice model ID. Please select a different voice.';
-            setApiRequestStatus(prev => ({
-              ...prev,
-              lastError: errorMsg,
-            }));
-            throw new Error(errorMsg);
-          }
-          console.log('Using voice model with ID:', selectedVoiceId);
           requestData.voiceModelId = selectedVoiceId;
         } else {
-          const errorMsg =
-            'Please select either a voice model or your own recording.';
-          setApiRequestStatus(prev => ({
-            ...prev,
-            lastError: errorMsg,
-          }));
-          throw new Error(errorMsg);
+          throw new Error(
+            'Please select either a voice model or your own recording.',
+          );
         }
 
-        // Log the complete request data for debugging
-        console.log('API Request Data:', JSON.stringify(requestData, null, 2));
+        if (!requestData.url || !requestData.voiceModelId) {
+          throw new Error('Missing required fields: URL or voice model ID');
+        }
 
-        // Show bottom sheet modal instead of alert
-        setShowBottomSheet(true);
-
-        // Reset form immediately for better UX
-        setLink('');
-        setSongTitle('');
-        setArtistName('');
-        setSelectedVoiceId(null);
-        setSelectedRecordingFile(null);
-        setIsUsingMyVocal(false);
-
-        // Now make the API request in the background
+        // Make the API request to the url-to-voice endpoint
         const apiUrl = `${config.API_BASE_URL}/v1/integration/url-to-voice`;
-        console.log(`Making API request to: ${apiUrl}`);
 
+        console.log(requestData, 'requestData');
         fetcher
           .post(apiUrl, requestData, {
             headers: {
@@ -391,39 +245,52 @@ const CoverCreationScreen = () => {
             timeout: 300000, // Increased timeout to 5 minutes (300,000ms)
           })
           .then(response => {
-            console.log(
-              'Voice conversion API response status:',
-              response.status,
-            );
-            console.log(
-              'Voice conversion response data:',
-              JSON.stringify(response.data, null, 2),
-            );
+            // Check if the response is successful and contains expected data
+            if (!response.data) {
+              throw new Error('Invalid response from server');
+            }
 
-            // Clear any error state on success
-            setApiRequestStatus(prev => ({
-              ...prev,
-              lastError: null,
-            }));
-
-            console.log('Cover generation request successful');
+            // Store the generated song ID for tracking in the library
+            if (response.data._id) {
+              dispatch(setGeneratingSongId(response.data._id));
+            }
 
             // Make sure to refresh credits after successful generation
             setTimeout(() => {
               refreshCredits();
-            }, 1000);
+            }, 500);
+
+            // On success - we keep the generating state active
+            // It will be reset when the song appears in the library
+            dispatch(setGeneratingSong(false));
 
             return true; // Return true to indicate success
           })
           .catch(error => {
             console.error('Voice conversion request error:', error);
-            // We don't show errors to the user here since we've already shown the success message
-            // Just log them for debugging
 
-            setApiRequestStatus(prev => ({
-              ...prev,
-              lastError: error.message || 'Unknown API error',
-            }));
+            // Extract error message from response if available
+            let errorMessage = 'Failed to create voice conversion';
+            if (
+              error.response &&
+              error.response.data &&
+              error.response.data.message
+            ) {
+              console.log(
+                error.response.data.message,
+                'error.response.data.message',
+              );
+              errorMessage = error.response.data.message;
+            } else if (error.message) {
+              errorMessage = error.message;
+            }
+
+            // Show error alert
+            Alert.alert('Generation Failed', errorMessage);
+
+            // Clear generating state on error
+            dispatch(setGeneratingSong(false));
+            dispatch(setGeneratingSongId(null));
             return false; // Return false to indicate failure
           });
 
@@ -431,54 +298,24 @@ const CoverCreationScreen = () => {
       } catch (error) {
         console.error('Voice conversion failed:', error);
 
-        let errorMessage = 'Failed to create voice conversion';
-
-        // Determine the appropriate error message
-        if (
-          error.message === 'Network Error' ||
-          error.customMessage?.includes('Network connection failed')
-        ) {
-          errorMessage =
-            'Network connection failed. Please check your internet connection and try again.';
-        } else if (error.code === 'ECONNABORTED') {
-          errorMessage =
-            'Request timed out. The server took too long to respond. Please try again later.';
-        } else if (error.response?.status === 401) {
-          errorMessage = 'Authentication failed. Please log in again.';
-        } else if (error.response?.status === 429) {
-          errorMessage = 'Too many requests. Please try again later.';
-        } else if (error.response?.status >= 500) {
-          errorMessage = 'Server error. Please try again later.';
-        } else if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        } else if (error.customMessage) {
-          errorMessage = error.customMessage;
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-
-        // Store the error message in state for debug display
-        setApiRequestStatus(prev => ({
-          ...prev,
-          lastError: errorMessage,
-        }));
+        let errorMessage = error.message || 'Failed to create voice conversion';
 
         Alert.alert('Error', errorMessage);
+        // Clear generating state on error
+        dispatch(setGeneratingSong(false));
+        dispatch(setGeneratingSongId(null));
         return false; // Return false to indicate failure
       } finally {
         setIsLoading(false);
         setIsRetrying(false);
         retryAttempts.current = 0;
       }
-    }, COVER_GENERATION_COST);
+    }, creditsPerSong);
   };
-
-  const navigation = useNavigation();
 
   const handlePaste = async () => {
     try {
       const clipboardContent = await Clipboard.getString();
-      console.log(clipboardContent, 'clipboard');
       setLink(clipboardContent);
     } catch (error) {
       Alert.alert('Error', 'Failed to paste from clipboard');
@@ -487,9 +324,14 @@ const CoverCreationScreen = () => {
 
   const API_TOKEN = 'w8TOqTQD.HDIa0GVr6XlSFBbp4HIztEGj';
 
-  // Fetch user's voice recordings
+  // Fetch user's voice recordings - updated to track loading state
   const fetchUserRecordings = useCallback(
     async (showToast = false) => {
+      // Don't fetch if already loaded unless it's a manual refresh
+      if (recordingsLoaded && !showToast && !isRefreshing) {
+        return userRecordings;
+      }
+
       try {
         setIsLoadingRecordings(true);
 
@@ -507,7 +349,7 @@ const CoverCreationScreen = () => {
           throw new Error('Authentication required. Please log in again.');
         }
 
-        // Make API request using fetcher instead of axios
+        // Make API request using fetcher
         const response = await fetcher.get(
           `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
           {
@@ -521,6 +363,7 @@ const CoverCreationScreen = () => {
         // Handle the response properly - check both data and data.data
         const recordings = response.data?.data || response.data || [];
         setUserRecordings(recordings);
+        setRecordingsLoaded(true);
 
         // Show success message if requested
         if (showToast) {
@@ -542,49 +385,88 @@ const CoverCreationScreen = () => {
         return recordings;
       } catch (error) {
         console.error('Failed to fetch user recordings:', error);
-        Alert.alert('Error', 'Failed to fetch your voice recordings');
+        // Only show alert for manual refreshes
+        if (showToast || isRefreshing) {
+          Alert.alert('Error', 'Failed to fetch your voice recordings');
+        }
         return [];
       } finally {
         setIsLoadingRecordings(false);
       }
     },
-    [userId],
+    [userId, userRecordings, recordingsLoaded, isRefreshing],
   );
 
-  // Add a dedicated function to refresh just user recordings
-  const refreshUserRecordings = useCallback(async () => {
-    console.log('Refreshing user recordings...');
-
-    // Check if already loading
-    if (isLoadingRecordings) {
-      console.log('Already refreshing recordings, skipping request');
+  // Update the handleRefresh function to reset pagination and properly refresh data
+  const handleRefresh = useCallback(async () => {
+    if (isRefreshing) {
       return;
     }
 
-    // Check network status before attempting refresh
-    const netInfo = await NetInfo.fetch();
-    if (!netInfo.isConnected) {
+    try {
+      setIsRefreshing(true);
+
+      // Small delay to ensure UI renders the loading indicator
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Check network connectivity before refreshing
+      const isConnected = await checkNetworkConnectivity();
+      if (!isConnected) {
+        Alert.alert('Network Error', 'No internet connection available');
+        return;
+      }
+
+      // Reset pagination
+      setPage(1);
+      setHasMoreData(true);
+
+      // Run refreshes in parallel for faster loading
+      await Promise.all([
+        // Reload voice models
+        getVoiceSamples(1, false),
+
+        // Reload user recordings if user is logged in
+        userId ? fetchUserRecordings(true) : Promise.resolve(),
+
+        // Refresh credits
+        refreshCredits(),
+      ]);
+
+      // Small delay before finishing to ensure refresh spinner displays properly
+      await new Promise(resolve => setTimeout(resolve, 300));
+    } catch (error) {
+      console.error('Error refreshing data:', error);
       Alert.alert(
-        'Network Error',
-        'No internet connection. Please check your connection and try again.',
+        'Refresh Failed',
+        'Could not refresh data. Please try again.',
       );
-      return;
+    } finally {
+      setIsRefreshing(false);
     }
+  }, [
+    checkNetworkConnectivity,
+    getVoiceSamples,
+    fetchUserRecordings,
+    refreshCredits,
+    userId,
+    isRefreshing,
+  ]);
 
-    // Call the fetch function with toast notification
-    const recordings = await fetchUserRecordings(true);
-    console.log(`Refreshed ${recordings.length} voice recordings`);
+  // Initial data load - only once on mount
+  useEffect(() => {
+    getVoiceSamples(1, false);
+    if (userId && !recordingsLoaded) {
+      fetchUserRecordings();
+    }
+  }, [userId, fetchUserRecordings, getVoiceSamples, recordingsLoaded]);
 
-    return recordings;
-  }, [fetchUserRecordings, isLoadingRecordings]);
-
+  // Modify getVoiceSamples to only fetch initial data
   const getVoiceSamples = useCallback(
     async (pageNum = 1, shouldAppend = false) => {
       try {
         setIsLoadingMore(true);
 
         // Add pagination parameters to the API call
-        // For external API, we might still need to use fetch
         const response = await fetch(
           `https://arpeggi.io/api/kits/v1/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
           {
@@ -594,20 +476,15 @@ const CoverCreationScreen = () => {
           },
         );
 
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const responseData = await response.json();
         const newData = responseData.data || [];
 
-        // Check if we have more data to load
-        if (newData.length < PAGE_SIZE) {
-          setHasMoreData(false);
-        }
-
-        // Update state based on whether we're appending or replacing
-        if (shouldAppend) {
-          setSampleVoice(prevData => [...prevData, ...newData]);
-        } else {
-          setSampleVoice(newData);
-        }
+        // Update state with initial data only
+        setSampleVoice(newData);
 
         return responseData;
       } catch (error) {
@@ -620,35 +497,12 @@ const CoverCreationScreen = () => {
     [API_TOKEN, PAGE_SIZE],
   );
 
-  // Load more data when user reaches end of list
-  const handleLoadMore = useCallback(() => {
-    if (!isLoadingMore && hasMoreData) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      getVoiceSamples(nextPage, true);
-    }
-  }, [isLoadingMore, hasMoreData, page, getVoiceSamples]);
-
-  // Initial data load
-  useEffect(() => {
-    getVoiceSamples(1, false);
-    if (userId) {
-      fetchUserRecordings();
-    }
-  }, [userId, fetchUserRecordings, getVoiceSamples]);
-
   // Handler for playing voice samples with improved logging
   const handlePlaySample = sample => {
     if (!sample || !sample.previewUrl) {
       Alert.alert('Error', 'No preview available for this voice sample');
       return;
     }
-
-    console.log('Selected voice sample:', {
-      id: sample.id,
-      title: sample.title,
-      previewUrl: sample.previewUrl,
-    });
 
     // Format the sample for the global player
     const formattedSample = {
@@ -670,181 +524,15 @@ const CoverCreationScreen = () => {
     }
   };
 
-  // Handler for playing user recordings
-  const handlePlayRecording = recording => {
-    if (!recording) {
-      Alert.alert('Error', 'No audio available for this recording');
-      return;
-    }
-
-    // Format the recording for the global player
-    const formattedRecording = {
-      id: recording._id,
-      title: recording.name || 'My Recording',
-      artist: 'My Voice',
-      uri: recording.audioUrl,
-      thumbnail: 'https://via.placeholder.com/150', // Use a default image
-      poster: 'https://via.placeholder.com/300',
-      duration: recording.duration || 30,
-    };
-
-    // If the same recording is playing, toggle play/pause
-    if (currentSong && currentSong.id === recording._id) {
-      togglePlayPause();
-    } else {
-      // Otherwise play the new recording
-      play(formattedRecording);
-    }
-  };
-
-  // Handler for playing generated songs
-  const handlePlayGeneratedSong = useCallback(
-    conversion => {
-      if (!conversion || !conversion.outputUrl) {
-        Alert.alert('Error', 'This song is not available to play');
-        return;
-      }
-
-      // Format the song for the global player
-      const formattedSong = {
-        id: conversion.id,
-        title: conversion.title || 'AI Cover',
-        artist: conversion.artist || 'AI Generated',
-        uri: conversion.outputUrl,
-        thumbnail: conversion.imageUrl || 'https://via.placeholder.com/150',
-        poster: conversion.imageUrl || 'https://via.placeholder.com/300',
-        duration: conversion.duration || 180, // Default to 3 mins if unknown
-      };
-
-      // If the same song is playing, toggle play/pause
-      if (currentSong && currentSong.id === conversion.id) {
-        togglePlayPause();
-      } else {
-        // Otherwise play the new song
-        play(formattedSong);
-      }
-    },
-    [currentSong, play, togglePlayPause],
-  );
-
-  // Add useEffect to fetch existing conversions on component load
-  useEffect(() => {
-    const fetchExistingConversions = async () => {
-      try {
-        const token = await getAuthToken();
-        if (!token) return;
-
-        const response = await fetcher.get(
-          `${config.API_BASE_URL}/v1/integration/user-conversions`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          },
-        );
-
-        console.log('Existing conversions:', response.data);
-
-        if (response.data?.data) {
-          // Transform the data to match our expected format
-          const existingConversions = response.data.data.map(conversion => ({
-            id: conversion._id || conversion.id,
-            title: conversion.title || 'AI Cover',
-            artist: conversion.artist || 'AI Generated',
-            status: conversion.outputUrl ? 'success' : 'processing',
-            outputUrl: conversion.outputUrl || conversion.audioUrl || null,
-            imageUrl: conversion.imageUrl || conversion.coverArt || null,
-            createdAt: conversion.createdAt || new Date().toISOString(),
-            // Include all other data
-            ...conversion,
-          }));
-
-          setConversions(existingConversions);
-        }
-      } catch (error) {
-        console.error('Failed to fetch existing conversions:', error);
-        // No need to alert the user about this error
-      }
-    };
-
-    // Uncomment this line if the API endpoint is available
-    // fetchExistingConversions();
-  }, []);
-
-  // Add refresh handler to refresh everything
-  const handleRefresh = useCallback(async () => {
-    try {
-      setIsRefreshing(true);
-
-      console.log('Pulling to refresh all data...');
-
-      // Check network connectivity before refreshing
-      const isConnected = await checkNetworkConnectivity();
-      if (!isConnected) {
-        setIsRefreshing(false);
-        return;
-      }
-
-      // Reset pagination
-      setPage(1);
-
-      // Reload voice models
-      await getVoiceSamples(1, false);
-
-      // Reload user recordings if user is logged in
-      if (userId) {
-        console.log('Refreshing user voice recordings...');
-        await fetchUserRecordings(false);
-      }
-
-      // Refresh credits
-      await refreshCredits();
-
-      // Clear any error states
-      setApiRequestStatus(prev => ({
-        ...prev,
-        lastError: null,
-      }));
-
-      console.log('Refresh completed successfully');
-    } catch (error) {
-      console.error('Error refreshing data:', error);
-      Alert.alert(
-        'Refresh Failed',
-        'Could not refresh data. Please try again.',
-      );
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [
-    checkNetworkConnectivity,
-    getVoiceSamples,
-    fetchUserRecordings,
-    refreshCredits,
-    userId,
-    setPage,
-    setApiRequestStatus,
-  ]);
-
-  // Add useEffect to refresh user recordings when screen becomes focused
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      console.log('AI Cover screen focused, refreshing user recordings...');
-      // Check if we have a userId before trying to refresh
-      if (userId) {
-        fetchUserRecordings(false);
-      }
-    });
-
-    // Cleanup subscription
-    return unsubscribe;
-  }, [navigation, fetchUserRecordings, userId]);
-
   const VocalCard = ({recording}) => {
     const isSelected = !isUsingMyVocal && selectedVoiceId === recording.id;
     const isCurrentlyPlaying =
       currentSong && currentSong.id === recording.id && isPlaying;
+    const [imageError, setImageError] = useState(false);
+
+    // Determine if we have a valid image URL
+    const hasValidImageUrl =
+      recording?.imageUrl && recording.imageUrl.startsWith('http');
 
     return (
       <TouchableOpacity
@@ -852,10 +540,8 @@ const CoverCreationScreen = () => {
         onPress={() => {
           if (isSelected) {
             setSelectedVoiceId(null);
-            console.log('Deselected voice model');
           } else {
             setSelectedVoiceId(recording.id);
-            console.log('Selected voice model ID:', recording.id);
             setIsUsingMyVocal(false);
             setSelectedRecordingFile(null);
           }
@@ -870,23 +556,25 @@ const CoverCreationScreen = () => {
             styles.vocalCardContainer,
             isSelected && styles.selectedCardContainer,
           ]}>
-          <View style={styles.topBorder} />
-          <LinearGradient
-            colors={['#18181B', '#231F1F', '#3A2F28']}
-            locations={[0.35, 0.75, 1]}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
-            style={styles.vocalGradient}
-            activeOpacity={0.7}
-            angle={175}>
+          <View style={styles.vocalGradient}>
             <View style={styles.plusContainer}>
-              <Image
-                source={{uri: recording?.imageUrl}}
-                style={{width: '100%', height: '100%'}}
-              />
+              {!hasValidImageUrl || imageError ? (
+                <View style={styles.fallbackImageContainer}>
+                  <Text style={styles.fallbackImageText}>
+                    {recording.title?.charAt(0)?.toUpperCase() || 'V'}
+                  </Text>
+                </View>
+              ) : (
+                <Image
+                  source={{uri: recording.imageUrl}}
+                  style={{width: '100%', height: '100%'}}
+                  resizeMode="cover"
+                  onError={() => setImageError(true)}
+                />
+              )}
               {isCurrentlyPlaying && (
                 <View style={styles.playingOverlay}>
-                  <Image style={styles.playingIcon} />
+                  <CText style={{color: '#FFF', fontSize: 20}}>▶️</CText>
                 </View>
               )}
             </View>
@@ -895,10 +583,12 @@ const CoverCreationScreen = () => {
                 <Text style={styles.checkmark}>✓</Text>
               </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
         <Text style={[styles.cardText, isSelected && styles.selectedCardText]}>
-          {recording.title.replace(/ /, '\n')}
+          {recording.title?.length > 15
+            ? recording.title.substring(0, 9) + '...'
+            : recording.title || 'Voice'}
         </Text>
       </TouchableOpacity>
     );
@@ -918,33 +608,24 @@ const CoverCreationScreen = () => {
           if (isSelected) {
             setIsUsingMyVocal(false);
             setSelectedRecordingFile(null);
-            console.log('Deselected user recording');
           } else {
             setIsUsingMyVocal(true);
             setSelectedRecordingFile(recording);
-            console.log('Selected user recording ID:', recording._id);
             setSelectedVoiceId(null);
           }
-
-          // Play the recording
-          handlePlayRecording(recording);
         }}>
         <View
           style={[
             styles.vocalCardContainer,
             isSelected && styles.selectedCardContainer,
           ]}>
-          <View style={styles.topBorder} />
-          <LinearGradient
-            colors={['#18181B', '#231F1F', '#3A2F28']}
-            locations={[0.35, 0.75, 1]}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
-            style={styles.vocalGradient}
-            activeOpacity={0.7}
-            angle={175}>
+          <View style={styles.vocalGradient}>
             <View style={styles.plusContainer}>
-              <CText style={{color: '#FFF', fontSize: 20}}>🎤</CText>
+              <Image
+                source={appImages.recordingImage}
+                style={{width: '100%', height: '100%'}}
+                resizeMode="cover"
+              />
               {isCurrentlyPlaying && (
                 <View style={styles.playingOverlay}>
                   <CText style={{color: '#FFF', fontSize: 20}}>▶️</CText>
@@ -956,166 +637,16 @@ const CoverCreationScreen = () => {
                 <Text style={styles.checkmark}>✓</Text>
               </View>
             )}
-          </LinearGradient>
+          </View>
         </View>
         <Text style={[styles.cardText, isSelected && styles.selectedCardText]}>
           {recording.name?.length > 15
-            ? recording.name.substring(0, 15) + '...'
+            ? recording.name.substring(0, 8) + '...'
             : recording.name || 'My Recording'}
         </Text>
       </TouchableOpacity>
     );
   };
-
-  // Component for displaying generated songs
-  const GeneratedSongCard = useCallback(
-    ({conversion}) => {
-      const isCurrentlyPlaying =
-        currentSong && currentSong.id === conversion.id && isPlaying;
-
-      console.log(conversion, 'conversion');
-
-      // Processing status indicator colors
-      const getStatusColor = () => {
-        if (conversion.status === 'error' || conversion.status === 'failed') {
-          return '#F44336'; // Red for error states
-        } else if (conversion.outputUrl) {
-          return '#4CAF50'; // Green for ready/completed
-        } else {
-          return '#FFC107'; // Yellow/Orange for processing
-        }
-      };
-
-      // Determine card state
-      const isPlayable = !!conversion.outputUrl;
-      const isProcessing =
-        !isPlayable &&
-        conversion.status !== 'error' &&
-        conversion.status !== 'failed';
-      const hasFailed =
-        conversion.status === 'error' || conversion.status === 'failed';
-
-      return (
-        <TouchableOpacity
-          activeOpacity={isPlayable ? 0.7 : 1}
-          onPress={() => {
-            if (isPlayable) {
-              handlePlayGeneratedSong(conversion);
-            } else if (isProcessing) {
-              Alert.alert(
-                'Processing',
-                'Your AI cover is still being generated. This complex task may take several minutes to complete.',
-              );
-            } else {
-              Alert.alert(
-                'Generation Failed',
-                'Unfortunately, there was an issue generating this cover.',
-              );
-            }
-          }}
-          style={styles.generatedSongCard}>
-          <LinearGradient
-            colors={['#18181B', '#231F1F', '#3A2F28']}
-            locations={[0.35, 0.75, 1]}
-            start={{x: 0, y: 0}}
-            end={{x: 0, y: 1}}
-            style={styles.songCardGradient}>
-            {/* Status Indicator */}
-            <View
-              style={[
-                styles.statusIndicator,
-                {backgroundColor: getStatusColor()},
-              ]}
-            />
-
-            {/* Cover Art or Placeholder */}
-            <View style={styles.coverArtContainer}>
-              {conversion.imageUrl ? (
-                <Image
-                  source={{uri: conversion.imageUrl}}
-                  style={styles.coverArt}
-                  resizeMode="cover"
-                />
-              ) : (
-                <View style={styles.coverArtPlaceholder}>
-                  <CText style={styles.coverArtPlaceholderText}>
-                    {conversion.title ? conversion.title.charAt(0) : 'C'}
-                  </CText>
-                </View>
-              )}
-
-              {/* Play/Loading Overlay */}
-              {isProcessing ? (
-                <View style={styles.loadingOverlay}>
-                  <ActivityIndicator color="#F4A460" size="small" />
-                  <CText style={{color: '#FFF', fontSize: 12, marginTop: 4}}>
-                    Processing...
-                  </CText>
-                </View>
-              ) : hasFailed ? (
-                <View style={styles.loadingOverlay}>
-                  <CText style={{color: '#FFF', fontSize: 14}}>Failed</CText>
-                </View>
-              ) : isCurrentlyPlaying ? (
-                <View style={styles.playingOverlay}>
-                  <CText style={{color: '#FFF', fontSize: 20}}>▶️</CText>
-                </View>
-              ) : (
-                <View style={styles.playButtonOverlay}>
-                  <CText style={{color: '#FFF', fontSize: 24}}>▶</CText>
-                </View>
-              )}
-            </View>
-
-            {/* Song Details */}
-            <View style={styles.songDetailsContainer}>
-              <Text style={styles.songTitle} numberOfLines={1}>
-                {conversion.title || 'Untitled Cover'}
-              </Text>
-              <Text style={styles.songArtist} numberOfLines={1}>
-                {conversion.artist || 'AI Generated'}
-              </Text>
-              <Text
-                style={[
-                  styles.songStatus,
-                  isProcessing && {color: '#FFC107'}, // Make processing status more visible
-                  hasFailed && {color: '#F44336'}, // Make failure more visible
-                  isPlayable && {color: '#4CAF50'}, // Make successful status more visible
-                ]}>
-                {isPlayable
-                  ? 'Ready to Play'
-                  : hasFailed
-                  ? 'Failed to Generate'
-                  : 'Processing (may take a few minutes)'}
-              </Text>
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-      );
-    },
-    [currentSong, isPlaying, handlePlayGeneratedSong],
-  );
-
-  // Section to display generated songs
-  // const GeneratedSongsSection = useCallback(() => {
-  //   if (conversions.length === 0) {
-  //     return null;
-  //   }
-
-  //   return (
-  //     <View style={styles.section}>
-  //       <Text style={styles.sectionTitle}>My Generated Covers</Text>
-  //       <FlatList
-  //         data={conversions}
-  //         renderItem={({item}) => <GeneratedSongCard conversion={item} />}
-  //         keyExtractor={item => item.id}
-  //         horizontal={false}
-  //         showsVerticalScrollIndicator={false}
-  //         contentContainerStyle={styles.generatedSongsContainer}
-  //       />
-  //     </View>
-  //   );
-  // }, [conversions]); // Fix: Removed the unnecessary GeneratedSongCard dependency
 
   const MyVocalsSection = () => {
     return (
@@ -1171,153 +702,86 @@ const CoverCreationScreen = () => {
     );
   };
 
-  // Footer component to show loading indicator when loading more data
+  // Remove ListFooter component since we won't be loading more
   const ListFooter = () => {
-    if (!isLoadingMore) {
-      return null;
-    }
-
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#F4A460" />
-        <Text style={styles.loadingMoreText}>Loading more voices...</Text>
-      </View>
-    );
-  };
-
-  // Add a network status indicator in the UI
-  const NetworkStatusBar = () => {
-    if (networkStatus.isConnected && !apiRequestStatus.lastError) {
-      return null; // Don't show anything when connected and no errors
-    }
-
-    return (
-      <View style={styles.networkStatusBar}>
-        <Text style={styles.networkStatusText}>
-          {!networkStatus.isConnected
-            ? 'You are offline. Please check your internet connection.'
-            : apiRequestStatus.lastError
-            ? `Error: ${apiRequestStatus.lastError}`
-            : 'Network status unknown'}
-        </Text>
-      </View>
-    );
+    return null;
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <NetworkStatusBar />
-      <ScrollView
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={['#F4A460']}
-            tintColor="#F4A460"
-            title="Pull to refresh"
-            titleColor="#F4A460"
-          />
-        }
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollViewContent}>
-        <View style={styles.content}>
-          {/* Credits Display */}
-
-          {/* Link Input Section */}
-          <View style={styles.section}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
-            </View>
-
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Paste Youtube/Spotify Link"
-                placeholderTextColor="#666"
-                value={link}
-                onChangeText={setLink}
-              />
-              <TouchableOpacity
-                style={styles.pasteButton}
-                onPress={handlePaste}
-                activeOpacity={0.8}>
-                <Text style={styles.pasteButtonText}>✨ Paste</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.creditsContainer}>
-              <Text style={styles.creditsText}>Songs Left: {creditsValue}</Text>
-            </View>
+      <View style={styles.content}>
+        {/* Credits Display */}
+        <View style={styles.headerSection}>
+          <View style={styles.titleContainer}>
+            <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
           </View>
 
-          {/* Metadata Input Section (Optional) */}
-          {/* <View style={styles.metadataContainer}>
-            <View style={styles.metadataField}>
-              <Text style={styles.metadataLabel}>Song Title (Optional)</Text>
-              <TextInput
-                style={styles.metadataInput}
-                placeholder="Enter song title"
-                placeholderTextColor="#666"
-                value={songTitle}
-                onChangeText={setSongTitle}
-              />
-            </View>
-            <View style={styles.metadataField}>
-              <Text style={styles.metadataLabel}>Artist Name (Optional)</Text>
-              <TextInput
-                style={styles.metadataInput}
-                placeholder="Enter artist name"
-                placeholderTextColor="#666"
-                value={artistName}
-                onChangeText={setArtistName}
-              />
-            </View>
-          </View> */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.input}
+              placeholder="Paste Youtube/Spotify Link"
+              placeholderTextColor="#666"
+              value={link}
+              onChangeText={setLink}
+            />
+            <TouchableOpacity
+              style={styles.pasteButton}
+              onPress={handlePaste}
+              activeOpacity={0.8}>
+              <Text style={styles.pasteButtonText}>✨ Paste</Text>
+            </TouchableOpacity>
+          </View>
+          <View style={styles.creditsContainer}>
+            <Text style={styles.creditsText}>
+              Songs Left: {Math.floor(creditsValue / creditsPerSong)}
+            </Text>
+          </View>
+        </View>
 
-          {/* Removed Generated Songs Section - songs will be in library instead */}
-
-          {/* Vocals Section */}
+        {/* Vocals Section */}
+        <View style={styles.listContainer}>
           {sampleVoice.length === 0 && !isLoadingMore ? (
             <View style={styles.loaderContainer}>
               <ActivityIndicator size="large" color="#F4A460" />
               <Text style={styles.loadingText}>Loading voices...</Text>
             </View>
           ) : (
-            <View style={styles.section}>
-              <FlatList
-                data={sampleVoice}
-                ListHeaderComponent={MyVocalsSection}
-                ListFooterComponent={ListFooter}
-                renderItem={({item}) => <VocalCard recording={item} />}
-                keyExtractor={item => item.id.toString()}
-                numColumns={3}
-                contentContainerStyle={styles.vocalsContainerGrid}
-                showsVerticalScrollIndicator={false}
-                columnWrapperStyle={styles.row}
-                getItemLayout={(data, index) => ({
-                  length: CARD_WIDTH,
-                  offset: CARD_WIDTH * Math.floor(index / 3),
-                  index,
-                })}
-                onEndReachedThreshold={0.5}
-                onEndReached={handleLoadMore}
-              />
-            </View>
+            <FlatList
+              data={sampleVoice}
+              ListHeaderComponent={MyVocalsSection}
+              ListFooterComponent={ListFooter}
+              renderItem={({item}) => <VocalCard recording={item} />}
+              keyExtractor={item => item.id.toString()}
+              numColumns={3}
+              contentContainerStyle={styles.vocalsContainerGrid}
+              showsVerticalScrollIndicator={true}
+              columnWrapperStyle={styles.row}
+              refreshControl={
+                <RefreshControl
+                  refreshing={isRefreshing}
+                  onRefresh={handleRefresh}
+                  colors={['#F4A460']}
+                  tintColor="#F4A460"
+                  title="Pull to refresh"
+                  titleColor="#F4A460"
+                />
+              }
+              scrollEnabled={true}
+              initialNumToRender={9}
+              maxToRenderPerBatch={6}
+              windowSize={10}
+              removeClippedSubviews={false}
+            />
           )}
         </View>
-      </ScrollView>
+      </View>
 
-      {/* Create Button - Moved outside ScrollView */}
+      {/* Create Button */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.createButton}
           activeOpacity={0.8}
-          disabled={
-            isLoading ||
-            (!selectedVoiceId && !selectedRecordingFile) ||
-            !networkStatus.isConnected ||
-            isRetrying ||
-            creditsValue < COVER_GENERATION_COST
-          }
+          disabled={isLoading || (!selectedVoiceId && !selectedRecordingFile)}
           onPress={createVoiceConversion}>
           <LinearGradient
             colors={['#F4A460', '#DEB887']}
@@ -1327,20 +791,12 @@ const CoverCreationScreen = () => {
             <CText
               style={[
                 styles.createButtonText,
-                (isLoading ||
-                  (!selectedVoiceId && !selectedRecordingFile) ||
-                  !networkStatus.isConnected ||
-                  isRetrying ||
-                  creditsValue < COVER_GENERATION_COST) &&
+                (isLoading || (!selectedVoiceId && !selectedRecordingFile)) &&
                   styles.disabledButtonText,
               ]}>
               {isLoading
                 ? 'Creating...'
-                : isRetrying
-                ? `Retrying (${retryAttempts.current}/${MAX_RETRY_ATTEMPTS})...`
-                : !networkStatus.isConnected
-                ? 'Offline'
-                : creditsValue < COVER_GENERATION_COST
+                : creditsValue <= 0
                 ? 'Insufficient Credits'
                 : 'Create Cover'}
             </CText>
@@ -1348,12 +804,20 @@ const CoverCreationScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Bottom Sheet Notification Modal - Similar to AIGenerator */}
+      {/* Bottom Sheet Notification Modal */}
       <Modal
         animationType="slide"
         transparent={true}
         visible={showBottomSheet}
-        onRequestClose={() => setShowBottomSheet(false)}>
+        onRequestClose={() => setShowBottomSheet(false)}
+        onBackdropPress={() => setShowBottomSheet(false)}
+        onBackButtonPress={() => setShowBottomSheet(false)}
+        swipeDirection={['down']}
+        propagateSwipe
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropOpacity={0.5}
+        avoidKeyboard={true}>
         <View style={styles.bottomSheetContainer}>
           <View style={styles.bottomSheetContent}>
             <CText size="largeBold" style={styles.bottomSheetTitle}>
@@ -1366,7 +830,13 @@ const CoverCreationScreen = () => {
             <TouchableOpacity
               style={styles.bottomSheetButton}
               onPress={() => setShowBottomSheet(false)}>
-              <CText style={styles.bottomSheetButtonText}>Got it</CText>
+              <LinearGradient
+                colors={['#F4A460', '#DEB887']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.gradient}>
+                <CText style={styles.bottomSheetButtonText}>Got it</CText>
+              </LinearGradient>
             </TouchableOpacity>
           </View>
         </View>
@@ -1384,7 +854,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
-  section: {
+  headerSection: {
     marginBottom: 15,
   },
   sectionTitle: {
@@ -1394,10 +864,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   pageHeader: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#FDF5E6',
     paddingVertical: 10,
+    fontFamily: 'Bricolage Grotesque',
+    letterSpacing: -0.8,
+    textTransform: 'capitalize',
   },
   inputContainer: {
     flexDirection: 'row',
@@ -1456,11 +929,12 @@ const styles = StyleSheet.create({
   plusContainer: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
-    backgroundColor: '#333',
+    // borderRadius: 20,
+    // backgroundColor: '#333',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    // marginBottom: 8,
+    overflow: 'hidden',
   },
   plusIcon: {
     fontSize: 24,
@@ -1473,15 +947,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginBottom: 5,
     textAlign: 'center',
-  },
-  recordingIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#FF4444',
-    position: 'absolute',
-    top: 8,
-    right: 8,
   },
   buttonContainer: {
     position: 'absolute',
@@ -1524,7 +989,7 @@ const styles = StyleSheet.create({
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 5,
     marginHorizontal: 5,
   },
   topBorder: {
@@ -1546,7 +1011,8 @@ const styles = StyleSheet.create({
   vocalsContainerGrid: {
     paddingHorizontal: 0,
     paddingVertical: 8,
-    paddingBottom: 160,
+    paddingBottom: 160, // Extra padding for the create button
+    flexGrow: 1, // Ensure content expands to fill available space
   },
   row: {
     flex: 1,
@@ -1556,6 +1022,7 @@ const styles = StyleSheet.create({
   selectedCardContainer: {
     borderWidth: 2,
     borderColor: '#F4A460',
+    borderRadius: 12,
   },
   selectedCardText: {
     color: '#F4A460',
@@ -1639,196 +1106,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginLeft: 8,
   },
-  sectionSubtitle: {
-    fontSize: 18,
-    fontWeight: '500',
-    color: '#FDF5E6',
-    marginBottom: 12,
-  },
-  metadataContainer: {
-    marginTop: 8,
-    marginBottom: 16,
-  },
-  metadataField: {
-    marginBottom: 12,
-  },
-  metadataLabel: {
-    fontSize: 14,
-    color: '#999',
-    marginBottom: 6,
-  },
-  metadataInput: {
-    backgroundColor: '#1A1A1A',
-    borderRadius: 12,
-    height: 46,
-    paddingHorizontal: 16,
-    color: '#fff',
-    fontSize: 16,
-  },
-  generatedSongsContainer: {
-    paddingBottom: 16,
-  },
-  generatedSongCard: {
-    borderRadius: 12,
-    overflow: 'hidden',
-    marginBottom: 16,
-    backgroundColor: '#1A1A1A',
-  },
-  songCardGradient: {
-    flexDirection: 'row',
-    padding: 12,
-    alignItems: 'center',
-  },
-  statusIndicator: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    height: '100%',
-    width: 4,
-  },
-  coverArtContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
-    overflow: 'hidden',
-    marginRight: 16,
-    position: 'relative',
-  },
-  coverArt: {
-    width: '100%',
-    height: '100%',
-  },
-  coverArtPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#333',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  coverArtPlaceholderText: {
-    color: '#FFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
-  loadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playButtonOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  songDetailsContainer: {
-    flex: 1,
-  },
-  songTitle: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  songArtist: {
-    color: '#999',
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  songStatus: {
-    color: '#777',
-    fontSize: 12,
-  },
   titleContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 16,
   },
-  debugButton: {
-    backgroundColor: '#333',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 4,
-  },
-  debugButtonText: {
-    color: '#FFF',
-    fontSize: 12,
-  },
-  debugContainer: {
-    backgroundColor: '#1A1A1A',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  debugTitle: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  debugText: {
-    color: '#CCC',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  networkStatusBar: {
-    backgroundColor: '#F44336',
-    padding: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
-  },
-  networkStatusText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  bottomSheetContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  bottomSheetContent: {
-    backgroundColor: '#fff',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    width: '100%',
-  },
-  bottomSheetTitle: {
-    color: '#000',
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  bottomSheetText: {
-    color: '#666',
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  bottomSheetButton: {
-    backgroundColor: '#F4A460',
-    padding: 12,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  bottomSheetButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  // Add styles for credits display
   creditsContainer: {
     backgroundColor: 'rgba(0, 0, 0, 0.6)',
     borderRadius: 12,
@@ -1840,13 +1123,6 @@ const styles = StyleSheet.create({
     color: '#959595',
     // fontWeight: 'bold',
     fontSize: 16,
-  },
-  scrollView: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  scrollViewContent: {
-    paddingBottom: 100, // Extra padding to account for bottom button
   },
   playingOverlay: {
     position: 'absolute',
@@ -1862,6 +1138,64 @@ const styles = StyleSheet.create({
   playingIcon: {
     width: 24,
     height: 24,
+  },
+  fallbackImageContainer: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#1E1E1E',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#3A2F28',
+    overflow: 'hidden',
+  },
+  fallbackImageText: {
+    color: '#FFF',
+    fontSize: 40,
+    fontWeight: 'bold',
+    opacity: 0.8,
+  },
+  bottomSheetContainer: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  bottomSheetContent: {
+    backgroundColor: '#1F2937',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+  },
+  bottomSheetTitle: {
+    color: '#FDF5E6',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  bottomSheetText: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  bottomSheetButton: {
+    width: '100%',
+    height: 60,
+    borderRadius: 28,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#C87D48',
+  },
+  bottomSheetButtonText: {
+    color: '#000',
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  listContainer: {
+    flex: 1, // Takes the remaining vertical space
   },
 });
 

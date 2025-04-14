@@ -13,6 +13,7 @@ const HeaderLeft = ({mode}) => {
           height: 60,
           width: 190,
           resizeMode: 'contain',
+          marginLeft: 10,
         }}
       />
     </CView>

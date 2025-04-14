@@ -10,7 +10,7 @@ import useCredits from '../../../../hooks/useCredits';
 const HeaderRight = ({mode}) => {
   const styles = getStyles(mode);
   const navigation = useNavigation();
-  const {credits, refreshCredits, isLoading} = useCredits();
+  const {credits, refreshCredits} = useCredits();
 
   // Safely get numeric credit value
   const creditValue = (() => {
@@ -20,14 +20,14 @@ const HeaderRight = ({mode}) => {
     return typeof credits === 'number' ? credits : 0;
   })();
 
-  // Refresh credits when component mounts
+  // Refresh credits when component mounts and every 3 minutes
   useEffect(() => {
     refreshCredits();
 
-    // Set up an interval to refresh credits every minute
+    // Set up an interval to refresh credits every 3 minutes
     const intervalId = setInterval(() => {
       refreshCredits();
-    }, 5 * 60000); // 5 minutes
+    }, 3 * 60000); // 3 minutes
 
     return () => clearInterval(intervalId);
   }, [refreshCredits]);
@@ -44,11 +44,7 @@ const HeaderRight = ({mode}) => {
     <CView row style={styles.wrapper}>
       <CView style={styles.searchWrapper}>
         <Pressable onPress={handleCreditPress}>
-          {isLoading ? (
-            <CView style={styles.creditsWrapper}>
-              <ActivityIndicator size="small" color="#C87D48" />
-            </CView>
-          ) : creditValue > 0 ? (
+          {creditValue > 0 ? (
             <CView style={styles.creditsWrapper}>
               <Text style={styles.creditsText}>{creditValue}</Text>
             </CView>

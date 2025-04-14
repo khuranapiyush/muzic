@@ -1,25 +1,25 @@
-import { SafeAreaView, ScrollView } from 'react-native'
-import React from 'react'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import { useTheme } from '@react-navigation/native'
-import getStyles from './AIHistory.styles'
-import { screenHeight } from '../../../../utils/common'
-import Modal from 'react-native-modal'
-import MusicCard from '../AIGenerator/MusicCard'
+import {SafeAreaView, ScrollView} from 'react-native';
+import React from 'react';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import {useTheme} from '@react-navigation/native';
+import getStyles from './AIHistory.styles';
+import {screenHeight} from '../../../../utils/common';
+import Modal from 'react-native-modal';
+import MusicCard from '../AIGenerator/MusicCard';
 
 const AIHistoryModal = ({
   isVisible,
   setIsModalVisible,
   selectedItem,
-  tabHeading
+  tabHeading,
 }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const {mode} = useTheme();
+  const styles = getStyles(mode);
 
   const onClose = () => {
-    setIsModalVisible(prev => ({ ...prev, isVisible: false }))
-  }
+    setIsModalVisible(prev => ({...prev, isVisible: false}));
+  };
 
   const getRenderDetail = tab => {
     switch (tab) {
@@ -29,9 +29,13 @@ const AIHistoryModal = ({
           placeholderText:
             'Describe the style of video and the topic you want, AI will generate a video for you',
           component: selectedItem ? (
-            <MusicCard key={0} item={selectedItem?.data} />
-          ) : null
-        }
+            <MusicCard
+              key={0}
+              item={selectedItem?.data}
+              songList={[selectedItem?.data]}
+            />
+          ) : null,
+        };
       case 'lyrics':
         return {
           heading: 'Lyrics Description',
@@ -43,16 +47,16 @@ const AIHistoryModal = ({
                 <CText style={styles.lyricsText}>{selectedItem?.data}</CText>
               </CView>
             </CView>
-          ) : null
-        }
+          ) : null,
+        };
       default:
         return {
           heading: 'Description',
           component: null,
-          placeholderText: 'Describe what you want to generate'
-        }
+          placeholderText: 'Describe what you want to generate',
+        };
     }
-  }
+  };
 
   return (
     <Modal
@@ -62,7 +66,7 @@ const AIHistoryModal = ({
       onBackButtonPress={onClose}
       swipeDirection={null}
       propagateSwipe
-      style={{ ...styles.modal }}
+      style={{...styles.modal}}
       animationIn="slideInUp"
       animationOut="slideOutDown"
       backdropOpacity={0.5}
@@ -70,7 +74,7 @@ const AIHistoryModal = ({
       <SafeAreaView
         style={{
           ...styles.modalContainer,
-          height: screenHeight * 0.6
+          height: screenHeight * 0.6,
         }}>
         <CView style={styles.modalContent}>
           <CView style={styles.headingContainer}>
@@ -84,7 +88,7 @@ const AIHistoryModal = ({
         </CView>
       </SafeAreaView>
     </Modal>
-  )
-}
+  );
+};
 
-export default AIHistoryModal
+export default AIHistoryModal;

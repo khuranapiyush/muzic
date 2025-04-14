@@ -9,15 +9,10 @@ import {
   Dimensions,
   SafeAreaView,
 } from 'react-native';
-import {Svg, Path} from 'react-native-svg';
 import fetcher from '../../../../dataProvider';
 import config from 'react-native-config';
-import CText from '../../../common/core/Text';
 import {useSelector} from 'react-redux';
-import {
-  getAuthToken,
-  makeAuthenticatedRequest,
-} from '../../../../utils/authUtils';
+import {getAuthToken} from '../../../../utils/authUtils';
 
 const {width} = Dimensions.get('window');
 // const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
@@ -46,33 +41,32 @@ const GenreSelectionScreen = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        await makeAuthenticatedRequest(async () => {
-          // Get the current auth token
-          const token = await getAuthToken();
+        // Get the current auth token
+        const token = await getAuthToken();
 
-          const headers = {
-            'Content-Type': 'application/json',
-          };
+        const headers = {
+          'Content-Type': 'application/json',
+        };
 
-          // Add authorization header if token exists
-          if (token) {
-            headers['Authorization'] = `Bearer ${token}`;
-          }
+        // Add authorization header if token exists
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
 
-          // Fetch genres
-          const genresResponse = await fetcher.get(
-            `${API_BASE_URL}/v1/genres`,
-            {headers},
-          );
-          setGenreList(genresResponse.data.data);
-
-          // Fetch filters
-          const filtersResponse = await fetcher.get(
-            `${API_BASE_URL}/v1/filters`,
-            {headers},
-          );
-          setFilterList(filtersResponse.data.data);
+        // Fetch genres
+        const genresResponse = await fetcher.get(`${API_BASE_URL}/v1/genres`, {
+          headers,
         });
+        setGenreList(genresResponse.data.data);
+
+        // Fetch filters
+        const filtersResponse = await fetcher.get(
+          `${API_BASE_URL}/v1/filters`,
+          {
+            headers,
+          },
+        );
+        setFilterList(filtersResponse.data.data);
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -81,18 +75,18 @@ const GenreSelectionScreen = ({
     fetchData();
   }, [API_BASE_URL, authState]);
 
-  const CheckMarkIcon = () => (
-    <View style={styles.checkmark}>
-      <Svg
-        width={16}
-        height={16}
-        viewBox="0 0 24 24"
-        stroke="white"
-        strokeWidth={2}>
-        <Path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-      </Svg>
-    </View>
-  );
+  // const CheckMarkIcon = () => (
+  //   <View style={styles.checkmark}>
+  //     <Svg
+  //       width={16}
+  //       height={16}
+  //       viewBox="0 0 24 24"
+  //       stroke="white"
+  //       strokeWidth={2}>
+  //       <Path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+  //     </Svg>
+  //   </View>
+  // );
 
   // Handle genre selection and notify parent component
   const handleGenreSelect = (genreId, genreName) => {
@@ -143,7 +137,11 @@ const GenreSelectionScreen = ({
           <View
             style={[styles.overlay, isSelected && styles.selectedOverlay]}
           />
-          {isSelected && <CheckMarkIcon />}
+          {isSelected && (
+            <View style={styles.checkmarkContainer}>
+              <Text style={styles.checkmarkIcon}>✓</Text>
+            </View>
+          )}
         </View>
         <Text style={[styles.itemText, isSelected && styles.selectedText]}>
           {item.name}
@@ -169,7 +167,11 @@ const GenreSelectionScreen = ({
           <View
             style={[styles.overlay, isSelected && styles.selectedOverlay]}
           />
-          {isSelected && <CheckMarkIcon />}
+          {isSelected && (
+            <View style={styles.checkmarkContainer}>
+              <Text style={styles.checkmarkIcon}>✓</Text>
+            </View>
+          )}
         </View>
         <Text style={[styles.itemText, isSelected && styles.selectedText]}>
           {item.name}
@@ -184,9 +186,7 @@ const GenreSelectionScreen = ({
       <View style={styles.content}>
         {/* Genre Section */}
         <View style={styles.section}>
-          <CText size="largeBold" style={styles.sectionTitle}>
-            Genre
-          </CText>
+          <Text style={styles.sectionTitle}>Genre</Text>
           <View style={styles.genreGrid}>
             {genreList?.map(item => (
               <GenreItem key={item._id} item={item} />
@@ -196,9 +196,7 @@ const GenreSelectionScreen = ({
 
         {/* Singer Type Section */}
         <View style={styles.section}>
-          <CText size="largeBold" style={styles.sectionTitle}>
-            Select Singer
-          </CText>
+          <Text style={styles.sectionTitle}>Select Singer</Text>
           <View style={styles.singerGrid}>
             {filterList
               ?.filter(item => item.type === 'singer')
@@ -268,7 +266,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
   },
   selectedOverlay: {
-    backgroundColor: 'rgba(147, 51, 234, 0.4)',
+    opacity: 0.4,
   },
   selectedItem: {
     transform: [{scale: 1.05}],
@@ -280,7 +278,7 @@ const styles = StyleSheet.create({
     lineHeight: 21,
   },
   selectedText: {
-    color: '#A855F7', // purple-500
+    color: '#FD893A', // purple-500
   },
   checkmark: {
     position: 'absolute',
@@ -289,9 +287,25 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#A855F7',
+    backgroundColor: '#FD893A',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  checkmarkContainer: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#F4A460',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkmarkIcon: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

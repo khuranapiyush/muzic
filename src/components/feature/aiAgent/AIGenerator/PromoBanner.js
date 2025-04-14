@@ -31,8 +31,6 @@ const getUserCountryCode = async () => {
           NativeModules.SettingsManager.settings.AppleLanguages[0]
         : NativeModules.I18nManager.localeIdentifier;
 
-    console.log('Raw device locale:', deviceLocale);
-
     let countryCode = 'US'; // Default fallback
 
     if (deviceLocale) {
@@ -55,21 +53,19 @@ const getUserCountryCode = async () => {
       }
     }
 
-    console.log('Detected country code:', countryCode);
     return countryCode;
   } catch (error) {
-    console.error('Error getting country code:', error);
     return 'US'; // Default to US if we can't determine
   }
 };
 
 // Format price with currency symbol
-const formatPriceWithSymbol = priceObj => {
+const formatPriceWithSymbol = (priceObj, isDiscounted = false) => {
   if (!priceObj || !priceObj.amount || !priceObj.currency) {
     return '';
   }
 
-  const amount = priceObj.amount;
+  const amount = isDiscounted ? priceObj.originalAmount : priceObj.amount;
   const currency = priceObj.currency;
 
   // Map currency codes to symbols
@@ -99,7 +95,6 @@ const PromoModal = ({visible, onClose}) => {
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
   const [userCountry, setUserCountry] = useState('US');
-  // Get auth state from Redux
   const authState = useSelector(state => state.auth);
 
   useEffect(() => {
@@ -114,18 +109,13 @@ const PromoModal = ({visible, onClose}) => {
         // Get auth token
         const token = await getAuthToken();
         if (!token) {
-          console.error('Authentication token not found');
           setLoading(false);
           return;
         }
 
-        console.log('Fetching products with auth token');
-
         // Simple fetch from the API endpoint with authentication
         const response = await fetch(
-          `${
-            config.API_BASE_URL || 'http://localhost:3010'
-          }/v1/payments/play-store-products`,
+          `${config.API_BASE_URL}/v1/payments/play-store-products`,
           {
             method: 'GET',
             headers: {
@@ -137,20 +127,18 @@ const PromoModal = ({visible, onClose}) => {
 
         if (!response.ok) {
           const errorText = await response.text();
-          console.error(`API error: ${response.status} - ${errorText}`);
           setLoading(false);
           return;
         }
 
         const result = await response.json();
-        console.log('API Response:', result);
 
         if (result.success && result.data && result.data.length > 0) {
           // Use the first product from the data array
           setProductData(result.data[0]);
         }
       } catch (error) {
-        console.error('Error fetching product details:', error);
+        return;
       } finally {
         setLoading(false);
       }
@@ -167,23 +155,25 @@ const PromoModal = ({visible, onClose}) => {
 
     // Try to get price for user's country
     if (productData.prices && productData.prices[userCountry]) {
-      return productData.prices[userCountry];
+      const discountedPrice = productData.prices[userCountry];
+      const originalPrice = productData.prices[userCountry].originalAmount;
+
+      return {
+        originalPrice: originalPrice,
+        discountedPrice: discountedPrice,
+        discount: productData.discountPercentage,
+      };
     }
 
     // Fall back to default price
-    return productData.defaultPrice;
-  };
+    const discountedPrice = productData.prices[userCountry];
+    const originalPrice = productData.prices[userCountry].originalAmount;
 
-  // Extract product title
-  const getProductTitle = () => {
-    if (
-      !productData ||
-      !productData.listings ||
-      !productData.listings['en-US']
-    ) {
-      return '';
-    }
-    return productData.listings['en-US'].title || '';
+    return {
+      originalPrice: originalPrice,
+      discountedPrice: discountedPrice,
+      discount: productData.discountPercentage,
+    };
   };
 
   // Extract product description and convert to features
@@ -200,21 +190,6 @@ const PromoModal = ({visible, onClose}) => {
     if (!description) return [];
 
     return description.split('\n').filter(line => line.trim().length > 0);
-  };
-
-  console.log(productData, 'productData');
-
-  // Calculate "original" price for display (50% markup)
-  const getOriginalPrice = () => {
-    const priceObj = getProductPrice();
-    if (!priceObj) return '';
-
-    const originalPriceObj = {
-      amount: Math.round(priceObj.amount * 1.5),
-      currency: priceObj.currency,
-    };
-
-    return formatPriceWithSymbol(originalPriceObj);
   };
 
   return (
@@ -250,8 +225,6 @@ const PromoModal = ({visible, onClose}) => {
                 <ActivityIndicator size="large" color="#F97316" />
               ) : (
                 <>
-                  <Text style={styles.discountText}>33% OFF</Text>
-
                   <View style={styles.featuresContainer}>
                     {getProductFeatures().map((feature, index) => (
                       <Text key={index} style={styles.featureText}>
@@ -261,11 +234,39 @@ const PromoModal = ({visible, onClose}) => {
                   </View>
 
                   <View style={styles.priceContainer}>
-                    <Text style={styles.oldPrice}>{getOriginalPrice()}</Text>
-                    <Text style={styles.newPrice}>
-                      {formatPriceWithSymbol(getProductPrice())}
-                    </Text>
-                    <Text style={styles.newPriceText}> per month</Text>
+                    {(() => {
+                      const priceData = getProductPrice();
+                      const hasDiscount =
+                        priceData?.discount && priceData?.discount > 0;
+
+                      return (
+                        <>
+                          {hasDiscount && (
+                            <View style={styles.discountContainer}>
+                              <View style={styles.discountBadge}>
+                                <Text style={styles.discountText}>
+                                  {priceData.discount}% OFF
+                                </Text>
+                              </View>
+                              <Text style={styles.originalPrice}>
+                                {formatPriceWithSymbol(
+                                  priceData.discountedPrice,
+                                  true,
+                                )}
+                              </Text>
+                            </View>
+                          )}
+                          <Text style={styles.priceText}>
+                            {formatPriceWithSymbol(
+                              hasDiscount
+                                ? priceData?.discountedPrice
+                                : priceData?.originalPrice,
+                            )}
+                            <Text style={styles.perMonthText}> per month</Text>
+                          </Text>
+                        </>
+                      );
+                    })()}
                   </View>
                 </>
               )}
@@ -335,12 +336,6 @@ const styles = StyleSheet.create({
     zIndex: 1,
     padding: 10,
   },
-  discountText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#F97316',
-    marginBottom: 10,
-  },
   featuresContainer: {
     width: '85%',
     backgroundColor: 'rgba(255, 213, 169, 0.30)',
@@ -357,24 +352,39 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   priceContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
   },
-  oldPrice: {
-    color: '#9CA3AF',
-    textDecorationLine: 'line-through',
-    marginRight: 10,
-    fontSize: 24,
+  discountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
   },
-  newPrice: {
-    color: 'red',
-    fontWeight: 'bold',
-    fontSize: 24,
+  discountBadge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
   },
-  newPriceText: {
+  discountText: {
     color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
+  },
+  originalPrice: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    textDecorationLine: 'line-through',
+  },
+  priceText: {
+    color: 'white',
+    fontSize: 28,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  perMonthText: {
+    color: 'white',
     fontSize: 24,
   },
   renewalText: {

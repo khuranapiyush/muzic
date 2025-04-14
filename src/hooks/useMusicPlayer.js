@@ -34,9 +34,10 @@ const useMusicPlayer = screenName => {
   /**
    * Play a single song
    * @param {Object} song - Song data to play
+   * @param {Array} [songList] - Optional list of songs that contains the current song
    */
-  const play = song => {
-    playSong(song, screenName);
+  const play = (song, songList = null) => {
+    playSong(song, screenName, songList);
   };
 
   /**

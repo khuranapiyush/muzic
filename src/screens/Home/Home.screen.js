@@ -14,11 +14,18 @@ import {
 import config from 'react-native-config';
 import fetcher from '../../dataProvider';
 import {useMutation} from '@tanstack/react-query';
-import {formatDate, formatTime} from '../../utils/common';
+import {formatTime} from '../../utils/common';
 import getStyles from './Home.style';
 import {useTheme} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import useMusicPlayer from '../../hooks/useMusicPlayer';
+import appImages from '../../resource/images';
+
+// Add helper function to clean song titles
+const cleanSongTitle = title => {
+  if (!title) return 'Untitled Song';
+  return title.replace(/"/g, '').trim();
+};
 
 const SongCard = ({
   title,
@@ -27,18 +34,29 @@ const SongCard = ({
   imageUrl,
   onPress,
   isPlaying,
-  createdAt,
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
+  const {isPlaying: globalIsPlaying} = useMusicPlayer('HomeScreen');
+
   return (
     <TouchableOpacity
       style={styles.songCard}
       onPress={() => onPress({audioUrl, title, duration, imageUrl})}>
       <View style={styles.songThumbnail}>
-        <Image source={{uri: imageUrl}} style={styles.thumbnailImage} />
+        <Image
+          source={imageUrl ? {uri: imageUrl} : appImages.songPlaceHolder}
+          style={styles.thumbnailImage}
+        />
         <View style={[styles.playButton, isPlaying && styles.playButtonActive]}>
-          <View style={styles.playIcon} />
+          <Image
+            source={
+              isPlaying && globalIsPlaying
+                ? appImages.playerPauseIcon
+                : appImages.playerPlayIcon
+            }
+            style={[styles.playPauseIcon, !isPlaying && {marginLeft: 4}]}
+          />
         </View>
       </View>
       <LinearGradient
@@ -48,9 +66,11 @@ const SongCard = ({
         locations={[0.35, 1]}
         style={styles.gradient}>
         <View style={styles.contentContainer}>
-          <Text style={styles.songTitle}>{title.slice(0, 15)}...</Text>
+          <Text style={styles.songTitle}>
+            {cleanSongTitle(title).slice(0, 18)}...
+          </Text>
           <Text style={styles.duration}>{formatTime(duration)}</Text>
-          <Text style={styles.duration}>{formatDate(createdAt)}</Text>
+          {/* <Text style={styles.duration}>{formatDate(createdAt)}</Text> */}
         </View>
       </LinearGradient>
     </TouchableOpacity>
@@ -78,35 +98,42 @@ const SongSection = ({
   const {mode} = useTheme();
   const styles = getStyles(mode);
 
-  // Limit to top 10 songs
-  const limitedData = data.slice(0, 10);
+  if (isListLoading) {
+    return (
+      <View style={styles.sectionContainer}>
+        <SectionHeader title={title} />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FFB680" />
+        </View>
+      </View>
+    );
+  }
+
+  if (!data || data.length === 0) {
+    return null;
+  }
 
   return (
-    <View style={styles.section}>
+    <View style={styles.sectionContainer}>
       <SectionHeader title={title} />
-      {isListLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#F4A460" />
-        </View>
-      ) : (
-        <FlatList
-          horizontal
-          data={limitedData}
-          keyExtractor={(item, index) => index.toString()}
-          renderItem={({item}) => (
-            <SongCard
-              title={item.title}
-              duration={item.duration}
-              audioUrl={item.audioUrl}
-              imageUrl={item.imageUrl}
-              onPress={onSongPress}
-              createdAt={item.createdAt}
-              isPlaying={currentSongId === item.audioUrl}
-            />
-          )}
-          showsHorizontalScrollIndicator={false}
-        />
-      )}
+      <FlatList
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        data={data}
+        keyExtractor={(item, index) => item.audioUrl || index.toString()}
+        renderItem={({item}) => (
+          <SongCard
+            title={item.title}
+            duration={item.duration}
+            audioUrl={item.audioUrl}
+            imageUrl={item.imageUrl}
+            onPress={() => onSongPress(item)}
+            isPlaying={currentSongId === item.audioUrl}
+            createdAt={item.createdAt}
+          />
+        )}
+        contentContainerStyle={styles.songListContainer}
+      />
     </View>
   );
 };
@@ -128,7 +155,7 @@ export default function HomeScreen() {
     {
       onSuccess: response => {
         if (response) {
-          setAudioList(response.data.data);
+          setAudioList(response.data.data.slice(0, 10));
           setTrendingList(
             response.data.data.slice(
               response.data.data.length - 10,
@@ -151,12 +178,9 @@ export default function HomeScreen() {
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
-      console.log('Refreshing home screen data...');
 
       // Call the mutation to fetch fresh data
       await fetchAudioList();
-
-      console.log('Home screen data refreshed successfully');
     } catch (error) {
       console.error('Error refreshing data:', error);
       Alert.alert(
@@ -168,11 +192,11 @@ export default function HomeScreen() {
     }
   }, [fetchAudioList]);
 
-  const handleSongPress = song => {
+  const handleSongPress = (song, sectionData) => {
     // Format the song to match the expected format for the global player
     const formattedSong = {
       id: song.audioUrl, // Use audioUrl as unique ID
-      title: song.title,
+      title: cleanSongTitle(song.title),
       artist: 'Artist', // Add a default artist or get it from your data
       uri: song.audioUrl,
       thumbnail: song.imageUrl,
@@ -180,12 +204,23 @@ export default function HomeScreen() {
       duration: song.duration,
     };
 
+    // Format the full section list of songs
+    const formattedSongList = sectionData.map(item => ({
+      id: item.audioUrl,
+      title: cleanSongTitle(item.title),
+      artist: 'Artist',
+      uri: item.audioUrl,
+      thumbnail: item.imageUrl,
+      poster: item.imageUrl,
+      duration: item.duration,
+    }));
+
     // If the same song is playing, toggle play/pause
     if (currentSong && currentSong.uri === song.audioUrl) {
       togglePlayPause();
     } else {
-      // Otherwise play the new song
-      play(formattedSong);
+      // Otherwise play the new song with the full list
+      play(formattedSong, formattedSongList);
     }
   };
 
@@ -219,7 +254,7 @@ export default function HomeScreen() {
             key={index}
             title={section.title}
             data={section.data}
-            onSongPress={handleSongPress}
+            onSongPress={song => handleSongPress(song, section.data)}
             currentSongId={currentSong?.uri}
             isListLoading={isListLoading}
           />

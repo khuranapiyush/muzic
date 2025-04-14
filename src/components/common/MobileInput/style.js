@@ -11,7 +11,7 @@ const getStyles = theme => {
       borderRadius: 12,
       fontSize: 14,
       height: 44,
-      width: 235,
+      width: 215,
       paddingHorizontal: 20,
     },
   });

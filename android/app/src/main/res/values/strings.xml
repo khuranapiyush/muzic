@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">muzic</string>
+    <string name="app_name">MakeMySong</string>
+    <string name="default_web_client_id">920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com</string>
 </resources>

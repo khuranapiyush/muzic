@@ -64,6 +64,31 @@ const fetchAxiosInstanceType = type => {
 
 const fetcher = {
   /**
+   * @function setAuthToken Set the authentication token directly for axios instances
+   * @param {string} token Access token to use for API calls
+   */
+  setAuthToken: token => {
+    try {
+      if (!token) {
+        console.warn('Attempted to set empty auth token');
+        return;
+      }
+
+      console.log('Setting auth token in axios instances');
+      // Update token in all axios instances
+      fanTvInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
+      strapiInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
+
+      // Also update the Redux store with the new token
+      store.dispatch(updateToken(token));
+
+      console.log('Auth token set successfully');
+    } catch (error) {
+      console.error('Error setting auth token:', error);
+    }
+  },
+
+  /**
    * @function get To fetch a resource
    * @param {string} url api path
    * @param {object} paramConfigs axios parameters

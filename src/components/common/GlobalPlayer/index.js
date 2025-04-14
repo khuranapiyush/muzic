@@ -13,7 +13,6 @@ import {useDispatch, useSelector} from 'react-redux';
 import Video from 'react-native-video';
 import {
   togglePlay,
-  stopPlayback,
   playNext,
   playPrevious,
   updatePlayerProgress,
@@ -22,9 +21,9 @@ import {
 import appImages from '../../../resource/images';
 import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
-import {hidePlayer} from '../../../stores/slices/player';
+import {hidePlayer, setIsPlaying} from '../../../stores/slices/player';
 
-const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
+const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
 const GlobalPlayer = () => {
   const {
@@ -65,15 +64,21 @@ const GlobalPlayer = () => {
   }
 
   const handlePlayPause = () => {
-    togglePlay();
+    if (currentSong) {
+      togglePlay();
+    }
   };
 
   const handleNext = () => {
-    playNext();
+    if (currentSong) {
+      playNext();
+    }
   };
 
   const handlePrevious = () => {
-    playPrevious();
+    if (currentSong) {
+      playPrevious();
+    }
   };
 
   const handleVideoEnd = () => {
@@ -104,12 +109,16 @@ const GlobalPlayer = () => {
     setIsFullPlayer(!isFullPlayer);
   };
 
-  const handleClosePlayer = e => {
-    e.stopPropagation();
-
-    stopPlayback();
-
+  const handleClose = () => {
+    // Only hide the player, don't reset the state
     dispatch(hidePlayer());
+  };
+
+  const handlePlay = () => {
+    if (currentSong) {
+      dispatch(setIsPlaying(true));
+      dispatch(hidePlayer()); // This will show the player
+    }
   };
 
   return (
@@ -129,9 +138,7 @@ const GlobalPlayer = () => {
             {/* Close button */}
             <TouchableOpacity
               style={styles.closePlayerButton}
-              onPress={handleClosePlayer}
-              // hitSlop={{top: 1, right: 1, bottom: 1, left: 1}}
-            >
+              onPress={handleClose}>
               <View style={styles.closeButtonCircle}>
                 <Text style={styles.closeButtonText}>×</Text>
               </View>
@@ -142,15 +149,10 @@ const GlobalPlayer = () => {
               <Image
                 source={{uri: currentSong.poster || currentSong.thumbnail}}
                 style={styles.thumbnail}
+                onError={() =>
+                  console.log('Mini player thumbnail failed to load')
+                }
               />
-              {/* {isPlaying && (
-                <View style={styles.playingIndicator}>
-                  <Image
-                    source={require('../../../resource/images/playing.gif')}
-                    style={styles.playingIcon}
-                  />
-                </View>
-              )} */}
             </View>
 
             {/* Song info */}
@@ -169,15 +171,6 @@ const GlobalPlayer = () => {
             {/* Controls */}
             <View style={styles.controls}>
               <TouchableOpacity
-                onPress={handlePrevious}
-                style={styles.controlButton}>
-                <Image
-                  source={appImages.playerPreviousIcon}
-                  style={styles.controlIcon}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
                 onPress={handlePlayPause}
                 style={styles.playPauseButton}>
                 <Image
@@ -187,15 +180,6 @@ const GlobalPlayer = () => {
                       : appImages.playerPlayIcon
                   }
                   style={styles.playPauseIcon}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleNext}
-                style={styles.controlButton}>
-                <Image
-                  source={appImages.playerNextIcon}
-                  style={styles.controlIcon}
                 />
               </TouchableOpacity>
             </View>
@@ -235,6 +219,9 @@ const GlobalPlayer = () => {
               source={{uri: currentSong.poster || currentSong.thumbnail}}
               style={styles.albumArt}
               resizeMode="cover"
+              onError={() =>
+                console.log('Full player album art failed to load')
+              }
             />
           </View>
 
@@ -265,8 +252,8 @@ const GlobalPlayer = () => {
               onPress={handlePrevious}
               style={styles.fullPlayerControlButton}>
               <Image
-                source={appImages.playerPreviousIcon}
-                style={styles.fullPlayerControlIcon}
+                source={appImages.playerNextIcon}
+                style={styles.fullPlayerPreviousControlIcon}
               />
             </TouchableOpacity>
 
@@ -287,6 +274,7 @@ const GlobalPlayer = () => {
                   style={[
                     styles.fullPlayerPlayPauseIcon,
                     {tintColor: '#121212'},
+                    !isPlaying && {marginLeft: 5},
                   ]}
                 />
               </LinearGradient>
@@ -297,7 +285,7 @@ const GlobalPlayer = () => {
               style={styles.fullPlayerControlButton}>
               <Image
                 source={appImages.playerNextIcon}
-                style={styles.fullPlayerControlIcon}
+                style={styles.fullPlayerNextControlIcon}
               />
             </TouchableOpacity>
           </View>
@@ -317,10 +305,18 @@ const GlobalPlayer = () => {
                         // Play this song from the queue
                         playNext();
                       }}>
-                      <Image
-                        source={{uri: song.thumbnail}}
-                        style={styles.queueItemThumb}
-                      />
+                      <View style={styles.queueItemThumbnail}>
+                        <Image
+                          source={{uri: song.thumbnail || song.poster}}
+                          style={styles.queueItemImage}
+                          onError={() =>
+                            console.log(
+                              'Queue item thumbnail failed to load:',
+                              song.title,
+                            )
+                          }
+                        />
+                      </View>
                       <View style={styles.queueItemInfo}>
                         <Text style={styles.queueItemTitle} numberOfLines={1}>
                           {song.title}
@@ -345,6 +341,17 @@ const GlobalPlayer = () => {
         onEnd={handleVideoEnd}
         onProgress={handleProgress}
         onLoad={handleLoad}
+        onError={error => {
+          console.error('Video playback error:', error);
+          console.log('Attempted to play URI:', currentSong.uri);
+        }}
+        onPlaybackStalled={() => console.log('Playback stalled')}
+        onPlaybackRateChange={rate =>
+          console.log('Playback rate changed:', rate)
+        }
+        onReadyForDisplay={() =>
+          console.log('Ready for display, URI:', currentSong.uri)
+        }
         style={{height: 0, width: 0}}
         ignoreSilentSwitch="ignore"
         {...playerProps}
@@ -357,10 +364,10 @@ const styles = StyleSheet.create({
   container: {
     position: 'absolute',
     bottom: 80,
-    left: 10,
-    right: 10,
+    left: 0,
+    right: 0,
     backgroundColor: 'transparent',
-    borderRadius: 16,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
     elevation: 10,
@@ -368,14 +375,13 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    zIndex: 1000,
-    overflow: 'hidden',
+    zIndex: 1,
   },
   gradientContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 9,
-    borderRadius: 16,
+    padding: 16,
+    borderRadius: 8,
     margin: 0,
   },
   playerContainer: {
@@ -389,21 +395,6 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 8,
     marginRight: 10,
-  },
-  playingIndicator: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  playingIcon: {
-    width: 24,
-    height: 24,
   },
   infoContainer: {
     flex: 1,
@@ -433,14 +424,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  controlButton: {
-    padding: 8,
-  },
-  controlIcon: {
-    width: 20,
-    height: 20,
-    tintColor: '#FFFFFF',
-  },
   playPauseButton: {
     padding: 8,
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
@@ -455,13 +438,33 @@ const styles = StyleSheet.create({
   miniProgressBarContainer: {
     height: 3,
     width: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#FE954A',
   },
   miniProgressBar: {
     height: 3,
     backgroundColor: '#FFFFFF',
   },
-
+  closePlayerButton: {
+    position: 'absolute',
+    top: -15,
+    right: -5,
+    zIndex: 1000,
+  },
+  closeButtonCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    lineHeight: 24,
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
   // Full Player Styles
   fullPlayerContainer: {
     flex: 1,
@@ -498,18 +501,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 12,
-  },
-  fullPlayerPlayingIndicator: {
-    position: 'absolute',
-    bottom: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    borderRadius: 20,
-    padding: 10,
-  },
-  fullPlayerPlayingIcon: {
-    width: 26,
-    height: 26,
   },
   songInfoContainer: {
     alignItems: 'center',
@@ -553,7 +544,13 @@ const styles = StyleSheet.create({
   fullPlayerControlButton: {
     padding: 20,
   },
-  fullPlayerControlIcon: {
+  fullPlayerPreviousControlIcon: {
+    width: 30,
+    height: 30,
+    tintColor: '#FFFFFF',
+    transform: [{rotate: '180deg'}],
+  },
+  fullPlayerNextControlIcon: {
     width: 30,
     height: 30,
     tintColor: '#FFFFFF',
@@ -598,11 +595,16 @@ const styles = StyleSheet.create({
     borderLeftWidth: 2,
     borderLeftColor: '#FE954A',
   },
-  queueItemThumb: {
+  queueItemThumbnail: {
     width: 40,
     height: 40,
     borderRadius: 4,
     marginRight: 10,
+  },
+  queueItemImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 4,
   },
   queueItemInfo: {
     flex: 1,
@@ -615,27 +617,6 @@ const styles = StyleSheet.create({
   queueItemArtist: {
     color: '#DDDDDD',
     fontSize: 12,
-  },
-  closePlayerButton: {
-    position: 'absolute',
-    top: 3,
-    right: 5,
-    zIndex: 10,
-  },
-  closeButtonCircle: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    lineHeight: 20,
-    textAlign: 'center',
-    fontWeight: 'bold',
   },
 });
 

@@ -1,5 +1,5 @@
-import {useMutation, useQuery} from '@tanstack/react-query';
-import React, {createContext, useEffect, useCallback, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import React, {createContext, useEffect, useState} from 'react';
 import {Platform} from 'react-native';
 import {
   PERMISSIONS,
@@ -10,25 +10,18 @@ import {
 } from 'react-native-permissions';
 import {useDispatch, useSelector} from 'react-redux';
 import {fetchAppConfig} from '../api/app';
-import {dailyStreak, fetchUserDetail, fetchWalletBalance} from '../api/user';
-import {APP_VERSION, appKeys} from '../constants/app';
+import {APP_VERSION} from '../constants/app';
 import {addAuthInterceptor, setupResponseInterceptor} from '../dataProvider';
-import useDeviceId from '../hooks/useDeviceId';
-import useModal from '../hooks/useModal';
 import {store} from '../stores';
 import {useAuthUser} from '../stores/selector';
 import {
   setAppData,
-  setAppLoading,
-  setDeviceId,
   setFeatureEnable,
   setSessionId,
   setTokenChecked,
 } from '../stores/slices/app/index';
-import {setUser, setUserData} from '../stores/slices/user';
-import {setWalletStats} from '../stores/slices/walletStats';
-import {getData, storeData} from '../utils/asyncStorage';
-import {compareVersions, getUniqueId} from '../utils/common';
+import {setUser} from '../stores/slices/user';
+import {getUniqueId} from '../utils/common';
 import {checkAndRefreshTokens} from '../utils/authUtils';
 import DeepLinkHandler from '../components/common/DeepLinkHandler';
 
@@ -40,10 +33,6 @@ export const AppProvider = ({children}) => {
   const {isLoggedIn, id: userId} = useSelector(useAuthUser);
 
   const {accessToken, refreshToken} = useSelector(state => state.auth);
-
-  const deviceId = useDeviceId();
-
-  const {showModal, hideModal} = useModal();
 
   const dispatch = useDispatch();
 
@@ -86,7 +75,10 @@ export const AppProvider = ({children}) => {
                 isValid ? 'Valid' : 'Invalid',
               );
 
-              if (!isValid) {
+              if (isValid) {
+                // If tokens are valid, set user as logged in
+                dispatch(setUser({isLoggedIn: true}));
+              } else {
                 dispatch(setUser({isLoggedIn: false}));
               }
             } catch (error) {
@@ -106,35 +98,6 @@ export const AppProvider = ({children}) => {
       checkAuth();
     }
   }, [tokenChecked, accessToken, refreshToken, dispatch]);
-
-  const checkForUpdates = async data => {
-    const lastShownVersion = await getData(appKeys.lastShownAppVersion);
-
-    if (
-      data.latestVersion > APP_VERSION &&
-      data.latestVersion !== lastShownVersion
-    ) {
-      showModal('softUpdate', {
-        isVisible: true,
-        onClose: () => hideModal('softUpdate'),
-      });
-    }
-    await storeData(appKeys.lastShownAppVersion, data.latestVersion || '');
-  };
-
-  const checkForHardUpdate = data => {
-    if (
-      data.requireHardUpdate &&
-      compareVersions(data.latestVersion, APP_VERSION)
-    ) {
-      showModal('hardUpdate', {
-        isVisible: true,
-        onClose: () => hideModal('hardUpdate'),
-      });
-    } else if (data.requireSoftUpdate) {
-      checkForUpdates(data);
-    }
-  };
 
   const requestTrackingPermission = async () => {
     try {
@@ -181,54 +144,12 @@ export const AppProvider = ({children}) => {
         dispatch(setFeatureEnable(true));
       }
       dispatch(setAppData(data));
-      checkForHardUpdate(data);
-    },
-  });
-
-  const {refetch: refetchWalletBalance} = useQuery({
-    queryKey: [`getWalletBalance/${userId}`],
-    queryFn: fetchWalletBalance,
-    enabled: isLoggedIn, // Only fetch if user is logged in
-    onSuccess: res => {
-      const data = res?.data;
-      dispatch(setWalletStats(data));
-    },
-    onError: err => {
-      console.error('Error while fetchWalletBalance===>', err);
-    },
-  });
-
-  const {refetch: refetchUserData} = useQuery({
-    queryKey: [`getUserData/${userId}`],
-    queryFn: fetchUserDetail.bind(this, {userId: userId}),
-    enabled: isLoggedIn && !!userId, // Only fetch if user is logged in and has userId
-    onSuccess: res => {
-      const data = res?.data?.result;
-      dispatch(setUserData(data));
-    },
-    onError: err => {
-      console.error('Error while fetchUserData===>', err);
     },
   });
 
   useEffect(() => {
     dispatch(setSessionId(getUniqueId()));
   }, [dispatch]);
-
-  const {mutate: handlePostDailyStreak} = useMutation(data => dailyStreak());
-
-  useEffect(() => {
-    if (isLoggedIn) {
-      handlePostDailyStreak();
-    }
-  }, [handlePostDailyStreak, isLoggedIn]);
-
-  useEffect(() => {
-    if (userId) {
-      refetchWalletBalance();
-      refetchUserData();
-    }
-  }, [userId, refetchWalletBalance, refetchUserData]);
 
   // Update the token check effect to handle navigation properly
   useEffect(() => {

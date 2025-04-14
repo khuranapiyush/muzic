@@ -1,75 +1,115 @@
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
-import React, {useContext, useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback, useMemo} from 'react';
 import {useSelector, useDispatch} from 'react-redux';
 import AppProvider from '../context/AppContext';
 import {ModalProvider} from '../context/ModalContext';
-import AppStackNavigator from './AppStackNavigator';
-import {ThemeContext} from '../context/ThemeContext';
 import Toaster from '../components/common/Toaster';
-import AuthStackNavigator from './AuthStackNavigator';
 import {useAuthUser} from '../stores/selector';
-import {ActivityIndicator, View, Text} from 'react-native';
+import {ActivityIndicator, View} from 'react-native';
 import {setTokenChecked} from '../stores/slices/app/index';
 
+// Lazy load navigators
+const AppStackNavigator = React.lazy(() => import('./AppStackNavigator'));
+const AuthStackNavigator = React.lazy(() => import('./AuthStackNavigator'));
+
+// Loading component
+const LoadingComponent = () => (
+  <View
+    style={{
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#000',
+    }}>
+    <ActivityIndicator size="large" color="#FE954A" />
+  </View>
+);
+
 const AppNavigator = () => {
-  // We still get the theme from context for API compatibility
-  // but we're not actually using the mode value
-  const {theme} = useContext(ThemeContext);
   const {isLoggedIn} = useSelector(useAuthUser);
   const {tokenChecked} = useSelector(state => state.app);
   const [showFallback, setShowFallback] = useState(false);
   const dispatch = useDispatch();
 
+  const [forceRender, setForceRender] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceRender(prev => prev + 1);
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [isLoggedIn]);
+
+  // Memoize theme to prevent unnecessary re-renders
+  const DarkTheme = useMemo(
+    () => ({
+      ...DefaultTheme,
+      colors: {
+        ...DefaultTheme.colors,
+        background: '#000',
+        card: '#1E1E1E',
+        text: '#FFFFFF',
+        border: 'rgba(255, 255, 255, 0.2)',
+        notification: '#E14084',
+      },
+      mode: 'dark',
+      dark: true,
+    }),
+    [],
+  );
+
+  // Memoize the navigator component
+  const renderNavigator = useCallback(() => {
+    if (!tokenChecked && !showFallback) {
+      return <LoadingComponent />;
+    }
+
+    const Navigator = isLoggedIn ? AppStackNavigator : AuthStackNavigator;
+    return <Navigator />;
+  }, [isLoggedIn, tokenChecked, showFallback, forceRender]);
+
   // Add fallback timer for loading state
   useEffect(() => {
-    console.log('AppNavigator - tokenChecked state:', tokenChecked);
+    let fallbackTimer;
 
     if (!tokenChecked) {
-      console.log('Starting fallback timer for loading state');
-      const fallbackTimer = setTimeout(() => {
-        console.log('Loading timeout - forcing to continue...');
+      fallbackTimer = setTimeout(() => {
         setShowFallback(true);
         dispatch(setTokenChecked(true));
-      }, 7000); // 7 second timeout
-
-      return () => clearTimeout(fallbackTimer);
+      }, 7000);
     }
+
+    return () => {
+      if (fallbackTimer) {
+        clearTimeout(fallbackTimer);
+      }
+    };
   }, [tokenChecked, dispatch]);
-
-  // Define a fixed dark theme for the navigation
-  const DarkTheme = {
-    ...DefaultTheme,
-    colors: {
-      ...DefaultTheme.colors,
-      background: '#000',
-      card: '#1E1E1E',
-      text: '#FFFFFF',
-      border: 'rgba(255, 255, 255, 0.2)',
-      notification: '#E14084',
-    },
-    mode: 'dark',
-    dark: true, // Ensure dark mode is always true
-  };
-
-  // Show loading state while checking authentication
-
-  // Determine which navigator to show based on auth state
-  const renderNavigator = () => {
-    if (isLoggedIn) {
-      return <AppStackNavigator />;
-    } else {
-      return <AuthStackNavigator />;
-    }
-  };
 
   return (
     <NavigationContainer theme={DarkTheme}>
       <ModalProvider>
-        <AppProvider>{renderNavigator()}</AppProvider>
+        <AppProvider>
+          <React.Suspense
+            fallback={
+              <View
+                style={{
+                  flex: 1,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  backgroundColor: '#000',
+                }}>
+                <ActivityIndicator size="large" color="#FE954A" />
+              </View>
+            }>
+            {renderNavigator()}
+          </React.Suspense>
+        </AppProvider>
       </ModalProvider>
       <Toaster />
     </NavigationContainer>
   );
 };
 
-export default AppNavigator;
+export default React.memo(AppNavigator);
