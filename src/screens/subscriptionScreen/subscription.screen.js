@@ -18,63 +18,80 @@ import {useSelector} from 'react-redux';
 import useCredits from '../../hooks/useCredits';
 import {selectCreditsPerSong} from '../../stores/selector';
 
-// Define PlanCard component outside of SubscriptionScreen
 const PlanCard = ({
   title,
   price,
   features,
   onPurchase,
-  selectedPlan,
+  // selectedPlan,
   disabled,
-}) => (
-  <LinearGradient
-    colors={[
-      'rgba(255, 213, 169, 0.60)',
-      '#FFD5A9',
-      'rgba(255, 213, 169, 0.60)',
-    ]}
-    start={{x: -0.3553, y: 0}}
-    end={{x: 1.0777, y: 0}}
-    style={styles.planCard}>
-    <View style={styles.planHeader}>
-      <Text style={styles.planTitle}>{title}</Text>
-      <View style={styles.priceContainer}>
-        <Text style={styles.planPrice}>{price}</Text>
+  originalPrice,
+  discount,
+  discountedPrice,
+  // credits,
+  // creditsPerSong,
+  // currency,
+}) => {
+  const hasDiscount = discount && discountedPrice && originalPrice;
+
+  return (
+    <LinearGradient
+      colors={[
+        'rgba(255, 213, 169, 0.60)',
+        '#FFD5A9',
+        'rgba(255, 213, 169, 0.60)',
+      ]}
+      start={{x: -0.3553, y: 0}}
+      end={{x: 1.0777, y: 0}}
+      style={styles.planCard}>
+      <View style={styles.planHeader}>
+        <Text style={styles.planTitle}>{title}</Text>
+        <View style={styles.priceContainer}>
+          {hasDiscount && (
+            <>
+              <View style={styles.discountBadge}>
+                <Text style={styles.discountText}>{discount}% OFF</Text>
+              </View>
+              <Text style={styles.planOriginalPrice}>{originalPrice}</Text>
+              <Text style={styles.planPrice}>
+                {hasDiscount ? discountedPrice : price}
+              </Text>
+            </>
+          )}
+        </View>
       </View>
-    </View>
-    {features.map((feature, index) => (
-      <Text key={index} style={styles.featureText}>
-        {feature}
-      </Text>
-    ))}
-    <TouchableOpacity
-      style={[styles.createButton, disabled && styles.disabledButton]}
-      activeOpacity={0.8}
-      onPress={onPurchase}
-      disabled={disabled}>
-      <LinearGradient
-        colors={['#F4A460', '#DEB887']}
-        start={{x: 0, y: 0}}
-        end={{x: 1, y: 1}}
-        style={styles.gradient}>
-        <CText
-          style={[
-            styles.createButtonText,
-            disabled && styles.disabledButtonText,
-          ]}>
-          Purchase Now
-        </CText>
-      </LinearGradient>
-    </TouchableOpacity>
-  </LinearGradient>
-);
+      {features.map((feature, index) => (
+        <Text key={index} style={styles.featureText}>
+          {feature}
+        </Text>
+      ))}
+      <TouchableOpacity
+        style={[styles.createButton, disabled && styles.disabledButton]}
+        activeOpacity={0.8}
+        onPress={onPurchase}
+        disabled={disabled}>
+        <LinearGradient
+          colors={['#F4A460', '#DEB887']}
+          start={{x: 0, y: 0}}
+          end={{x: 1, y: 1}}
+          style={styles.gradient}>
+          <CText
+            style={[
+              styles.createButtonText,
+              disabled && styles.disabledButtonText,
+            ]}>
+            Purchase Now
+          </CText>
+        </LinearGradient>
+      </TouchableOpacity>
+    </LinearGradient>
+  );
+};
 
 const API_URL = config.API_BASE_URL;
 
-// Track processed purchases globally to prevent duplicate processing
 const processedPurchases = new Set();
 
-// API integration functions
 const createPendingPayment = async (productId, amount, token) => {
   try {
     if (!token) {
@@ -96,10 +113,6 @@ const createPendingPayment = async (productId, amount, token) => {
         );
       }
     }
-
-    console.log(
-      `Creating pending payment for ${productId} with amount ${amount}`,
-    );
 
     // Make sure amount is a number, not a string
     amount = Number(amount);
@@ -593,10 +606,6 @@ const getCreditsForProduct = productId => {
 const getUserCountryCode = async () => {
   try {
     // Get country code from device locale
-    console.log(
-      NativeModules.I18nManager.localeIdentifier,
-      'NativeModules.I18nManager.localeIdentifier',
-    );
     const deviceLocale =
       Platform.OS === 'ios'
         ? NativeModules.SettingsManager.settings.AppleLocale ||
@@ -604,9 +613,7 @@ const getUserCountryCode = async () => {
         : NativeModules.I18nManager.localeIdentifier;
 
     // Extract the country code (last 2 characters of locale like 'en-US')
-    console.log(deviceLocale, 'deviceLocale');
     const countryCode = deviceLocale.slice(-2).toUpperCase();
-    console.log('Device country code:', countryCode);
     return countryCode;
   } catch (error) {
     console.error('Error getting country code:', error);
@@ -615,16 +622,10 @@ const getUserCountryCode = async () => {
 };
 
 // New function to fetch products directly from Google Play API
-const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
+const fetchPlayStoreProducts = async (accessToken, regionCode) => {
   try {
-    console.log(
-      `Fetching Play Store products for package: ${packageName}, region: ${regionCode}`,
-    );
-
     // Instead of directly calling Google Play API, use our backend endpoint
     const endpoint = `${API_URL}/v1/payments/play-store-products`;
-
-    console.log(`Using endpoint: ${endpoint}`);
 
     const response = await fetch(endpoint, {
       method: 'GET',
@@ -653,14 +654,22 @@ const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
         const description = product.listings?.['en-US']?.description || '';
 
         // Get price for user's country or default price
-        const price = product.prices?.[regionCode] || product.defaultPrice;
+        const discountedPrice =
+          product.prices?.[regionCode] || product.defaultPrice;
+
+        const originalPrice =
+          product.prices?.[regionCode] || product.originalPrice;
 
         // Extract features from description
         const features = extractFeaturesFromDescription(description);
 
         // Format the price for display
-        const formattedPrice = price
-          ? `${price.currency} ${price.amount}`
+        const formattedDiscountedPrice = discountedPrice
+          ? `${discountedPrice.currency} ${discountedPrice.amount}`
+          : 'Not available';
+
+        const formattedOriginalPrice = originalPrice
+          ? `${originalPrice.currency} ${originalPrice.amount}`
           : 'Not available';
 
         return {
@@ -669,10 +678,12 @@ const fetchPlayStoreProducts = async (packageName, accessToken, regionCode) => {
           title: title,
           description: description,
           features: features,
-          price: formattedPrice,
-          localizedPrice: formattedPrice,
+          price: formattedDiscountedPrice,
+          localizedPrice: formattedDiscountedPrice,
           countryPrices: product.prices || {},
-          credits: product?.defaultPrice?.amount,
+          credits: product?.credits,
+          discount: product?.discountPercentage,
+          localizedOriginalPrice: formattedOriginalPrice,
         };
       });
 
@@ -720,47 +731,12 @@ const extractFeaturesFromDescription = description => {
   return featureMatches;
 };
 
-// Add debug helper function for purchases
-const debugPurchaseRequest = (productId, products, operation = 'Purchase') => {
-  console.log(`\n========== ${operation} DEBUG INFO ==========`);
-  console.log(`Operation: ${operation}`);
-  console.log(`Product ID: ${productId}`);
-  console.log(`Is product ID undefined? ${productId === undefined}`);
-  console.log(`Is product ID null? ${productId === null}`);
-
-  if (products) {
-    console.log(`Available products: ${products.length}`);
-    const productIds = products.map(p => p.productId || p.sku || 'unknown');
-    console.log(`Product IDs: ${JSON.stringify(productIds)}`);
-
-    const matchingProduct = products.find(
-      p => p.productId === productId || p.sku === productId,
-    );
-    console.log(`Matching product found: ${matchingProduct ? 'YES' : 'NO'}`);
-
-    if (matchingProduct) {
-      console.log(
-        `Matching product details: ${JSON.stringify({
-          productId: matchingProduct.productId,
-          sku: matchingProduct.sku,
-          title: matchingProduct.title,
-          price: matchingProduct.price || matchingProduct.localizedPrice,
-        })}`,
-      );
-    }
-  } else {
-    console.log('Products array is null or undefined');
-  }
-  console.log('===========================================\n');
-};
-
 const SubscriptionScreen = () => {
-  // Replace the selectedPlan state with selectedProductId
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [purchasePending, setPurchasePending] = useState(false);
-  const [userCountry, setUserCountry] = useState('US'); // Default country code
+  const [userCountry, setUserCountry] = useState('US');
   const authState = useSelector(state => state.auth);
 
   // Replace local credits state with Redux
@@ -804,16 +780,19 @@ const SubscriptionScreen = () => {
 
       // Refresh products after reconnection
       if (Platform.OS === 'android') {
+        console.log('IF CONDITION');
         const directProducts = await fetchDirectPlayStoreProducts();
         if (directProducts && directProducts.length > 0) {
           setProducts(directProducts);
           global.availableProducts = directProducts;
         }
       } else {
+        console.log('ELSE CONDITION');
         const subscriptions = await RNIap.getSubscriptions([]);
         const oneTimeProducts = await RNIap.getProducts([]);
         const allProducts = [...subscriptions, ...oneTimeProducts];
         if (allProducts.length > 0) {
+          console.log(allProducts, 'allProducts');
           setProducts(allProducts);
           global.availableProducts = allProducts;
         }
@@ -832,7 +811,6 @@ const SubscriptionScreen = () => {
   const fetchDirectPlayStoreProducts = useCallback(async () => {
     try {
       if (Platform.OS !== 'android') {
-        console.log('Not an Android device, skipping direct Play Store fetch');
         return [];
       }
 
@@ -849,13 +827,11 @@ const SubscriptionScreen = () => {
       const accessToken = authState.accessToken;
 
       if (!accessToken) {
-        console.log('No access token available for Google Play API');
         return [];
       }
 
       // Fetch products directly from Google Play
       const playStoreProducts = await fetchPlayStoreProducts(
-        packageName,
         accessToken,
         countryCode,
       );
@@ -1178,8 +1154,6 @@ const SubscriptionScreen = () => {
         // First clear any pending purchases without processing them
         await clearPendingPurchases();
 
-        let productsToDisplay = [];
-
         // First try to fetch products directly from Google Play API
         if (Platform.OS === 'android') {
           try {
@@ -1193,7 +1167,6 @@ const SubscriptionScreen = () => {
                 'Successfully fetched products from Google Play API:',
                 directProducts,
               );
-              productsToDisplay = directProducts;
               setProducts(directProducts);
 
               // Store products globally for amount calculations
@@ -1491,10 +1464,6 @@ const SubscriptionScreen = () => {
             const availableProducts = await RNIap.getProducts({
               skus: [productId],
             });
-            console.log(
-              'Refreshed products:',
-              availableProducts.map(p => p.productId).join(', '),
-            );
 
             if (availableProducts.length === 0) {
               console.error(
@@ -1513,7 +1482,6 @@ const SubscriptionScreen = () => {
 
           // Check for already owned error
           if (purchaseErr.code === 'E_ALREADY_OWNED') {
-            console.log('Handling already owned product...');
             await handleExistingPurchase(productId);
           } else if (purchaseErr.code !== 'E_USER_CANCELLED') {
             console.error('❌ Purchase error:', purchaseErr.message);
@@ -1596,6 +1564,11 @@ const SubscriptionScreen = () => {
               }}
               selectedPlan={selectedProductId === product.productId}
               disabled={purchasePending}
+              originalPrice={product.localizedOriginalPrice}
+              discount={product.discount}
+              discountedPrice={product.localizedPrice}
+              credits={product.credits}
+              creditsPerSong={creditsPerSong}
             />
           );
         })}
@@ -1841,6 +1814,25 @@ const styles = StyleSheet.create({
   overlayText: {
     color: 'white',
     fontSize: 18,
+    fontWeight: 'bold',
+  },
+  planOriginalPrice: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#564A3F',
+    textDecorationLine: 'line-through',
+    marginBottom: 4,
+  },
+  discountBadge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  discountText: {
+    color: 'white',
+    fontSize: 12,
     fontWeight: 'bold',
   },
 });

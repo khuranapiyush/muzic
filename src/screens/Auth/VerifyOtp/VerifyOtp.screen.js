@@ -7,7 +7,7 @@ import {
   Platform,
 } from 'react-native';
 import {useMutation} from '@tanstack/react-query';
-import {useDispatch, useSelector} from 'react-redux';
+import {useDispatch} from 'react-redux';
 import {authLoginSignup, authVerifyOtp} from '../../../api/auth';
 import {useNavigation} from '@react-navigation/native';
 import useToaster from '../../../hooks/useToaster';

@@ -60,12 +60,12 @@ const getUserCountryCode = async () => {
 };
 
 // Format price with currency symbol
-const formatPriceWithSymbol = priceObj => {
+const formatPriceWithSymbol = (priceObj, isDiscounted = false) => {
   if (!priceObj || !priceObj.amount || !priceObj.currency) {
     return '';
   }
 
-  const amount = priceObj.amount;
+  const amount = isDiscounted ? priceObj.originalAmount : priceObj.amount;
   const currency = priceObj.currency;
 
   // Map currency codes to symbols
@@ -155,11 +155,25 @@ const PromoModal = ({visible, onClose}) => {
 
     // Try to get price for user's country
     if (productData.prices && productData.prices[userCountry]) {
-      return productData.prices[userCountry];
+      const discountedPrice = productData.prices[userCountry];
+      const originalPrice = productData.prices[userCountry].originalAmount;
+
+      return {
+        originalPrice: originalPrice,
+        discountedPrice: discountedPrice,
+        discount: productData.discountPercentage,
+      };
     }
 
     // Fall back to default price
-    return productData.defaultPrice;
+    const discountedPrice = productData.prices[userCountry];
+    const originalPrice = productData.prices[userCountry].originalAmount;
+
+    return {
+      originalPrice: originalPrice,
+      discountedPrice: discountedPrice,
+      discount: productData.discountPercentage,
+    };
   };
 
   // Extract product description and convert to features
@@ -220,10 +234,39 @@ const PromoModal = ({visible, onClose}) => {
                   </View>
 
                   <View style={styles.priceContainer}>
-                    <Text style={styles.priceText}>
-                      {formatPriceWithSymbol(getProductPrice())}
-                      <Text style={styles.perMonthText}> per month</Text>
-                    </Text>
+                    {(() => {
+                      const priceData = getProductPrice();
+                      const hasDiscount =
+                        priceData?.discount && priceData?.discount > 0;
+
+                      return (
+                        <>
+                          {hasDiscount && (
+                            <View style={styles.discountContainer}>
+                              <View style={styles.discountBadge}>
+                                <Text style={styles.discountText}>
+                                  {priceData.discount}% OFF
+                                </Text>
+                              </View>
+                              <Text style={styles.originalPrice}>
+                                {formatPriceWithSymbol(
+                                  priceData.discountedPrice,
+                                  true,
+                                )}
+                              </Text>
+                            </View>
+                          )}
+                          <Text style={styles.priceText}>
+                            {formatPriceWithSymbol(
+                              hasDiscount
+                                ? priceData.discountedPrice
+                                : priceData.originalPrice,
+                            )}
+                            <Text style={styles.perMonthText}> per month</Text>
+                          </Text>
+                        </>
+                      );
+                    })()}
                   </View>
                 </>
               )}
@@ -309,10 +352,30 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
   priceContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 5,
-    justifyContent: 'center',
+  },
+  discountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  discountBadge: {
+    backgroundColor: '#FF6B6B',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginRight: 8,
+  },
+  discountText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  originalPrice: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    textDecorationLine: 'line-through',
   },
   priceText: {
     color: 'white',

@@ -6,7 +6,7 @@ import appImages from '../../../../resource/images';
 import {useAuthUser} from '../../../../stores/selector';
 // import Avatar from '../../Avatar';
 import CButton from '../../core/Button';
-import CText from '../../core/Text';
+// import CText from '../../core/Text';
 import CView from '../../core/View';
 import styles from './style';
 import Colors from '../../Colors';
@@ -15,8 +15,8 @@ import {useTheme} from '@react-navigation/native';
 const DrawerHeader = ({navigation}) => {
   const {showModal, hideModal} = useModal();
   const {isGuest, isLoggedIn} = useSelector(useAuthUser);
-  const user = useSelector(state => state.user);
-  const {isShowFeature} = useSelector(state => state.app);
+  // const user = useSelector(state => state.user);
+  // const {isShowFeature} = useSelector(state => state.app);
 
   const {mode} = useTheme();
 
@@ -45,12 +45,12 @@ const DrawerHeader = ({navigation}) => {
               <Image source={appImages.appLogo} style={styles.badgeStyle} />
               {/* )} */}
             </CView>
-            <CView style={styles.contentContainer}>
+            {/* <CView style={styles.contentContainer}>
               <CText style={styles.userStyle}>{user?.name}</CText>
               {isShowFeature && (
                 <CText style={styles.userStyle}>{user?.userSubTitle}</CText>
               )}
-            </CView>
+            </CView> */}
           </CView>
         ) : (
           <CView>
