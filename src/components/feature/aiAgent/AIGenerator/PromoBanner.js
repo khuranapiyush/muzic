@@ -65,7 +65,7 @@ const formatPriceWithSymbol = (priceObj, isDiscounted = false) => {
     return '';
   }
 
-  const amount = isDiscounted ? priceObj.originalAmount : priceObj.amount;
+  const amount = isDiscounted ? priceObj.amount : priceObj.originalAmount;
   const currency = priceObj.currency;
 
   // Map currency codes to symbols
@@ -135,7 +135,7 @@ const PromoModal = ({visible, onClose}) => {
 
         if (result.success && result.data && result.data.length > 0) {
           // Use the first product from the data array
-          setProductData(result.data[0]);
+          setProductData(result.data[result.data.length - 1]);
         }
       } catch (error) {
         return;
@@ -236,8 +236,9 @@ const PromoModal = ({visible, onClose}) => {
                   <View style={styles.priceContainer}>
                     {(() => {
                       const priceData = getProductPrice();
-                      const hasDiscount =
-                        priceData?.discount && priceData?.discount > 0;
+                      const hasDiscount = !!(
+                        priceData?.discount && priceData?.discount > 0
+                      );
 
                       return (
                         <>
@@ -251,19 +252,19 @@ const PromoModal = ({visible, onClose}) => {
                               <Text style={styles.originalPrice}>
                                 {formatPriceWithSymbol(
                                   priceData.discountedPrice,
-                                  true,
                                 )}
                               </Text>
                             </View>
                           )}
-                          <Text style={styles.priceText}>
-                            {formatPriceWithSymbol(
-                              hasDiscount
-                                ? priceData?.discountedPrice
-                                : priceData?.originalPrice,
-                            )}
+                          <View style={styles.currentPriceContainer}>
+                            <Text style={styles.priceText}>
+                              {formatPriceWithSymbol(
+                                priceData.discountedPrice,
+                                hasDiscount,
+                              )}
+                            </Text>
                             <Text style={styles.perMonthText}> per month</Text>
-                          </Text>
+                          </View>
                         </>
                       );
                     })()}
@@ -376,6 +377,11 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 16,
     textDecorationLine: 'line-through',
+  },
+  currentPriceContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   priceText: {
     color: 'white',

@@ -32,8 +32,9 @@ const PlanCard = ({
   // creditsPerSong,
   // currency,
 }) => {
-  const hasDiscount = discount && discountedPrice && originalPrice;
+  const hasDiscount = !!(discount && discountedPrice && originalPrice);
 
+  console.log(hasDiscount, 'hasDiscount');
   return (
     <LinearGradient
       colors={[
@@ -47,17 +48,19 @@ const PlanCard = ({
       <View style={styles.planHeader}>
         <Text style={styles.planTitle}>{title}</Text>
         <View style={styles.priceContainer}>
-          {hasDiscount && (
-            <>
-              <View style={styles.discountBadge}>
-                <Text style={styles.discountText}>{discount}% OFF</Text>
-              </View>
-              <Text style={styles.planOriginalPrice}>{originalPrice}</Text>
-              <Text style={styles.planPrice}>
-                {hasDiscount ? discountedPrice : price}
-              </Text>
-            </>
-          )}
+          <>
+            {hasDiscount && (
+              <>
+                <View style={styles.discountBadge}>
+                  <Text style={styles.discountText}>{discount || 0}% OFF</Text>
+                </View>
+                <Text style={styles.planOriginalPrice}>{originalPrice}</Text>
+              </>
+            )}
+            <Text style={styles.planPrice}>
+              {hasDiscount ? discountedPrice : price}
+            </Text>
+          </>
         </View>
       </View>
       {features.map((feature, index) => (
