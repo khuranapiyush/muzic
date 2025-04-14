@@ -655,21 +655,21 @@ const fetchPlayStoreProducts = async (accessToken, regionCode) => {
 
         // Get price for user's country or default price
         const discountedPrice =
-          product.prices?.[regionCode] || product.defaultPrice;
+          product.prices?.[regionCode] || product?.defaultPrice;
 
         const originalPrice =
-          product.prices?.[regionCode] || product.originalPrice;
+          product.prices?.[regionCode] || product?.originalPrice;
 
         // Extract features from description
         const features = extractFeaturesFromDescription(description);
 
         // Format the price for display
         const formattedDiscountedPrice = discountedPrice
-          ? `${discountedPrice.currency} ${discountedPrice.amount}`
+          ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
           : 'Not available';
 
         const formattedOriginalPrice = originalPrice
-          ? `${originalPrice.currency} ${originalPrice.amount}`
+          ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
           : 'Not available';
 
         return {
@@ -1135,7 +1135,6 @@ const SubscriptionScreen = () => {
   useEffect(() => {
     const initializeIAP = async () => {
       try {
-        console.log('Initializing IAP connection...');
         setConnectionState('connecting');
         await RNIap.initConnection();
         setConnectionState('connected');
@@ -1144,8 +1143,6 @@ const SubscriptionScreen = () => {
         // Get user's country code
         const countryCode = await getUserCountryCode();
         setUserCountry(countryCode);
-
-        console.log(countryCode, 'countryCode');
 
         // Clear the processed purchases set on initialization
         processedPurchases.clear();
@@ -1361,7 +1358,6 @@ const SubscriptionScreen = () => {
   const handlePurchase = useCallback(
     async productId => {
       try {
-        console.log('\n===== PURCHASE ATTEMPT STARTED =====');
         console.log('handlePurchase called with productId:', productId);
         console.log('Connection state:', connectionState);
 

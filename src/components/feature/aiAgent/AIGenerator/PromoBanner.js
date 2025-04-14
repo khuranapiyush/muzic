@@ -259,8 +259,8 @@ const PromoModal = ({visible, onClose}) => {
                           <Text style={styles.priceText}>
                             {formatPriceWithSymbol(
                               hasDiscount
-                                ? priceData.discountedPrice
-                                : priceData.originalPrice,
+                                ? priceData?.discountedPrice
+                                : priceData?.originalPrice,
                             )}
                             <Text style={styles.perMonthText}> per month</Text>
                           </Text>
