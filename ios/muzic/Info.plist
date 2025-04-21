@@ -8,6 +8,20 @@
 	<string>muzic</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconName</key>
+	<string>AppIcon</string>
+	<key>CFBundleIcons</key>
+	<dict>
+		<key>CFBundlePrimaryIcon</key>
+		<dict>
+			<key>CFBundleIconFiles</key>
+			<array>
+				<string>AppIcon</string>
+			</array>
+			<key>UIPrerenderedIcon</key>
+			<false/>
+		</dict>
+	</dict>
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
@@ -26,14 +40,39 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>Allow access to your media library</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Allow Bluetooth access to connect to devices</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>Allow Bluetooth access to connect to devices</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>Allow access to your calendar to schedule events</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Allow access to your camera to record videos and capture photos</string>
+	<key>NSContactsUsageDescription</key>
+	<string>Allow access to your contacts to find your friends</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Allow authentication using Face ID</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need to access your location to provide relevant information</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string></string>
+	<string>We need to access your location to provide relevant information</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Allow access to your microphone to record audio in videos</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Allow access to motion data for enhanced app features</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Allow access to save photos and videos to your library</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Allow access to your photo library to upload photos and videos</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>Your data will be used to deliver personalized content and ads</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

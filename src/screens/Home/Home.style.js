@@ -66,8 +66,8 @@ const getStyles = theme => {
     songCard: {
       minHeight: 250,
       minWidth: 180,
-      height: 'fit-content',
-      width: 'fit-content',
+      // height: 'fit-content',
+      // width: 'fit-content',
       marginLeft: 16,
       borderRadius: 12,
       overflow: 'hidden',

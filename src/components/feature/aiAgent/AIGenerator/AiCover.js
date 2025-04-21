@@ -509,7 +509,7 @@ const CoverCreationScreen = () => {
       id: sample.id,
       title: sample.title || 'Voice Sample',
       artist: sample.artist || 'AI Voice',
-      uri: sample.previewUrl,
+      uri: sample.previewUrl || sample.audioUrl,
       thumbnail: sample.imageUrl || 'https://via.placeholder.com/150',
       poster: sample.imageUrl || 'https://via.placeholder.com/300',
       duration: 30, // Assuming samples are around 30 seconds

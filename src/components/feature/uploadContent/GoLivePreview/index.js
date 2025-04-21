@@ -13,7 +13,8 @@ import {
   Keyboard,
 } from 'react-native';
 import {MediaStream, RTCView, mediaDevices} from 'react-native-webrtc';
-import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import PermissionsManager from '../../../../utils/PermissionsManager';
+const {check, request, PERMISSIONS, RESULTS} = PermissionsManager;
 import CText from '../../../common/core/Text';
 import {launchCamera} from 'react-native-image-picker';
 import {screenHeight, screenWidth} from '../../../../utils/common';

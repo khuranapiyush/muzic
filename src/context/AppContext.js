@@ -1,13 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 import React, {createContext, useEffect, useState} from 'react';
 import {Platform} from 'react-native';
-import {
-  PERMISSIONS,
-  RESULTS,
-  check,
-  request,
-  requestNotifications,
-} from 'react-native-permissions';
+import PermissionsManager from '../utils/PermissionsManager';
+const {PERMISSIONS, RESULTS, check, request, requestNotifications} =
+  PermissionsManager;
 import {useDispatch, useSelector} from 'react-redux';
 import {fetchAppConfig} from '../api/app';
 import {APP_VERSION} from '../constants/app';
@@ -187,6 +183,7 @@ export const AppProvider = ({children}) => {
   useEffect(() => {
     const requestPermissions = async () => {
       try {
+        // Use the new setupPermissions function
         await requestTrackingPermission();
         await requestNotificationPermission();
         setPermissionsLoaded(true);

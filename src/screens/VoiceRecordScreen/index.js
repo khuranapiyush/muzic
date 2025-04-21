@@ -36,6 +36,7 @@ const VoiceRecordScreen = ({navigation}) => {
     `My Voice Recording ${new Date().toLocaleString()}`,
   );
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Use a ref to keep track of the record back listener
   const recordBackListenerRef = useRef(null);
@@ -58,14 +59,35 @@ const VoiceRecordScreen = ({navigation}) => {
           throw new Error('Authentication required. Please log in again.');
         }
 
+        // Ensure the file exists
+        const fileExists = await RNFS.exists(filePath);
+        if (!fileExists) {
+          throw new Error('Recording file not found for upload');
+        }
+
+        // For Android, make sure path is correct
+        const normalizedPath =
+          Platform.OS === 'android' && !filePath.startsWith('file://')
+            ? `file://${filePath}`
+            : filePath;
+
         // Create FormData for multipart/form-data upload
         const formData = new FormData();
 
-        // Add recording file
+        // Detect file type based on extension
+        const fileExtension = filePath.split('.').pop().toLowerCase();
+        const mimeType =
+          fileExtension === 'm4a'
+            ? 'audio/m4a'
+            : fileExtension === 'mp3'
+            ? 'audio/mpeg'
+            : 'audio/mpeg';
+
+        // Add recording file with correct mime type
         formData.append('voiceFile', {
-          uri: Platform.OS === 'android' ? `file://${filePath}` : filePath,
-          type: 'audio/mpeg',
-          name: 'recording.mp3',
+          uri: normalizedPath,
+          type: mimeType,
+          name: `recording.${fileExtension}`,
         });
 
         // Add metadata
@@ -106,35 +128,71 @@ const VoiceRecordScreen = ({navigation}) => {
       return;
     }
 
+    let recorder = audioRecorder;
+    let uri = null;
+
     try {
       // Remove the recording progress listener
       if (recordBackListenerRef.current) {
-        audioRecorder.removeRecordBackListener(recordBackListenerRef.current);
+        recorder.removeRecordBackListener(recordBackListenerRef.current);
         recordBackListenerRef.current = null;
       }
 
       // Stop the recording
-      const uri = await audioRecorder.stopRecorder();
-      console.log('Recording stopped, file saved at:', uri);
+      try {
+        uri = await recorder.stopRecorder();
+        console.log('Recording stopped, file saved at:', uri);
+      } catch (stopError) {
+        console.error('Error stopping recorder:', stopError);
+        // If we can't stop the recorder normally, try to reset it
+        await resetRecorder();
+        throw new Error(
+          'Failed to stop recording properly: ' + stopError.message,
+        );
+      }
 
-      // Get recording duration from the recorder
-      const recordingResult = await audioRecorder.stopPlayer();
-      const durationMs = recordingResult?.duration || 0;
+      // Wait a moment for the file to be properly saved
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Get recording duration from the recorded time using our own conversion function
+      const durationMs = mmssToSec(recordingTime) * 1000;
 
       setRecordings(uri);
       setIsRecording(false);
       setSelectedRecording(null);
       setRecordingTime('00:00');
 
+      // Check if we have a valid file path
+      if (!uri) {
+        Alert.alert('Error', 'No recording file was created');
+        return;
+      }
+
+      // Test if file is playable
+      try {
+        await testPlayback(uri);
+      } catch (playbackError) {
+        console.error('Playback test failed:', playbackError);
+        // Continue with upload even if playback test fails
+      }
+
       // Upload the recording
       try {
         setIsUploading(true);
         setUploadProgress(0);
 
-        // Check if the file exists
+        // Check if the file exists and has content
         const fileExists = await RNFS.exists(uri);
         if (!fileExists) {
           throw new Error('Recording file not found');
+        }
+
+        // Check file size to ensure it's not empty
+        const fileStats = await RNFS.stat(uri);
+        console.log('File stats:', fileStats);
+
+        if (fileStats.size <= 0) {
+          throw new Error('Recording file is empty');
         }
 
         // Upload directly to our API with authentication
@@ -161,13 +219,23 @@ const VoiceRecordScreen = ({navigation}) => {
         setUploadProgress(0);
       }
     } catch (error) {
-      console.error('Error stopping recording:', error);
-      Alert.alert('Error', `Failed to stop recording: ${error.message}`);
+      console.error('Error in recording process:', error);
+      Alert.alert('Error', `Recording failed: ${error.message}`);
       setIsRecording(false);
       setSelectedRecording(null);
       setRecordingTime('00:00');
+
+      // Try to reset the recorder to recover from errors
+      await resetRecorder();
     }
-  }, [audioRecorder, isRecording, uploadVoiceRecording]);
+  }, [
+    audioRecorder,
+    isRecording,
+    uploadVoiceRecording,
+    recordingTime,
+    testPlayback,
+    resetRecorder,
+  ]);
 
   // Create a cleanup function with useRef to avoid dependency issues
   const cleanupRecording = useRef(() => {
@@ -196,6 +264,45 @@ const VoiceRecordScreen = ({navigation}) => {
     // Clean up function - use the ref version to avoid dependency cycles
     return cleanupRecording;
   }, [cleanupRecording]);
+
+  // Add a function to reset the recorder if it gets into a bad state
+  const resetRecorder = useCallback(async () => {
+    try {
+      // First, try to clean up any existing recorder instance
+      if (audioRecorder) {
+        if (recordBackListenerRef.current) {
+          audioRecorder.removeRecordBackListener(recordBackListenerRef.current);
+          recordBackListenerRef.current = null;
+        }
+
+        // Try to stop any ongoing recording/playback
+        try {
+          await audioRecorder.stopRecorder().catch(() => {});
+        } catch (error) {
+          console.log('No active recorder to stop');
+        }
+
+        try {
+          await audioRecorder.stopPlayer().catch(() => {});
+        } catch (error) {
+          console.log('No active player to stop');
+        }
+      }
+
+      // Create a fresh instance
+      const newRecorder = new AudioRecorderPlayer();
+      setAudioRecorder(newRecorder);
+      setIsRecording(false);
+      setIsPlaying(false);
+      setRecordingTime('00:00');
+      console.log('AudioRecorderPlayer has been reset');
+
+      return newRecorder;
+    } catch (error) {
+      console.error('Error resetting recorder:', error);
+      return null;
+    }
+  }, [audioRecorder]);
 
   // Add a separate effect to handle recording state changes
   useEffect(() => {
@@ -261,6 +368,20 @@ const VoiceRecordScreen = ({navigation}) => {
       .padStart(2, '0')}`;
   };
 
+  // Add our own time conversion function since mmssToSec isn't available
+  const mmssToSec = timeString => {
+    if (!timeString || typeof timeString !== 'string') {
+      return 0;
+    }
+    const parts = timeString.split(':');
+    if (parts.length !== 2) {
+      return 0;
+    }
+    const minutes = parseInt(parts[0], 10);
+    const seconds = parseInt(parts[1], 10);
+    return minutes * 60 + seconds;
+  };
+
   const saveCoverAudio = async (audioId, walrusUrl) => {
     try {
       // Check for internet connection before making the API call
@@ -284,64 +405,226 @@ const VoiceRecordScreen = ({navigation}) => {
     }
   };
 
-  const uploadToWalrus = async uri => {
-    try {
-      // Check for internet connection before uploading
-      const netInfo = await NetInfo.fetch();
-      if (!netInfo.isConnected) {
-        throw new Error(
-          'No internet connection. Please try again when you are connected.',
-        );
+  // UPLOAD TO WALRUS
+  // const uploadToWalrus = async uri => {
+  //   try {
+  //     // Check for internet connection before uploading
+  //     const netInfo = await NetInfo.fetch();
+  //     if (!netInfo.isConnected) {
+  //       throw new Error(
+  //         'No internet connection. Please try again when you are connected.',
+  //       );
+  //     }
+
+  //     // Read the file as base64
+  //     const fileContent = await RNFS.readFile(uri, 'base64');
+  //     const fileName = `audio-${Date.now()}.mp3`;
+
+  //     // Upload to Walrus
+  //     const response = await axios({
+  //       method: 'put',
+  //       url: 'https://publisher.walrus-testnet.walrus.space/v1/blobs?epochs=5',
+  //       data: fileContent,
+  //       headers: {
+  //         'Content-Type': 'audio/mpeg',
+  //         'Content-Disposition': `attachment; filename="${fileName}"`,
+  //         'Content-Transfer-Encoding': 'base64',
+  //       },
+  //       maxContentLength: Infinity,
+  //       maxBodyLength: Infinity,
+  //       timeout: 30000, // 30 seconds timeout
+  //     });
+
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error('Error uploading to Walrus:', error);
+  //     throw new Error(
+  //       error.response?.data?.message || 'Failed to upload audio',
+  //     );
+  //   }
+  // };
+
+  // Add a test playback function to ensure audio is properly recorded
+  const testPlayback = useCallback(
+    async filePath => {
+      if (!audioRecorder || !filePath) {
+        console.log('Cannot test playback: missing recorder or file path');
+        return;
       }
 
-      // Read the file as base64
-      const fileContent = await RNFS.readFile(uri, 'base64');
-      const fileName = `audio-${Date.now()}.mp3`;
+      // Set up a listener reference to clean up later
+      let playbackListener = null;
 
-      // Upload to Walrus
-      const response = await axios({
-        method: 'put',
-        url: 'https://publisher.walrus-testnet.walrus.space/v1/blobs?epochs=5',
-        data: fileContent,
-        headers: {
-          'Content-Type': 'audio/mpeg',
-          'Content-Disposition': `attachment; filename="${fileName}"`,
-          'Content-Transfer-Encoding': 'base64',
-        },
-        maxContentLength: Infinity,
-        maxBodyLength: Infinity,
-        timeout: 30000, // 30 seconds timeout
-      });
+      try {
+        // Make sure player is stopped before playing new audio
+        try {
+          await audioRecorder.stopPlayer().catch(() => {});
+        } catch (e) {
+          // Ignore errors when stopping player, it might not be playing
+        }
+        setIsPlaying(false);
 
-      return response.data;
-    } catch (error) {
-      console.error('Error uploading to Walrus:', error);
-      throw new Error(
-        error.response?.data?.message || 'Failed to upload audio',
-      );
-    }
-  };
+        console.log('Testing playback of recording:', filePath);
+
+        // For Android, add the file:// prefix if not present
+        const path =
+          Platform.OS === 'android' && !filePath.startsWith('file://')
+            ? `file://${filePath}`
+            : filePath;
+
+        // Check if file exists before attempting to play
+        const fileExists = await RNFS.exists(
+          Platform.OS === 'android' && path.startsWith('file://')
+            ? path.substring(7) // Remove file:// prefix for RNFS.exists on Android
+            : path,
+        );
+
+        if (!fileExists) {
+          throw new Error('Cannot test playback: file does not exist');
+        }
+
+        // Start playing the recording
+        await audioRecorder.startPlayer(path);
+
+        // Add play back listener
+        playbackListener = e => {
+          if (e.currentPosition === e.duration) {
+            console.log('Playback completed');
+            audioRecorder.stopPlayer().catch(() => {});
+            setIsPlaying(false);
+            if (playbackListener) {
+              audioRecorder.removePlayBackListener();
+              playbackListener = null;
+            }
+          }
+        };
+
+        audioRecorder.addPlayBackListener(playbackListener);
+        setIsPlaying(true);
+
+        // Stop after a short test period (2 seconds)
+        setTimeout(async () => {
+          if (audioRecorder) {
+            try {
+              await audioRecorder.stopPlayer().catch(() => {});
+            } catch (e) {
+              // Ignore errors when stopping player
+            }
+            setIsPlaying(false);
+
+            if (playbackListener) {
+              audioRecorder.removePlayBackListener();
+              playbackListener = null;
+            }
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('Error testing playback:', error);
+
+        // Clean up if there was an error
+        setIsPlaying(false);
+        if (playbackListener) {
+          try {
+            audioRecorder.removePlayBackListener();
+          } catch (e) {
+            // Ignore cleanup errors
+          }
+        }
+
+        try {
+          await audioRecorder.stopPlayer().catch(() => {});
+        } catch (e) {
+          // Ignore errors when stopping player
+        }
+
+        throw error;
+      }
+    },
+    [audioRecorder],
+  );
 
   const startRecordingProcess = async () => {
     // Generate a unique ID for this recording
     const recordingId = Date.now().toString();
 
-    // Set up the file path based on platform
+    // Set up the file path based on platform - use correct extensions for better compatibility
     const path = Platform.select({
       ios: `${RNFS.DocumentDirectoryPath}/recording_${recordingId}.m4a`,
-      android: `${RNFS.CachesDirectoryPath}/recording_${recordingId}.mp4`,
+      android: `${RNFS.CachesDirectoryPath}/recording_${recordingId}.mp3`,
     });
 
     try {
       setSelectedRecording(recordingId);
 
-      // Start recording
+      // Use simpler audio settings that are more compatible across library versions
+      const audioSet = Platform.select({
+        ios: {
+          AVEncoderAudioQualityKeyIOS: 'high',
+          AVNumberOfChannelsKeyIOS: 2,
+          AVFormatIDKeyIOS: 'aac',
+          AVSampleRateKeyIOS: 44100,
+        },
+        android: {
+          // Use a simplified configuration for Android
+          AudioSource: 'MIC',
+          OutputFormat: 'MPEG_4',
+          AudioEncoder: 'AAC',
+          SampleRate: 44100,
+          BitRate: 128000,
+          NumberOfChannels: 2,
+        },
+      });
+
+      // Make sure no recording/playback is active
+      let recorder = audioRecorder;
+      try {
+        // Try to stop any ongoing player or recorder
+        await recorder.stopPlayer().catch(() => {});
+        await recorder.stopRecorder().catch(() => {});
+        setIsPlaying(false);
+      } catch (error) {
+        console.log('No active recorder/player to stop, continuing');
+      }
+
+      // Start recording with audio configuration
       console.log('Starting recorder with path:', path);
-      const uri = await audioRecorder.startRecorder(path);
+      let uri;
+      try {
+        // For Android, we may need a fallback approach if settings cause issues
+        if (Platform.OS === 'android') {
+          try {
+            uri = await recorder.startRecorder(path, audioSet);
+          } catch (settingsError) {
+            console.log('Failed with audio settings, trying without settings');
+            // Try a simpler approach without explicit settings
+            uri = await recorder.startRecorder(path);
+          }
+        } else {
+          // For iOS use settings as normal
+          uri = await recorder.startRecorder(path, audioSet);
+        }
+      } catch (recorderError) {
+        // If we get "startRecorder has already been called" error, reset the recorder and try again
+        if (
+          recorderError.message &&
+          recorderError.message.includes('already been called')
+        ) {
+          console.log('Recorder in bad state, resetting...');
+          recorder = await resetRecorder();
+          if (!recorder) {
+            throw new Error('Failed to reset recorder');
+          }
+          // Try recording again with the fresh recorder, but without audio settings
+          uri = await recorder.startRecorder(path);
+        } else {
+          throw recorderError;
+        }
+      }
+
       console.log('Recording started at:', uri);
 
       // Set up the recording progress listener
-      recordBackListenerRef.current = audioRecorder.addRecordBackListener(e => {
+      recordBackListenerRef.current = recorder.addRecordBackListener(e => {
         setRecordingTime(formatTime(e.currentPosition));
       });
 
@@ -363,8 +646,12 @@ const VoiceRecordScreen = ({navigation}) => {
     // Check if recorder is initialized
     if (!audioRecorder) {
       console.error('Audio recorder not initialized');
-      Alert.alert('Error', 'Audio recorder not initialized');
-      return;
+      // Try to reinitialize
+      const newRecorder = await resetRecorder();
+      if (!newRecorder) {
+        Alert.alert('Error', 'Failed to initialize audio recorder');
+        return;
+      }
     }
 
     // Check if permissions are granted

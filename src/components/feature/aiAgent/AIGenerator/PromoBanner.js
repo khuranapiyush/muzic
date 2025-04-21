@@ -246,12 +246,12 @@ const PromoModal = ({visible, onClose}) => {
                             <View style={styles.discountContainer}>
                               <View style={styles.discountBadge}>
                                 <Text style={styles.discountText}>
-                                  {priceData.discount}% OFF
+                                  {priceData?.discount}% OFF
                                 </Text>
                               </View>
                               <Text style={styles.originalPrice}>
                                 {formatPriceWithSymbol(
-                                  priceData.discountedPrice,
+                                  priceData?.discountedPrice,
                                 )}
                               </Text>
                             </View>
@@ -259,7 +259,7 @@ const PromoModal = ({visible, onClose}) => {
                           <View style={styles.currentPriceContainer}>
                             <Text style={styles.priceText}>
                               {formatPriceWithSymbol(
-                                priceData.discountedPrice,
+                                priceData?.discountedPrice,
                                 hasDiscount,
                               )}
                             </Text>
