@@ -900,24 +900,13 @@ const SubscriptionScreen = () => {
     return typeof credits === 'number' ? credits : 0;
   };
 
-  // Add a dedicated function to ensure credits are refreshed and displayed correctly
+  // Fix the ensureCreditsRefreshed function to avoid double refresh
   const ensureCreditsRefreshed = useCallback(async () => {
-    console.log('Ensuring credits are refreshed and up to date...');
+    console.log('Refreshing credits from server...');
     try {
-      // First refresh credits from the server
+      // Just do a single refresh from the server
       await refreshCredits();
-
-      // Add a small delay to ensure state updates are processed
-      setTimeout(() => {
-        console.log(
-          'Performing second credits refresh to ensure UI is updated',
-        );
-        refreshCredits().catch(err =>
-          console.error('Error in delayed credit refresh:', err),
-        );
-      }, 1000);
-
-      console.log('Credits refresh initiated');
+      console.log('Credits refresh completed');
     } catch (err) {
       console.error('Error refreshing credits:', err);
     }
@@ -1359,31 +1348,78 @@ const SubscriptionScreen = () => {
               );
               console.log('Existing purchase processed');
 
-              const purchaseToken =
-                Platform.OS === 'android'
-                  ? existingPurchase.purchaseToken
-                  : existingPurchase.transactionReceipt;
+              let verifyResult;
 
-              const verifyResult = await verifyPurchase(
-                purchaseToken,
-                existingPurchase.productId,
-                authState.accessToken,
-              );
-              console.log('Existing purchase verified:', verifyResult);
+              // For iOS, use the new Apple receipt validation endpoint
+              if (Platform.OS === 'ios') {
+                try {
+                  // Get the receipt data
+                  const receiptData = existingPurchase.transactionReceipt;
+
+                  // First try the new Apple-specific endpoint
+                  verifyResult = await validateAppleReceipt(
+                    receiptData,
+                    existingPurchase.productId,
+                    authState.accessToken,
+                    false, // Not a subscription
+                  );
+                  console.log(
+                    'Verified existing purchase with Apple-specific endpoint:',
+                    verifyResult,
+                  );
+                } catch (appleVerifyErr) {
+                  console.warn(
+                    'Error with Apple-specific verification, falling back to generic endpoint:',
+                    appleVerifyErr,
+                  );
+
+                  // Fall back to the original verification method
+                  const purchaseToken = existingPurchase.transactionReceipt;
+                  const environment = purchaseToken?.includes('sandbox')
+                    ? 'sandbox'
+                    : 'production';
+
+                  verifyResult = await verifyPurchase(
+                    purchaseToken,
+                    existingPurchase.productId,
+                    authState.accessToken,
+                    true, // isIOS
+                    environment,
+                  );
+                  console.log(
+                    'Verified existing purchase with fallback endpoint:',
+                    verifyResult,
+                  );
+                }
+              } else {
+                // For Android, use the existing verification method
+                const purchaseToken = existingPurchase.purchaseToken;
+                verifyResult = await verifyPurchase(
+                  purchaseToken,
+                  existingPurchase.productId,
+                  authState.accessToken,
+                );
+              }
 
               if (verifyResult && verifyResult.status === 'SUCCESS') {
                 // Handle successful verification
                 if (verifyResult.credits) {
+                  // If the server provided credits, use that value (preferred approach)
+                  console.log(
+                    `Server provided ${verifyResult.credits} credits for existing purchase, updating user wallet`,
+                  );
                   updateUserCredits(verifyResult.credits);
-                  // Use the enhanced refresh function
-                  await ensureCreditsRefreshed();
+                  await refreshCredits(); // Single refresh
                 } else {
+                  // Only as fallback if server didn't provide credits
                   const creditsToAdd = getCreditsForProduct(
                     existingPurchase.productId,
                   );
+                  console.log(
+                    `Using fallback credit amount for existing purchase: ${creditsToAdd}`,
+                  );
                   addCredits(creditsToAdd);
-                  // Use the enhanced refresh function
-                  await ensureCreditsRefreshed();
+                  await refreshCredits(); // Single refresh
                 }
 
                 Alert.alert(
@@ -1479,13 +1515,7 @@ const SubscriptionScreen = () => {
         setPurchasePending(false);
       }
     },
-    [
-      authState.accessToken,
-      addCredits,
-      updateUserCredits,
-      refreshCredits,
-      ensureCreditsRefreshed,
-    ],
+    [authState.accessToken, addCredits, updateUserCredits, refreshCredits],
   );
 
   // Update the Apple sandbox detection function
@@ -1504,6 +1534,58 @@ const SubscriptionScreen = () => {
     } catch (error) {
       console.warn('Error checking sandbox environment:', error);
       return false;
+    }
+  };
+
+  // Add a new function to validate Apple receipt using the new endpoint
+  const validateAppleReceipt = async (
+    receiptData,
+    productId,
+    token,
+    isSubscription = false,
+  ) => {
+    try {
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+
+      if (!receiptData) {
+        throw new Error('Receipt data is required for validation');
+      }
+
+      console.log(`Validating Apple receipt for ${productId}`);
+
+      const response = await fetch(
+        `${API_URL}/v1/payments/validate-apple-receipt`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            receiptData: receiptData,
+            productId: productId,
+            isSubscription: isSubscription,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(
+          `Apple receipt validation error (${response.status}):`,
+          errorText,
+        );
+        throw new Error(`Failed to validate Apple receipt: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Apple receipt validation result:', result);
+      return result;
+    } catch (err) {
+      console.error('Error validating Apple receipt:', err);
+      throw err;
     }
   };
 
@@ -1558,32 +1640,64 @@ const SubscriptionScreen = () => {
               // Process the purchase
               await processPurchase(purchase, authState.accessToken);
 
-              // Get the purchase token for verification
-              const purchaseToken =
-                Platform.OS === 'android'
-                  ? purchase.purchaseToken
-                  : receiptData;
+              let verifyResult;
 
-              // Verify the purchase
-              const verifyResult = await verifyPurchase(
-                purchaseToken,
-                purchase.productId,
-                authState.accessToken,
-                Platform.OS === 'ios',
-                environment,
-              );
+              // Use the new Apple receipt validation endpoint for iOS
+              if (Platform.OS === 'ios') {
+                try {
+                  // First try the new Apple-specific endpoint
+                  verifyResult = await validateAppleReceipt(
+                    receiptData,
+                    purchase.productId,
+                    authState.accessToken,
+                    false, // Not a subscription
+                  );
+                  console.log(
+                    'Verified with Apple-specific endpoint:',
+                    verifyResult,
+                  );
+                } catch (appleVerifyErr) {
+                  console.warn(
+                    'Error with Apple-specific verification, falling back to generic endpoint:',
+                    appleVerifyErr,
+                  );
+
+                  // Fall back to the original verification endpoint
+                  const purchaseToken = receiptData;
+                  verifyResult = await verifyPurchase(
+                    purchaseToken,
+                    purchase.productId,
+                    authState.accessToken,
+                    true, // isIOS
+                    environment,
+                  );
+                  console.log('Verified with fallback endpoint:', verifyResult);
+                }
+              } else {
+                // For Android, use the existing verification method
+                const purchaseToken = purchase.purchaseToken;
+                verifyResult = await verifyPurchase(
+                  purchaseToken,
+                  purchase.productId,
+                  authState.accessToken,
+                );
+              }
 
               if (verifyResult && verifyResult.status === 'SUCCESS') {
                 // Handle successful verification
                 if (verifyResult.credits) {
+                  // If the server provided credits, use that value (preferred approach)
+                  console.log(
+                    `Server provided ${verifyResult.credits} credits, updating user wallet`,
+                  );
                   updateUserCredits(verifyResult.credits);
-                  // Use the enhanced refresh function
-                  await ensureCreditsRefreshed();
+                  await refreshCredits(); // Single refresh
                 } else {
+                  // Only as fallback if server didn't provide credits
                   const creditsToAdd = getCreditsForProduct(purchase.productId);
+                  console.log(`Using fallback credit amount: ${creditsToAdd}`);
                   addCredits(creditsToAdd);
-                  // Use the enhanced refresh function
-                  await ensureCreditsRefreshed();
+                  await refreshCredits(); // Single refresh
                 }
 
                 // Show success message
@@ -1730,7 +1844,6 @@ const SubscriptionScreen = () => {
     updateUserCredits,
     selectedProductId,
     refreshCredits,
-    ensureCreditsRefreshed,
   ]);
 
   // Update useEffect to handle connection state
@@ -2186,7 +2299,6 @@ const SubscriptionScreen = () => {
       selectedProductId,
       handleExistingPurchase,
       userCountry,
-      ensureCreditsRefreshed,
     ],
   );
 

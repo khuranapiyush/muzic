@@ -588,9 +588,11 @@ const LibraryScreen = () => {
       const isCurrentlyPlaying =
         currentSong && currentSong.uri === item.audioUrl && isPlaying;
 
+      // Using a simple flat design for both platforms
       return (
         <TouchableOpacity
           style={styles.songItemContainer}
+          activeOpacity={0.7}
           onPress={() =>
             handleSongPress(
               item.audioUrl,
@@ -599,14 +601,7 @@ const LibraryScreen = () => {
               item.imageUrl,
             )
           }>
-          <LinearGradient
-            colors={
-              isCurrentlyPlaying
-                ? ['#3C3129', '#1A1A1A']
-                : ['#1F1F1F', '#121212']
-            }
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 0}}
+          <View
             style={[
               styles.songItem,
               isCurrentlyPlaying && styles.playingSongItem,
@@ -643,12 +638,22 @@ const LibraryScreen = () => {
                 />
               </TouchableOpacity>
             </View>
-          </LinearGradient>
+          </View>
         </TouchableOpacity>
       );
     },
     [currentSong, isPlaying, handleSongPress, handleDownload],
   );
+
+  // Update getItemLayout with correct height
+  const getItemLayout = useCallback((data, index) => {
+    const itemHeight = 78; // Height including margins
+    return {
+      length: itemHeight,
+      offset: itemHeight * index,
+      index,
+    };
+  }, []);
 
   // Memoize the key extractor
   const keyExtractor = useCallback(item => item._id, []);
@@ -723,11 +728,7 @@ const LibraryScreen = () => {
             maxToRenderPerBatch={10}
             windowSize={5}
             removeClippedSubviews={true}
-            getItemLayout={(data, index) => ({
-              length: 73,
-              offset: 73 * index,
-              index,
-            })}
+            getItemLayout={getItemLayout}
             style={styles.list}
             showsVerticalScrollIndicator={false}
           />
@@ -814,36 +815,26 @@ const styles = StyleSheet.create({
     marginBottom: 80,
   },
   songItemContainer: {
-    marginHorizontal: 5,
-    marginVertical: 6,
-    borderRadius: 12,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    marginHorizontal: 8,
+    marginVertical: 4,
   },
   songItem: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
     borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#1F1F1F', // Solid background color
+    height: 70,
   },
   playingSongItem: {
-    borderColor: '#F4A460',
+    backgroundColor: '#3C3129', // Darker background for playing items
     transform: [{scale: 1.02}],
   },
   songImage: {
-    width: 55,
-    height: 55,
+    width: 50,
+    height: 50,
     borderRadius: 8,
-    marginRight: 12,
+    marginRight: 10,
   },
   songInfo: {
     flex: 1,

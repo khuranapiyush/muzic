@@ -292,11 +292,11 @@ const PromoModal = ({visible, onClose}) => {
                 </LinearGradient>
               </TouchableOpacity>
 
-              <View style={styles.footerContainer}>
+              {/* <View style={styles.footerContainer}>
                 <Text style={styles.footerText}>Terms of Use</Text>
                 <Text style={styles.footerText}>Privacy</Text>
                 <Text style={styles.footerText}>Restore</Text>
-              </View>
+              </View> */}
             </LinearGradient>
           </ImageBackground>
         </View>
