@@ -102,7 +102,6 @@ const LibraryScreen = () => {
   const [audioList, setAudioList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  const {showToaster, hideToaster} = useToaster();
   const {isGeneratingSong, generatingSongId} = useSelector(
     state => state.player,
   );
@@ -412,10 +411,15 @@ const LibraryScreen = () => {
         }
 
         // Create a download path based on platform
-        const downloadDir =
-          Platform.OS === 'ios'
-            ? RNFS.DocumentDirectoryPath
-            : RNFS.DownloadDirectoryPath; // Always use Downloads directory for Android
+        let downloadDir;
+        if (Platform.OS === 'ios') {
+          // For iOS, we'll use the cache directory which is good for temporary files
+          // before sharing them via the share dialog
+          downloadDir = RNFS.CachesDirectoryPath;
+        } else {
+          // For Android, use the Downloads directory
+          downloadDir = RNFS.DownloadDirectoryPath;
+        }
 
         // Remove special characters from filename
         const filename = `${song.title.replace(/[^a-zA-Z0-9]/g, '_')}.mp3`;
@@ -450,7 +454,7 @@ const LibraryScreen = () => {
         const downloadUrl = `${API_BASE_URL}/v1/download/${blobId}`;
         console.log(`Download URL: ${downloadUrl}`);
 
-        // Setup download options
+        // Setup download options with progress tracking
         const download = RNFS.downloadFile({
           fromUrl: downloadUrl,
           toFile: downloadPath,
@@ -490,15 +494,66 @@ const LibraryScreen = () => {
 
           // Success handling based on platform
           if (Platform.OS === 'ios') {
-            // On iOS, we need to share the file to make it accessible
-            Alert.alert('Download Complete', 'Opening file for saving...');
-
-            // Open the file with the share dialog
+            // For iOS, use the built-in Share API
             try {
-              await RNFS.openDocument(downloadPath);
-            } catch (error) {
-              console.error('Error opening document:', error);
-              throw new Error('Could not open the downloaded file');
+              // Import the Share module from React Native
+              const {Share} = require('react-native');
+
+              // Show completion message
+              Alert.alert(
+                'Download Complete',
+                'File downloaded successfully. Tap Share to open the share menu.',
+                [
+                  {
+                    text: 'Share',
+                    onPress: async () => {
+                      try {
+                        // Use the react-native Share API to share the file URL
+                        const result = await Share.share({
+                          url: `file://${downloadPath}`,
+                          message: `Check out this song: ${song.title}`,
+                        });
+
+                        if (result.action === Share.sharedAction) {
+                          console.log('Shared successfully');
+                        } else if (result.action === Share.dismissedAction) {
+                          console.log('Share dismissed');
+                        }
+                      } catch (error) {
+                        console.error('Error sharing file:', error);
+
+                        // Fallback to opening the document if Share API fails
+                        try {
+                          await RNFS.openDocument(downloadPath);
+                        } catch (openError) {
+                          console.error('Error opening document:', openError);
+                          Alert.alert(
+                            'Error',
+                            'Could not share the file. Please try again.',
+                          );
+                        }
+                      }
+                    },
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                ],
+              );
+            } catch (shareError) {
+              console.error('Error during share preparation:', shareError);
+
+              // Fallback to basic document opening
+              try {
+                await RNFS.openDocument(downloadPath);
+              } catch (openError) {
+                console.error('Error opening document:', openError);
+                Alert.alert(
+                  'Error',
+                  'Could not open the file. Please try again.',
+                );
+              }
             }
           } else {
             // For Android, show success message
