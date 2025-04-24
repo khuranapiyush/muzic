@@ -3,8 +3,10 @@ import SoftUpdateModal from '../components/common/Modal/SoftUpdate';
 import HardUpdateModal from '../components/common/Modal/HardUpdate';
 import MobileVerification from '../components/common/Modal/MobileVerification';
 import AuthModal from '../components/common/Modal/Auth';
+import DeleteAccount from '../components/feature/auth/DeleteAccount';
 
-const ModalContext = createContext();
+// Create and export the context
+export const ModalContext = createContext();
 
 export const ModalProvider = ({children}) => {
   const [isModalVisible, setIsModalVisible] = useState({
@@ -19,6 +21,7 @@ export const ModalProvider = ({children}) => {
   });
 
   const showModal = useCallback((type, props) => {
+    console.log(`Showing modal: ${type}`, props);
     setIsModalVisible(prev => ({
       ...prev,
       [type]: {state: true, props: props || {}},
@@ -26,28 +29,48 @@ export const ModalProvider = ({children}) => {
   }, []);
 
   const hideModal = useCallback((type, props) => {
+    console.log(`Hiding modal: ${type}`, props);
     setIsModalVisible(prev => ({
       ...prev,
       [type]: {state: false, props: props || {}},
     }));
   }, []);
 
-  const getModalComponent = useCallback((type, props) => {
-    switch (type) {
-      case 'auth':
-        return <AuthModal {...props} />;
-      case 'softUpdate':
-        return <SoftUpdateModal {...props} />;
-      case 'hardUpdate':
-        return <HardUpdateModal {...props} />;
-      case 'mobileVerification':
-        return <MobileVerification {...props} />;
-      default:
-        return null;
-    }
-  }, []);
+  const getModalComponent = useCallback(
+    (type, props) => {
+      switch (type) {
+        case 'auth':
+          return <AuthModal {...props} />;
+        case 'softUpdate':
+          return <SoftUpdateModal {...props} />;
+        case 'hardUpdate':
+          return <HardUpdateModal {...props} />;
+        case 'mobileVerification':
+          return <MobileVerification {...props} />;
+        case 'deleteAccount':
+          return (
+            <DeleteAccount
+              isVisible={true}
+              onClose={() => hideModal('deleteAccount')}
+              {...props}
+            />
+          );
+        default:
+          return null;
+      }
+    },
+    [hideModal],
+  );
 
   const renderModals = useCallback(() => {
+    const visibleModals = Object.keys(isModalVisible).filter(
+      type => isModalVisible[type].state,
+    );
+
+    if (visibleModals.length > 0) {
+      console.log('Currently visible modals:', visibleModals);
+    }
+
     return Object.keys(isModalVisible).map(type => {
       const {state, props} = isModalVisible[type];
       return state ? (
@@ -64,4 +87,5 @@ export const ModalProvider = ({children}) => {
   );
 };
 
+// Also export a default for backward compatibility
 export default ModalContext;

@@ -24,6 +24,7 @@ const Login = ({
   handleModeChange: propsHandleModeChange,
   handleGoogleLogin: propsHandleGoogleLogin,
   handleAppleLogin: propsHandleAppleLogin,
+  appleSignInAvailable = true,
 }) => {
   const countryCode = useWatch({control, name: 'phoneCountryCode'});
   const [isTermsAccepted, setIsTermsAccepted] = useState(true);
@@ -36,9 +37,11 @@ const Login = ({
     !!propsHandleGoogleLogin && propsHandleGoogleLogin();
   };
 
-  // const handleAppleLogin = () => {
-  //   !!propsHandleAppleLogin && propsHandleAppleLogin();
-  // };
+  const handleAppleLogin = () => {
+    if (appleSignInAvailable) {
+      !!propsHandleAppleLogin && propsHandleAppleLogin();
+    }
+  };
 
   const toggleTermsAcceptance = () => {
     setIsTermsAccepted(!isTermsAccepted);
@@ -145,10 +148,22 @@ const Login = ({
             onPress={handleEmailLogin}
             style={styles.socialBtnWrapper}>
             <Image source={appImages.emailIcon} style={styles.emailIcon} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={handleAppleLogin}>
-            <Image source={appImages.appleLogoIcon} style={styles.emailIcon} />
-          </TouchableOpacity> */}
+           </TouchableOpacity> */}
+            <TouchableOpacity
+              onPress={handleAppleLogin}
+              disabled={!appleSignInAvailable}
+              style={[
+                styles.socialBtnWrapper,
+                !appleSignInAvailable && styles.disabledButton,
+              ]}>
+              <Image
+                source={appImages.appleLogoIcon}
+                style={[
+                  styles.emailIcon,
+                  !appleSignInAvailable && {opacity: 0.5},
+                ]}
+              />
+            </TouchableOpacity>
           </CView>
         </CView>
       </CView>

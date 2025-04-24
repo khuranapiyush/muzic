@@ -1,5 +1,6 @@
 import config from 'react-native-config';
 import fetcher from '../../dataProvider';
+import {store} from '../../stores';
 
 export const authLoginSignup = async data => {
   return fetcher.post(`${config.API_BASE_URL}/v1/phone/send-code`, data);
@@ -16,7 +17,14 @@ export const authGoogleLogin = async data => {
 };
 
 export const authAppleLogin = async data => {
-  return fetcher.post(`${config.API_URL}/v1/auth/apple-login`, data);
+  return fetcher.post(`${config.API_URL}/v1/auth/apple`, {
+    idToken: data.id_token,
+    userId: data.userId,
+    email: data.email,
+    fullName: data.fullName,
+    nonce: data.nonce,
+    user: data.user,
+  });
 };
 
 export const authLogin = async data => {
@@ -30,8 +38,22 @@ export const authVerifyOtp = async data => {
 export const guestAuthLogin = async data => {
   return fetcher.post(`${config.API_URL}/v1/auth/device-login-signup`, data);
 };
-export const deleteAccount = async userId => {
-  return fetcher.delete(`${config.API_URL}/v1/user/${userId}`);
+
+export const deleteAccount = async () => {
+  // Get current access token from Redux store
+  const state = store.getState();
+  const accessToken = state?.auth?.accessToken;
+
+  if (!accessToken) {
+    throw new Error('Authentication token is missing');
+  }
+
+  // Explicitly include the authorization header
+  return fetcher.delete(`${config.API_BASE_URL}/auth/account`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
 };
 
 export const authVerifyEmail = async token => {
