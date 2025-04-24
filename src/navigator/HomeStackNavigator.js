@@ -82,7 +82,7 @@ const HomeStackNavigator = () => {
       tabBarStyle: {
         height: 80,
         paddingBottom: 10,
-        marginBottom: 30,
+        marginBottom: Platform.OS === 'ios' ? 30 : 0,
         paddingTop: 20,
         backgroundColor: '#000',
         borderTopWidth: 1,
