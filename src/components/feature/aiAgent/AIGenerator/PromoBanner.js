@@ -7,10 +7,11 @@ import {
   StyleSheet,
   Modal,
   ImageBackground,
-  SafeAreaView,
   Platform,
   NativeModules,
   ActivityIndicator,
+  Dimensions,
+  ScrollView,
 } from 'react-native';
 import appImages from '../../../../resource/images';
 import {SCREEN_HEIGHT} from '@gorhom/bottom-sheet';
@@ -197,164 +198,155 @@ const PromoModal = ({visible, onClose}) => {
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}
-      onBackdropPress={onClose}
-      onBackButtonPress={onClose}
-      swipeDirection={['down']}
-      propagateSwipe
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      backdropOpacity={0.5}
-      avoidKeyboard={true}>
-      <SafeAreaView style={styles.safeArea}>
-        <View style={styles.centeredView}>
-          <ImageBackground
-            source={appImages.promoBanner}
-            style={styles.modalView}>
-            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-              <Image
-                source={appImages.closeIcon}
-                style={{tintColor: 'black'}}
-              />
-            </TouchableOpacity>
+      onRequestClose={onClose}>
+      <View style={styles.modalContainer}>
+        <ImageBackground
+          source={appImages.promoBanner}
+          style={styles.modalView}
+          resizeMode="cover">
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Image
+              source={appImages.closeIcon}
+              style={{tintColor: 'black', width: 20, height: 20}}
+            />
+          </TouchableOpacity>
 
-            <LinearGradient
-              colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0.8)', 'rgba(0,0,0,1)']}
-              style={styles.container}>
-              {loading ? (
-                <ActivityIndicator size="large" color="#F97316" />
-              ) : (
-                <>
-                  <View style={styles.featuresContainer}>
-                    {getProductFeatures().map((feature, index) => (
-                      <Text key={index} style={styles.featureText}>
-                        • {feature}
-                      </Text>
-                    ))}
-                  </View>
+          {loading ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#F97316" />
+            </View>
+          ) : (
+            <View style={styles.contentWrapper}>
+              <LinearGradient
+                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0)']}
+                style={styles.gradientContainer}>
+                <View style={styles.featuresContainer}>
+                  {getProductFeatures().map((feature, index) => (
+                    <Text key={index} style={styles.featureText}>
+                      • {feature}
+                    </Text>
+                  ))}
+                </View>
 
-                  <View style={styles.priceContainer}>
-                    {(() => {
-                      const priceData = getProductPrice();
-                      const hasDiscount = !!(
-                        priceData?.discount && priceData?.discount > 0
-                      );
+                <View style={styles.priceContainer}>
+                  {(() => {
+                    const priceData = getProductPrice();
+                    const hasDiscount = !!(
+                      priceData?.discount && priceData?.discount > 0
+                    );
 
-                      return (
-                        <>
-                          {hasDiscount && (
-                            <View style={styles.discountContainer}>
-                              <View style={styles.discountBadge}>
-                                <Text style={styles.discountText}>
-                                  {priceData?.discount}% OFF
-                                </Text>
-                              </View>
-                              <Text style={styles.originalPrice}>
-                                {formatPriceWithSymbol(
-                                  priceData?.discountedPrice,
-                                )}
+                    return (
+                      <>
+                        {hasDiscount && (
+                          <View style={styles.discountContainer}>
+                            <View style={styles.discountBadge}>
+                              <Text style={styles.discountText}>
+                                {priceData?.discount}% OFF
                               </Text>
                             </View>
-                          )}
-                          <View style={styles.currentPriceContainer}>
-                            <Text style={styles.priceText}>
+                            <Text style={styles.originalPrice}>
                               {formatPriceWithSymbol(
                                 priceData?.discountedPrice,
-                                hasDiscount,
                               )}
                             </Text>
-                            <Text style={styles.perMonthText}> per month</Text>
                           </View>
-                        </>
-                      );
-                    })()}
-                  </View>
-                </>
-              )}
+                        )}
+                        <View style={styles.currentPriceContainer}>
+                          <Text style={styles.priceText}>
+                            {formatPriceWithSymbol(
+                              priceData?.discountedPrice,
+                              hasDiscount,
+                            )}
+                          </Text>
+                          <Text style={styles.perMonthText}> per month</Text>
+                        </View>
+                      </>
+                    );
+                  })()}
+                </View>
 
-              <Text style={styles.renewalText}>
-                Auto renewable. Cancel anytime.
-              </Text>
+                <Text style={styles.renewalText}>
+                  Auto renewable. Cancel anytime.
+                </Text>
 
-              <TouchableOpacity
-                style={styles.createButton}
-                activeOpacity={0.8}
-                onPress={() => {
-                  onClose();
-                  navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-                }}>
-                <LinearGradient
-                  colors={['#F4A460', '#DEB887']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.gradient}>
-                  <Text style={styles.createButtonText}>Continue</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-
-              {/* <View style={styles.footerContainer}>
-                <Text style={styles.footerText}>Terms of Use</Text>
-                <Text style={styles.footerText}>Privacy</Text>
-                <Text style={styles.footerText}>Restore</Text>
-              </View> */}
-            </LinearGradient>
-          </ImageBackground>
-        </View>
-      </SafeAreaView>
+                <TouchableOpacity
+                  style={styles.createButton}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    onClose();
+                    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                  }}>
+                  <LinearGradient
+                    colors={['#F4A460', '#DEB887']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={styles.buttonGradient}>
+                    <Text style={styles.createButtonText}>Continue</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </LinearGradient>
+            </View>
+          )}
+        </ImageBackground>
+      </View>
     </Modal>
   );
 };
 
+const {width: SCREEN_WIDTH, height: DEVICE_HEIGHT} = Dimensions.get('window');
+
 const styles = StyleSheet.create({
-  safeArea: {
+  modalContainer: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  centeredView: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: '100%',
+    height: '100%',
   },
   modalView: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#1F2937',
-    borderRadius: 20,
-    overflow: 'hidden',
+    height: '100%',
   },
-  container: {
+  loaderContainer: {
     flex: 1,
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: SCREEN_HEIGHT * 0.4,
+  },
+  contentWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  gradientContainer: {
+    marginHorizontal: 10,
     paddingBottom: Platform.OS === 'ios' ? 40 : 20,
-    width: '100%',
+    paddingTop: Platform.OS === 'ios' ? 0 : 80,
+    alignItems: 'center',
   },
   closeButton: {
     position: 'absolute',
-    right: 10,
+    right: 15,
     top: Platform.OS === 'ios' ? 50 : 20,
-    zIndex: 1,
+    zIndex: 10,
     padding: 10,
   },
   featuresContainer: {
-    width: '85%',
+    width: '100%',
     backgroundColor: 'rgba(255, 213, 169, 0.30)',
     borderRadius: 14,
     borderWidth: 1,
     borderColor: '#EA7C08',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
     marginBottom: 20,
   },
   featureText: {
     color: 'white',
     marginBottom: 5,
-    fontSize: 18,
+    fontSize: Platform.OS === 'ios' ? 16 : 18,
   },
   priceContainer: {
     alignItems: 'center',
-    marginBottom: 5,
+    marginBottom: 20,
+    width: '100%',
   },
   discountContainer: {
     flexDirection: 'row',
@@ -397,38 +389,29 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 16,
     marginBottom: 20,
+    textAlign: 'center',
+    width: '100%',
   },
   createButton: {
-    width: '95%',
-    height: 60,
+    width: Platform.OS === 'ios' ? '90%' : '95%',
+    height: 55,
     borderRadius: 28,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#C87D48',
-    marginBottom: 20,
   },
   createButtonText: {
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
   },
-  gradient: {
+  buttonGradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 28,
     borderWidth: 4,
     borderColor: '#C87D48',
-  },
-  footerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
-    paddingHorizontal: 20,
-  },
-  footerText: {
-    color: '#fff',
-    fontSize: 12,
   },
 });
 

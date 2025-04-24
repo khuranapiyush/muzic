@@ -172,7 +172,11 @@ const getAmountFromProductId = productId => {
 
     // Fallback to hardcoded map for backward compatibility
     if (productId === 'payment_100') return 29;
+    if (productId === 'payment_101') return 29;
     if (productId === 'payment_200') return 59;
+    if (productId === 'payment_201') return 59;
+    if (productId === 'payment_300') return 99;
+    if (productId === 'payment_301') return 99;
     if (productId === 'payment_500') return 99;
     if (productId === 'premium_pack') return 99;
 
@@ -666,6 +670,11 @@ const getCreditsForProduct = productId => {
   // Fallback to hardcoded map only if product not found
   const creditMap = {
     payment_100: 100,
+    payment_101: 100,
+    payment_200: 200,
+    payment_201: 200,
+    payment_300: 300,
+    payment_301: 300,
     premium_pack: 200,
     // Add other product IDs as needed
   };
@@ -964,7 +973,7 @@ const SubscriptionScreen = () => {
             );
 
             // Define product IDs to fetch from App Store Connect
-            const productIds = ['payment_100'];
+            const productIds = ['payment_101', 'payment_201', 'payment_301'];
             console.log('Requesting products with IDs:', productIds);
 
             // Single call to fetch products - no separate calls for subscriptions and one-time purchases
@@ -1131,7 +1140,7 @@ const SubscriptionScreen = () => {
         try {
           console.log('Fetching available subscriptions2...');
           const oneTimeProducts = await RNIap.getProducts({
-            skus: ['payment_100'],
+            skus: ['payment_101', 'payment_201', 'payment_301'],
           });
           console.log('Available subscriptions:', oneTimeProducts);
 
@@ -1175,15 +1184,28 @@ const SubscriptionScreen = () => {
             }
           } else {
             // If all else fails, try with some specific product IDs as fallback
-            const specificProductIds = [
+            const specificAndroidProductIds = [
               'payment_100',
               'payment_200',
-              'premium_pack',
+              'payment_300',
             ];
-            console.log('Trying specific product IDs:', specificProductIds);
+            const specificIOSProductIds = [
+              'payment_101',
+              'payment_201',
+              'payment_301',
+            ];
+            console.log(
+              'Trying specific product IDs:',
+              Platform.OS === 'ios'
+                ? specificIOSProductIds
+                : specificAndroidProductIds,
+            );
 
             const specificProducts = await RNIap.getProducts({
-              skus: specificProductIds,
+              skus:
+                Platform.OS === 'ios'
+                  ? specificIOSProductIds
+                  : specificAndroidProductIds,
             });
             console.log('Specific products:', specificProducts);
 
@@ -1205,16 +1227,29 @@ const SubscriptionScreen = () => {
           console.error('Error fetching products from store:', err);
 
           // Last resort fallback to hardcoded product IDs
-          const fallbackProductIds = [
+          const fallbackIOSProductIds = [
+            'payment_101',
+            'payment_201',
+            'payment_301',
+          ];
+          const fallbackAndroidProductIds = [
             'payment_100',
             'payment_200',
-            'premium_pack',
+            'payment_300',
           ];
-          console.log('Using fallback product IDs:', fallbackProductIds);
+          console.log(
+            'Using fallback product IDs:',
+            Platform.OS === 'ios'
+              ? fallbackIOSProductIds
+              : fallbackAndroidProductIds,
+          );
 
           try {
             const fallbackProducts = await RNIap.getProducts({
-              skus: fallbackProductIds,
+              skus:
+                Platform.OS === 'ios'
+                  ? fallbackIOSProductIds
+                  : fallbackAndroidProductIds,
             });
             if (fallbackProducts.length > 0) {
               setProducts(fallbackProducts);
