@@ -1,7 +1,7 @@
 import './utils/backHandlerPolyfill';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import React, {useEffect, useMemo, useState, useCallback} from 'react';
-import {StatusBar} from 'react-native';
+import {StatusBar, Platform} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {
   SafeAreaProvider,
@@ -21,6 +21,7 @@ import {
   setLoading,
   setError,
 } from './stores/slices/creditSettings';
+import AppTrackingPermission from './utils/AppTrackingPermission';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,12 +74,25 @@ const AppContent = () => {
     }
   }, [dispatch]);
 
+  const initializeAppTracking = useCallback(async () => {
+    if (Platform.OS === 'ios') {
+      try {
+        console.log('Initializing App Tracking Transparency from App.js...');
+        const status = await AppTrackingPermission.initializeTracking();
+        console.log('App Tracking Transparency status:', status);
+      } catch (error) {
+        console.error('Error initializing App Tracking Transparency:', error);
+      }
+    }
+  }, []);
+
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
   useEffect(() => {
     fetchStoredTheme();
     fetchCreditSettingsData();
-  }, [fetchCreditSettingsData]);
+    initializeAppTracking();
+  }, [fetchCreditSettingsData, initializeAppTracking]);
 
   return (
     <ThemeContext.Provider value={appThemeProviderValue}>

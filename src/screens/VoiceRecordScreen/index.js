@@ -11,6 +11,7 @@ import {
   PermissionsAndroid,
   Alert,
   Image,
+  Linking,
 } from 'react-native';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import LinearGradient from 'react-native-linear-gradient';
@@ -264,21 +265,9 @@ const VoiceRecordScreen = ({navigation}) => {
         // Set the audioRecorder state immediately to ensure it's available
         setAudioRecorder(recorder);
 
-        // For iOS, we'll handle permissions when recording starts
-        if (Platform.OS === 'ios') {
-          console.log('iOS: Permissions will be handled during recording');
-          // On iOS, we'll assume permissions are granted initially
-          // The system will handle the permission dialog when recording starts
-          setPermissionsGranted(true);
-        } else if (Platform.OS === 'android') {
-          // For Android, check permissions explicitly
-          const hasPermission = await PermissionsAndroid.check(
-            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-          );
-
-          console.log('Android: Initial permission status:', hasPermission);
-          setPermissionsGranted(hasPermission);
-        }
+        // Note: We'll now request permissions when the user attempts to record
+        // This is more in line with mobile UX best practices
+        console.log('Permissions will be requested when recording is started');
       } catch (error) {
         console.error('Error initializing AudioRecorderPlayer:', error);
         Alert.alert(
@@ -365,66 +354,69 @@ const VoiceRecordScreen = ({navigation}) => {
   }, [isRecording]);
 
   const checkAndRequestPermissions = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        // Check if permissions are already granted
-        const checkResult = await PermissionsAndroid.check(
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        );
+    try {
+      console.log(`Requesting ${Platform.OS} microphone permission`);
 
-        if (checkResult) {
-          console.log('Permissions already granted');
+      if (Platform.OS === 'android') {
+        // For Android, use the native PermissionsAndroid API
+        try {
+          const result = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
+            {
+              title: 'Microphone Permission',
+              message:
+                'This app needs access to your microphone to record audio',
+              buttonPositive: 'Allow',
+              buttonNegative: 'Deny',
+            },
+          );
+
+          console.log(`Android permission result: ${result}`);
+          const isGranted = result === PermissionsAndroid.RESULTS.GRANTED;
+          setPermissionsGranted(isGranted);
+          return isGranted;
+        } catch (error) {
+          console.error('Error requesting Android permission:', error);
+          return false;
+        }
+      } else {
+        // For iOS, we'll use the recorder directly to trigger the system dialog
+        try {
+          // Create a temporary recorder
+          const tempRecorder = new AudioRecorderPlayer();
+
+          // This will trigger the system permission dialog on iOS
+          console.log(
+            'iOS: Attempting to start recorder to trigger permission dialog',
+          );
+          await tempRecorder.startRecorder();
+
+          // If we get here without an error, permission was granted
+          // Stop the recorder immediately
+          await tempRecorder.stopRecorder();
+
+          console.log('iOS: Permission granted, recorder started and stopped');
           setPermissionsGranted(true);
           return true;
+        } catch (error) {
+          // If there's an error with "permission not granted" message, it means user denied
+          console.error('iOS permission error:', error);
+          if (
+            error.message &&
+            error.message.includes('permission not granted')
+          ) {
+            console.log('iOS: Microphone permission denied');
+            setPermissionsGranted(false);
+            return false;
+          }
+
+          // If we got a different error, we can't be sure
+          return false;
         }
-
-        // Request permissions if not already granted
-        const grants = await PermissionsAndroid.requestMultiple([
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
-          PermissionsAndroid.PERMISSIONS.RECORD_AUDIO,
-        ]);
-
-        const allGranted = Object.values(grants).every(
-          permission => permission === PermissionsAndroid.RESULTS.GRANTED,
-        );
-
-        console.log('Permissions granted:', allGranted);
-        setPermissionsGranted(allGranted);
-
-        if (!allGranted) {
-          Alert.alert(
-            'Permissions Required',
-            'Please grant all permissions to use voice recording features.',
-          );
-        }
-
-        return allGranted;
-      } catch (err) {
-        console.error('Error requesting permissions:', err);
-        Alert.alert('Error', 'Failed to request permissions');
-        setPermissionsGranted(false);
-        return false;
       }
-    } else {
-      // For iOS, permissions are handled differently
-      try {
-        console.log('iOS: Handling permissions directly');
-
-        // For iOS, we'll assume permissions are granted initially
-        // The actual permission check will happen when recording starts
-        setPermissionsGranted(true);
-        return true;
-      } catch (err) {
-        console.error('Error checking iOS permissions:', err);
-        Alert.alert(
-          'Permission Error',
-          'Error occurred during checking permissions: ' +
-            (err.message || 'Unknown error'),
-        );
-        setPermissionsGranted(false);
-        return false;
-      }
+    } catch (err) {
+      console.error('Error in permission request process:', err);
+      return false;
     }
   };
 
@@ -612,6 +604,8 @@ const VoiceRecordScreen = ({navigation}) => {
   );
 
   const startRecordingProcess = async () => {
+    // We've already checked permissions in handleRecordPress, no need to check again
+
     // Generate a unique ID for this recording
     const recordingId = Date.now().toString();
 
@@ -730,42 +724,32 @@ const VoiceRecordScreen = ({navigation}) => {
       }
     }
 
-    // Check if permissions are granted
-    if (!permissionsGranted) {
-      console.log('Permissions not yet granted, requesting...');
-      try {
-        const granted = await checkAndRequestPermissions();
-        if (!granted) {
-          if (Platform.OS === 'ios') {
-            Alert.alert(
-              'Microphone Access Required',
-              'This app needs access to your microphone to record audio. Please go to Settings > Privacy > Microphone and enable access for this app.',
-              [
-                {
-                  text: 'OK',
-                  onPress: () => console.log('Permission alert dismissed'),
-                },
-              ],
-            );
-          } else {
-            Alert.alert(
-              'Permissions Required',
-              'Recording requires microphone access. Please grant permissions in your device settings.',
-            );
-          }
-          return;
-        }
-      } catch (error) {
-        console.error('Error checking/requesting permissions:', error);
-        Alert.alert(
-          'Permission Error',
-          'Could not verify microphone permissions. Please restart the app and try again.',
-        );
-        return;
-      }
-    }
+    // Request permissions (this will trigger native permission dialog)
+    const permissionGranted = await checkAndRequestPermissions();
 
-    // For iOS, we'll let the system handle permission dialogs when recording starts
+    if (!permissionGranted) {
+      console.log('Permission denied by user');
+
+      // Only show settings dialog if the user has previously denied
+      // and we failed to get the permission when requested again
+      if (Platform.OS === 'ios') {
+        Alert.alert(
+          'Microphone Access Required',
+          'You previously denied microphone access. Please open Settings and enable the microphone for this app.',
+          [
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings(),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ],
+        );
+      }
+      return;
+    }
 
     // Start recording if permissions are granted
     try {
@@ -773,27 +757,13 @@ const VoiceRecordScreen = ({navigation}) => {
     } catch (error) {
       console.error('Error in recording process:', error);
 
-      // If we get an error, try resetting the recorder and try again
-      if (
-        error.message &&
-        error.message.includes('Error occurred during initiating recorder')
-      ) {
-        console.log('Trying to reset recorder and try again...');
-        const newRecorder = await resetRecorder();
-        if (newRecorder) {
-          try {
-            await startRecordingProcess();
-            return;
-          } catch (retryError) {
-            console.error('Error on retry:', retryError);
-          }
-        }
+      // Show an error message for actual recording errors
+      if (!error.message?.includes('permission not granted')) {
+        Alert.alert(
+          'Recording Error',
+          error.message || 'Failed to start recording',
+        );
       }
-
-      Alert.alert(
-        'Recording Error',
-        error.message || 'Failed to start recording',
-      );
     }
   };
 

@@ -20,6 +20,7 @@ import {setUser} from '../stores/slices/user';
 import {getUniqueId} from '../utils/common';
 import {checkAndRefreshTokens} from '../utils/authUtils';
 import DeepLinkHandler from '../components/common/DeepLinkHandler';
+import AppTrackingPermission from '../utils/AppTrackingPermission';
 
 const AppContext = createContext();
 
@@ -98,19 +99,16 @@ export const AppProvider = ({children}) => {
   const requestTrackingPermission = async () => {
     try {
       if (Platform.OS === 'ios') {
-        const permission = PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY;
-
-        const status = await check(permission);
-
-        if (status !== RESULTS.GRANTED) {
-          const result = await request(permission);
-          if (result === RESULTS.GRANTED) {
-            // User granted app tracking permission
-          }
-        }
+        // Use our new AppTrackingPermission utility
+        console.log('Initializing App Tracking Transparency...');
+        const status = await AppTrackingPermission.initializeTracking();
+        console.log('ATT initialization result:', status);
+        return status === 'authorized';
       }
+      return false; // Not iOS
     } catch (error) {
-      console.log('error in requestTrackingPermission', error);
+      console.log('Error in requestTrackingPermission:', error);
+      return false;
     }
   };
 

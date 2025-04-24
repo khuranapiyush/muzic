@@ -14,28 +14,19 @@ const DrawerFooter = () => {
   const {showModal} = useModal();
 
   const handleLogout = () => {
-    // First close the drawer
-    navigation.closeDrawer();
-    // Then perform logout
     setTimeout(() => {
       dispatch(resetUser());
     }, 300);
   };
 
   const handleSubscribe = () => {
-    navigation.closeDrawer();
     setTimeout(() => {
       navigation.navigate(ROUTE_NAME.SubscriptionScreen);
     }, 300);
   };
 
   const handleDeleteAccount = () => {
-    console.log('Delete Account button clicked');
-    // First close the drawer
-    // navigation.closeDrawer();
-    // Then show the modal with a slight delay to ensure smooth animation
     setTimeout(() => {
-      console.log('Showing delete account modal');
       showModal('deleteAccount');
     }, 300);
   };
