@@ -17,7 +17,7 @@ export const authGoogleLogin = async data => {
 };
 
 export const authAppleLogin = async data => {
-  return fetcher.post(`${config.API_URL}/v1/auth/apple`, {
+  return fetcher.post(`${config.API_BASE_URL}/v1/auth/apple`, {
     idToken: data.id_token,
     userId: data.userId,
     email: data.email,
