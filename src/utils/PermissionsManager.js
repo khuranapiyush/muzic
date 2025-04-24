@@ -1,6 +1,11 @@
 import {Platform} from 'react-native';
+import {
+  request,
+  getTrackingStatus,
+  TrackingStatus,
+} from 'react-native-tracking-transparency';
 
-// Mock implementation for RNPermissions when the native module is not available
+// Implementation for permissions with real ATT support
 class PermissionsManager {
   static PERMISSIONS = {
     IOS: {
@@ -24,15 +29,77 @@ class PermissionsManager {
     BLOCKED: 'blocked',
   };
 
-  // Simulate checking a permission - assumes permissions are granted
+  // Check a permission with special handling for tracking permission
   static async check(permission) {
     console.log(`[PermissionsManager] Checking permission: ${permission}`);
+
+    // If it's the tracking permission on iOS, use the tracking transparency module
+    if (
+      Platform.OS === 'ios' &&
+      permission === this.PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY
+    ) {
+      try {
+        const trackingStatus = await getTrackingStatus();
+        switch (trackingStatus) {
+          case TrackingStatus.UNAVAILABLE:
+            return this.RESULTS.UNAVAILABLE;
+          case TrackingStatus.DENIED:
+            return this.RESULTS.DENIED;
+          case TrackingStatus.AUTHORIZED:
+            return this.RESULTS.GRANTED;
+          case TrackingStatus.RESTRICTED:
+            return this.RESULTS.BLOCKED;
+          case TrackingStatus.NOT_DETERMINED:
+          default:
+            return this.RESULTS.DENIED;
+        }
+      } catch (error) {
+        console.error(
+          '[PermissionsManager] Error checking tracking permission:',
+          error,
+        );
+        return this.RESULTS.DENIED;
+      }
+    }
+
+    // For other permissions use a mock for now
     return this.RESULTS.GRANTED;
   }
 
-  // Simulate requesting a permission - assumes permissions are granted
+  // Request permission with special handling for tracking permission
   static async request(permission) {
     console.log(`[PermissionsManager] Requesting permission: ${permission}`);
+
+    // If it's the tracking permission on iOS, use the tracking transparency module
+    if (
+      Platform.OS === 'ios' &&
+      permission === this.PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY
+    ) {
+      try {
+        const trackingStatus = await request();
+        switch (trackingStatus) {
+          case TrackingStatus.UNAVAILABLE:
+            return this.RESULTS.UNAVAILABLE;
+          case TrackingStatus.DENIED:
+            return this.RESULTS.DENIED;
+          case TrackingStatus.AUTHORIZED:
+            return this.RESULTS.GRANTED;
+          case TrackingStatus.RESTRICTED:
+            return this.RESULTS.BLOCKED;
+          case TrackingStatus.NOT_DETERMINED:
+          default:
+            return this.RESULTS.DENIED;
+        }
+      } catch (error) {
+        console.error(
+          '[PermissionsManager] Error requesting tracking permission:',
+          error,
+        );
+        return this.RESULTS.DENIED;
+      }
+    }
+
+    // For other permissions use a mock for now
     return this.RESULTS.GRANTED;
   }
 
@@ -44,9 +111,11 @@ class PermissionsManager {
       )}`,
     );
     const result = {};
-    permissions.forEach(permission => {
-      result[permission] = this.RESULTS.GRANTED;
-    });
+
+    for (const permission of permissions) {
+      result[permission] = await this.request(permission);
+    }
+
     return result;
   }
 

@@ -6,18 +6,29 @@ import CView from '../../core/View';
 import CustomDrawerItem from '../DrawerItem';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {useNavigation} from '@react-navigation/native';
+import useModal from '../../../../hooks/useModal';
 
 const DrawerFooter = () => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
+  const {showModal} = useModal();
 
   const handleLogout = () => {
-    dispatch(resetUser());
+    setTimeout(() => {
+      dispatch(resetUser());
+    }, 300);
   };
 
-  const deleteAccount = () => {
-    // Handle the case when the user has no credits
-    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+  const handleSubscribe = () => {
+    setTimeout(() => {
+      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+    }, 300);
+  };
+
+  const handleDeleteAccount = () => {
+    setTimeout(() => {
+      showModal('deleteAccount');
+    }, 300);
   };
 
   return (
@@ -26,7 +37,14 @@ const DrawerFooter = () => {
         arrow={false}
         label="Subscribe"
         logoUrl={appImages.subscribeIcon}
-        onPress={deleteAccount}
+        onPress={handleSubscribe}
+      />
+      <CustomDrawerItem
+        arrow={false}
+        label="Delete Account"
+        logoUrl={appImages.warningIcon}
+        onPress={handleDeleteAccount}
+        customStyles={{logoStyles: {tintColor: '#FF3B30'}}}
       />
       <CustomDrawerItem
         arrow={false}

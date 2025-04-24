@@ -267,10 +267,12 @@ const AuthModal = ({
         : navigator.navigate(ROUTE_NAME.Home);
     },
     onError: err => {
+      console.log('Apple login error:', err);
       showToaster({
         type: 'error',
         text1: 'Error',
-        text2: err.response.data.message,
+        text2:
+          err.response?.data?.message || 'Failed to authenticate with Apple',
       });
     },
     onSettled: () => {
@@ -591,22 +593,46 @@ const AuthModal = ({
 
   const handleAppleLogin = async () => {
     try {
-      const {identityToken} = await appleAuth.performRequest({
+      // Request credentials for the user
+      const appleAuthRequestResponse = await appleAuth.performRequest({
         requestedOperation: appleAuth.Operation.LOGIN,
         requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
       });
 
+      // Get the credentials
+      const {
+        user,
+        email,
+        nonce,
+        identityToken,
+        fullName,
+        authorizationCode,
+        realUserStatus /* etc */,
+      } = appleAuthRequestResponse;
+
+      // Ensure identityToken is available
+      if (!identityToken) {
+        throw new Error('Apple Sign-In failed - no identity token returned');
+      }
+
+      // Send data to API to validate and get user tokens
       appleLoginApi({
         id_token: identityToken,
         userId,
+        email: email,
+        fullName:
+          fullName &&
+          `${fullName.givenName || ''} ${fullName.familyName || ''}`.trim(),
+        nonce: nonce,
+        user: user,
       });
     } catch (error) {
-      console.log('🚀 ~ file: index.js:349 ~ handleAppleLogin ~ error:', error);
-      // showToaster({
-      //   type: 'error',
-      //   text1: 'Error',
-      //   text2: 'Some Error occurred'
-      // })
+      console.log('🚀 ~ file: index.js ~ handleAppleLogin ~ error:', error);
+      showToaster({
+        type: 'error',
+        text1: 'Apple Sign In Failed',
+        text2: error?.message || 'An error occurred during Apple sign in',
+      });
     }
   };
 

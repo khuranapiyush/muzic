@@ -1,60 +1,80 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../common/Colors'
+import {StyleSheet} from 'react-native';
+import Colors from '../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
     modal: {
       margin: 0,
-      justifyContent: 'flex-end'
+      justifyContent: 'flex-end',
     },
     modalContainer: {
       backgroundColor: Colors[theme].appBg,
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
-      justifyContent: 'center'
+      justifyContent: 'center',
     },
     closeButton: {
       backgroundColor: 'red',
       padding: 10,
       borderRadius: 10,
       marginTop: 20,
-      alignItems: 'center'
+      alignItems: 'center',
     },
     closeButtonText: {
       color: 'white',
       fontSize: 16,
-      fontWeight: 'bold'
+      fontWeight: 'bold',
     },
     modalContent: {
       backgroundColor: Colors[theme].appBg,
       padding: 20,
       borderRadius: 10,
       elevation: 5,
-      marginHorizontal: 16
+      marginHorizontal: 16,
     },
-    modalLogoContainer: { justifyContent: 'center', marginVertical: 16 },
+    modalLogoContainer: {
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginVertical: 16,
+    },
     modalLogo: {
-      marginHorizontal: 15,
-      width: 120,
-      height: 42,
-      resizeMode: 'contain'
+      width: 60,
+      height: 60,
+      resizeMode: 'contain',
+      tintColor: '#FF3B30',
     },
     modalHeading: {
-      marginBottom: 20,
+      marginBottom: 10,
       color: Colors[theme].white,
       fontWeight: '600',
-      fontSize: 16,
-      textAlign: 'center'
+      fontSize: 18,
+      textAlign: 'center',
     },
     modalText: {
-      marginBottom: 20,
-      color: '#0B091C',
+      marginBottom: 10,
+      color: Colors[theme].white,
       fontWeight: '400',
       fontSize: 14,
-      textAlign: 'center'
+      textAlign: 'left',
     },
-    btnContainer: { justifyContent: 'space-around' },
-    submitBtn: { fontWeight: '500', fontSize: 16 }
-  })
-}
-export default getStyles
+    listContainer: {
+      marginBottom: 20,
+      paddingHorizontal: 10,
+    },
+    listItem: {
+      color: Colors[theme].white,
+      opacity: 0.8,
+      marginBottom: 5,
+      fontSize: 13,
+    },
+    btnContainer: {
+      justifyContent: 'space-around',
+      marginTop: 10,
+    },
+    submitBtn: {
+      fontWeight: '500',
+      fontSize: 16,
+    },
+  });
+};
+export default getStyles;
