@@ -6,18 +6,19 @@
 	<array>
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
-			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
-			<key>NSPrivacyAccessedAPITypeReasons</key>
-			<array>
-				<string>C617.1</string>
-			</array>
-		</dict>
-		<dict>
-			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+				<string>1C8F.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
 			</array>
 		</dict>
 		<dict>
@@ -33,7 +34,7 @@
 			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
-				<string>85F4.1</string>
+				<string>E174.1</string>
 			</array>
 		</dict>
 	</array>
@@ -44,17 +45,32 @@
 			<string>NSPrivacyCollectedDataTypeUserID</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<true/>
-			<key>NSPrivacyCollectedDataTypePurposes</key>
-			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
-				<string>NSPrivacyCollectedDataTypePurposePersonalization</string>
-			</array>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
 			<true/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeProductPersonalization</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeAdvertisingData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+			</array>
 		</dict>
 	</array>
 	<key>NSPrivacyTracking</key>
 	<true/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array>
+		<string>example.com</string>
+	</array>
 </dict>
 </plist>
