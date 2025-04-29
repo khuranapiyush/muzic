@@ -1,6 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import React, {useState, useEffect, useCallback} from 'react';
-import {Image, ScrollView, NativeModules} from 'react-native';
+import {Image, ScrollView, NativeModules, RefreshControl} from 'react-native';
 import {
   View,
   Text,
@@ -1038,6 +1038,7 @@ const SubscriptionScreen = () => {
   // Add state to track iOS purchases
   const [iosPurchaseCompleted, setIosPurchaseCompleted] = useState(false);
   const [currentIosPurchase, setCurrentIosPurchase] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Replace local credits state with Redux
   const {credits, addCredits, updateUserCredits, refreshCredits} = useCredits();
@@ -1084,17 +1085,39 @@ const SubscriptionScreen = () => {
         console.log('Ended existing IAP connection');
       } catch (endErr) {
         console.log('No existing connection to end or error ending:', endErr);
+        // Continue anyway, as we want to establish a fresh connection
       }
 
-      // Initialize new connection
-      await RNIap.initConnection();
-      setConnectionState('connected');
-      console.log('IAP connection reestablished successfully');
+      // Increased delay to ensure previous connection is fully closed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Initialize new connection with retry mechanism
+      let retryCount = 0;
+      const maxRetries = 3;
+      let connected = false;
+
+      while (!connected && retryCount < maxRetries) {
+        try {
+          await RNIap.initConnection();
+          connected = true;
+          setConnectionState('connected');
+          iapInitialized = true; // Mark as initialized
+          console.log('IAP connection reestablished successfully');
+        } catch (initErr) {
+          retryCount++;
+          console.log(`IAP connection attempt ${retryCount} failed:`, initErr);
+          if (retryCount < maxRetries) {
+            // Wait longer between retries
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          } else {
+            throw initErr; // Rethrow on last retry
+          }
+        }
+      }
 
       // Refresh products based on platform
       if (Platform.OS === 'android') {
         console.log('Refreshing Android products...');
-
         const directProducts = await fetchDirectPlayStoreProducts();
         if (directProducts && directProducts.length > 0) {
           setProducts(directProducts);
@@ -1615,15 +1638,26 @@ const SubscriptionScreen = () => {
               if (Platform.OS === 'ios') {
                 try {
                   console.log('Finishing iOS transaction');
-                  await RNIap.finishTransaction({
-                    purchase: existingPurchase,
-                    isConsumable: true,
-                  });
+                  await safeFinishTransaction(existingPurchase, true);
                   console.log('iOS transaction finished successfully');
                 } catch (finishErr) {
                   console.warn('Error finishing transaction:', finishErr);
-                  // Even if there's an error, we consider it processed
-                  // to avoid repeat processing attempts
+                  // Even if first attempt fails, try again with direct approach
+                  try {
+                    console.log(
+                      'Retrying transaction finish with direct method',
+                    );
+                    await RNIap.finishTransaction({
+                      purchase: existingPurchase,
+                      isConsumable: true,
+                    });
+                    console.log('iOS transaction finished on second attempt');
+                  } catch (secondFinishErr) {
+                    console.error(
+                      'Failed to finish transaction on second attempt:',
+                      secondFinishErr,
+                    );
+                  }
                 }
               } else if (Platform.OS === 'android') {
                 // For Android, explicitly consume the purchase to allow repurchasing
@@ -1848,6 +1882,22 @@ const SubscriptionScreen = () => {
               'Purchase already processed, ignoring duplicate event:',
               purchaseKey,
             );
+
+            // Even for processed purchases, make sure transaction is finished on iOS
+            if (Platform.OS === 'ios') {
+              try {
+                console.log(
+                  'Ensuring transaction is finished for already processed purchase',
+                );
+                await safeFinishTransaction(purchase, true);
+              } catch (finishErr) {
+                console.warn(
+                  'Error finishing already processed transaction:',
+                  finishErr,
+                );
+              }
+            }
+
             return;
           }
 
@@ -2016,15 +2066,26 @@ const SubscriptionScreen = () => {
               if (Platform.OS === 'ios') {
                 try {
                   console.log('Finishing iOS transaction');
-                  await RNIap.finishTransaction({
-                    purchase,
-                    isConsumable: true,
-                  });
+                  await safeFinishTransaction(purchase, true);
                   console.log('iOS transaction finished successfully');
                 } catch (finishErr) {
                   console.warn('Error finishing transaction:', finishErr);
-                  // Even if there's an error, we consider it processed
-                  // to avoid repeat processing attempts
+                  // Even if first attempt fails, try again with direct approach
+                  try {
+                    console.log(
+                      'Retrying transaction finish with direct method',
+                    );
+                    await RNIap.finishTransaction({
+                      purchase,
+                      isConsumable: true,
+                    });
+                    console.log('iOS transaction finished on second attempt');
+                  } catch (secondFinishErr) {
+                    console.error(
+                      'Failed to finish transaction on second attempt:',
+                      secondFinishErr,
+                    );
+                  }
                 }
               } else if (Platform.OS === 'android') {
                 // For Android, explicitly consume the purchase to allow repurchasing
@@ -2223,6 +2284,12 @@ const SubscriptionScreen = () => {
           if (Platform.OS === 'ios') {
             const productIds = ['payment_101', 'payment_201', 'payment_301'];
             console.log('Refreshing iOS products without reinitialization');
+
+            // Check connection status first
+            if (connectionState !== 'connected') {
+              console.log('Connection is not active, reconnecting first...');
+              await reconnectIAP();
+            }
 
             const refreshedProducts = await RNIap.getProducts({
               skus: productIds,
@@ -2769,13 +2836,44 @@ const SubscriptionScreen = () => {
 
       const cleanup = async () => {
         try {
-          if (connectionState === 'connected') {
-            await RNIap.endConnection();
+          // Check if there's an active purchase before ending connection
+          if (connectionState === 'connected' && !purchasePending) {
+            console.log(
+              'Closing IAP connection during cleanup (no active purchase)...',
+            );
+            try {
+              await RNIap.endConnection();
+              console.log('IAP connection closed successfully');
+            } catch (endErr) {
+              console.warn('Error ending IAP connection:', endErr);
+              // Try one more time after a short delay
+              try {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                await RNIap.endConnection();
+                console.log('IAP connection closed on second attempt');
+              } catch (secondEndErr) {
+                console.warn(
+                  'Failed to end IAP connection on second attempt:',
+                  secondEndErr,
+                );
+              }
+            }
             setConnectionState('disconnected');
             iapInitialized = false;
+          } else if (purchasePending) {
+            console.log(
+              'Skipping IAP connection close because a purchase is in progress',
+            );
+            // Just mark as initialized but don't actually close the connection
+            // This way the purchase can complete properly
           }
         } catch (err) {
           console.warn('Error during cleanup:', err);
+          // Ensure we still mark as disconnected even if error occurs
+          if (!purchasePending) {
+            setConnectionState('disconnected');
+            iapInitialized = false;
+          }
         }
       };
       cleanup();
@@ -2787,6 +2885,7 @@ const SubscriptionScreen = () => {
     products,
     connectionState,
     fetchDirectPlayStoreProducts,
+    purchasePending,
   ]);
   // Added all required dependencies to the array
 
@@ -2919,6 +3018,32 @@ const SubscriptionScreen = () => {
                 await reconnectIAP();
               }
 
+              // Ensure connection is valid before attempting purchase
+              let connectionValid = false;
+              try {
+                // Use a simple product query to validate connection
+                await RNIap.getProducts({skus: [productId]});
+                connectionValid = true;
+                console.log('IAP connection validated successfully');
+              } catch (connErr) {
+                console.log('Connection validation failed:', connErr);
+                // Try one more time to reconnect
+                try {
+                  console.log(
+                    'Attempting final reconnection before purchase...',
+                  );
+                  await reconnectIAP();
+
+                  // Verify connection again
+                  await RNIap.getProducts({skus: [productId]});
+                  connectionValid = true;
+                  console.log('IAP connection revalidated successfully');
+                } catch (finalConnErr) {
+                  console.log('Final connection attempt failed:', finalConnErr);
+                  // We'll still try the purchase as a last resort
+                }
+              }
+
               // Request the purchase with explicit parameters
               console.log('Sending purchase request to App Store...');
               const purchase = await RNIap.requestPurchase({
@@ -2949,7 +3074,77 @@ const SubscriptionScreen = () => {
 
               clearTimeout(timeoutId);
 
-              if (iosError.code === 'E_ALREADY_OWNED') {
+              if (
+                iosError.code === 'E_CONNECTION_CLOSED' ||
+                iosError.code === 'E_NOT_PREPARED'
+              ) {
+                console.log(
+                  'Connection issue detected, attempting to reconnect...',
+                );
+                setConnectionState('disconnected');
+                iapInitialized = false;
+
+                try {
+                  // Try to reconnect with progressive backoff
+                  console.log('Starting connection recovery process...');
+
+                  // First attempt after short delay
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  await reconnectIAP();
+
+                  // Validate connection by fetching products
+                  try {
+                    const productIds = [
+                      'payment_101',
+                      'payment_201',
+                      'payment_301',
+                    ];
+                    const refreshedProducts = await RNIap.getProducts({
+                      skus: productIds,
+                      forceRefresh: true,
+                    });
+                    console.log(
+                      'Connection recovered successfully, products fetched:',
+                      refreshedProducts?.length || 0,
+                    );
+
+                    // Update products if we got new ones
+                    if (refreshedProducts && refreshedProducts.length > 0) {
+                      setProducts(refreshedProducts);
+                      global.availableProducts = refreshedProducts;
+                    }
+                  } catch (validationErr) {
+                    console.log(
+                      'Product validation failed after reconnect:',
+                      validationErr,
+                    );
+                    // Continue to alert anyway
+                  }
+
+                  Alert.alert(
+                    'Connection Reset',
+                    'The connection to App Store was reset. Please try your purchase again.',
+                    [
+                      {
+                        text: 'Try Again',
+                        onPress: () => handlePurchase(productId),
+                      },
+                      {
+                        text: 'Cancel',
+                        style: 'cancel',
+                      },
+                    ],
+                  );
+                } catch (reconnectError) {
+                  console.error('Error reconnecting IAP:', reconnectError);
+                  Alert.alert(
+                    'Connection Error',
+                    'Unable to connect to the App Store. Please check your internet connection and try again later.',
+                  );
+                }
+                setPurchasePending(false);
+                return;
+              } else if (iosError.code === 'E_ALREADY_OWNED') {
                 console.log(
                   'Product already owned, handling existing purchase...',
                 );
@@ -3272,6 +3467,83 @@ const SubscriptionScreen = () => {
     checkPendingPurchases();
   }, []);
 
+  // Add a function to handle the refresh
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    console.log('Starting pull-to-refresh...');
+
+    try {
+      // Refresh credits - with explicit tracking and force refresh
+      console.log('Refreshing user credits...');
+      try {
+        await refreshCredits(true); // Force refresh to bypass cache
+        console.log('Credits refreshed successfully');
+
+        // Force UI update for credits
+        const currentCredits = credits;
+        console.log('Current credits:', currentCredits);
+      } catch (creditError) {
+        console.error('Error refreshing credits:', creditError);
+      }
+
+      // Refresh products
+      console.log('Refreshing products...');
+      if (Platform.OS === 'ios') {
+        const productIds = ['payment_101', 'payment_201', 'payment_301'];
+        console.log('Refreshing iOS products with IDs:', productIds);
+
+        // Check connection status first
+        if (connectionState !== 'connected') {
+          console.log('IAP not connected, reconnecting first...');
+          await reconnectIAP();
+        }
+
+        const refreshedProducts = await RNIap.getProducts({
+          skus: productIds,
+          forceRefresh: true,
+        });
+
+        if (refreshedProducts && refreshedProducts.length > 0) {
+          console.log(
+            `Successfully refreshed ${refreshedProducts.length} products`,
+          );
+          setProducts(refreshedProducts);
+          global.availableProducts = refreshedProducts;
+        } else {
+          console.log('No products found during refresh');
+        }
+      } else {
+        // Android refresh
+        console.log('Refreshing Android products...');
+        const directProducts = await fetchDirectPlayStoreProducts();
+        if (directProducts && directProducts.length > 0) {
+          console.log(
+            `Successfully refreshed ${directProducts.length} Android products`,
+          );
+          setProducts(directProducts);
+          global.availableProducts = directProducts;
+        } else {
+          console.log('No Android products found during refresh');
+        }
+      }
+
+      // One more credit refresh to ensure latest data
+      console.log('Performing final credit refresh to ensure latest data');
+      await refreshCredits(true); // Force refresh again to ensure we have the latest data
+      console.log('Pull-to-refresh completed successfully');
+    } catch (error) {
+      console.error('Error during pull-to-refresh:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [
+    refreshCredits,
+    connectionState,
+    reconnectIAP,
+    fetchDirectPlayStoreProducts,
+    credits,
+  ]);
+
   return (
     <View style={styles.container}>
       <LinearGradient
@@ -3315,7 +3587,15 @@ const SubscriptionScreen = () => {
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={Platform.OS === 'ios' ? {paddingBottom: 30} : {}}
-        showsVerticalScrollIndicator={true}>
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#FFD5A9"
+            colors={['#FFD5A9', '#C87D48']}
+          />
+        }>
         {loading ? (
           <View style={styles.loadingContainer}>
             <Text style={styles.loadingText}>Loading credit packs...</Text>
