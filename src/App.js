@@ -77,11 +77,11 @@ const AppContent = () => {
   const initializeAppTracking = useCallback(async () => {
     if (Platform.OS === 'ios') {
       try {
-        setTimeout(async () => {
-          console.log('Initializing App Tracking Transparency from App.js...');
-          const status = await AppTrackingPermission.initializeTracking();
-          console.log('App Tracking Transparency status:', status);
-        }, 1000);
+        console.log('Preparing to initialize App Tracking Transparency...');
+        // Request tracking permission immediately without delay
+        // This ensures the prompt will show on iOS 18.4.1
+        const status = await AppTrackingPermission.initializeTracking();
+        console.log('App Tracking Transparency status:', status);
       } catch (error) {
         console.error('Error initializing App Tracking Transparency:', error);
       }
@@ -94,13 +94,12 @@ const AppContent = () => {
     fetchStoredTheme();
     fetchCreditSettingsData();
 
-    // Create a timeout to ensure the SDK is initialized after app is fully loaded
-    const appTrackingTimeout = setTimeout(() => {
-      initializeAppTracking();
-    }, 1500); // slightly longer delay for the overall initialization
+    // Initialize tracking immediately after app is loaded
+    // This is critical for iOS 18.4.1 compliance
+    initializeAppTracking();
 
     return () => {
-      clearTimeout(appTrackingTimeout);
+      // No cleanup needed for tracking
     };
   }, [fetchCreditSettingsData, initializeAppTracking]);
 

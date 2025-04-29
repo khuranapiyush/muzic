@@ -23,6 +23,8 @@ import config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 import {getAuthToken} from '../../utils/authUtils';
 import CView from '../../components/common/core/View';
+import AppTrackingPermission from '../../utils/AppTrackingPermission';
+import TrackingPermissionModal from '../../components/common/TrackingPermissionModal';
 
 const VoiceRecordScreen = ({navigation}) => {
   const {API_BASE_URL} = config;
@@ -38,6 +40,7 @@ const VoiceRecordScreen = ({navigation}) => {
   );
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
 
   // Use a ref to keep track of the record back listener
   const recordBackListenerRef = useRef(null);
@@ -356,6 +359,18 @@ const VoiceRecordScreen = ({navigation}) => {
   const checkAndRequestPermissions = async () => {
     try {
       console.log(`Requesting ${Platform.OS} microphone permission`);
+
+      // For iOS, also check app tracking permission status
+      if (Platform.OS === 'ios') {
+        // Request App Tracking Transparency permission
+        const trackingStatus = await AppTrackingPermission.getTrackingStatus();
+        console.log('App Tracking Status:', trackingStatus);
+
+        // If tracking status is not determined, show our custom modal
+        if (trackingStatus === 'not-determined') {
+          setShowTrackingModal(true);
+        }
+      }
 
       if (Platform.OS === 'android') {
         // For Android, use the native PermissionsAndroid API
@@ -837,6 +852,16 @@ const VoiceRecordScreen = ({navigation}) => {
           </View>
         </View>
       </ScrollView>
+
+      {/* App Tracking Transparency Permission Request */}
+      {Platform.OS === 'ios' && showTrackingModal && (
+        <TrackingPermissionModal
+          onRequestComplete={status => {
+            console.log('Tracking permission status:', status);
+            setShowTrackingModal(false);
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 };

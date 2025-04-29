@@ -83,7 +83,7 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow access to your photo library to upload photos and videos</string>
 	<key>NSUserTrackingUsageDescription</key>
-	<string>Your data will be used to deliver personalized content and ads</string>
+	<string>We use device identifiers to improve your experience, measure app performance, and deliver personalized content. This helps us provide a better service tailored to your preferences.</string>
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
