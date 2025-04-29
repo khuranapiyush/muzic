@@ -1,0 +1,198 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "9547C171",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "18.99",
+      "familyShareable" : false,
+      "internalID" : "6744959337",
+      "localizations" : [
+        {
+          "description" : "🎵 50 credits 🕓 5 Songs/Al Covers",
+          "displayName" : "Basic Plan",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "payment_101",
+      "referenceName" : "Basic Plan",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "59.99",
+      "familyShareable" : false,
+      "internalID" : "6744959044",
+      "localizations" : [
+        {
+          "description" : "🎵 250 Credits 🕓 25 Songs/AI Cover",
+          "displayName" : "Pro Plan",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "payment_201",
+      "referenceName" : "Pro Plan",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "149.99",
+      "familyShareable" : false,
+      "internalID" : "6744959581",
+      "localizations" : [
+        {
+          "description" : "🎵 3650 Credits 🕓 365 Songs/AI Cover",
+          "displayName" : "Ultra Pro Plan",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "payment_301",
+      "referenceName" : "Ultra Pro Plan",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6744594688",
+    "_developerTeamID" : "GS32LP39L5",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 767515424.93238795,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "21669648",
+      "localizations" : [
+
+      ],
+      "name" : "basic_subscription_plan",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "34.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6744891400",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Montly Basic Plan",
+              "displayName" : "Bsic Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "payment_300",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "basic_subscription_plan",
+          "subscriptionGroupID" : "21669648",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "21673080",
+      "localizations" : [
+
+      ],
+      "name" : "pro_subscription_plan",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "59.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6744916397",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Pro Plan",
+              "displayName" : "Pro Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "payment_400",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Subscription Plan",
+          "subscriptionGroupID" : "21673080",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

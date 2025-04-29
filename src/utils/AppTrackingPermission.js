@@ -54,7 +54,8 @@ export const requestTrackingPermission = async () => {
     const currentStatus = await TrackingTransparency.getTrackingStatus();
     console.log('Current tracking status:', currentStatus);
 
-    // Only request if not determined yet
+    // Only request if not determined yet or on iOS 17+ to ensure prompt appears
+    // This helps address issues with iOS 17 where the prompt might not show
     if (currentStatus === TrackingStatus.NOT_DETERMINED) {
       console.log('Requesting tracking permission...');
       const status = await TrackingTransparency.request();

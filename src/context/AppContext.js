@@ -99,6 +99,9 @@ export const AppProvider = ({children}) => {
   const requestTrackingPermission = async () => {
     try {
       if (Platform.OS === 'ios') {
+        // Delay the permission request to ensure the app is fully visible
+        // This helps with iOS 17's handling of permission dialogs
+        await new Promise(resolve => setTimeout(resolve, 1000));
         // Use our new AppTrackingPermission utility
         console.log('Initializing App Tracking Transparency...');
         const status = await AppTrackingPermission.initializeTracking();
