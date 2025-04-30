@@ -42,21 +42,30 @@ const LoginScreen = () => {
   useEffect(() => {
     const initializeGoogleSignIn = async () => {
       try {
-        // Configure inside the component to ensure it runs in the correct context
-        GoogleSignin.configure({
+        // Platform-specific configuration
+        const iosConfig = {
+          iosClientId:
+            '920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75.apps.googleusercontent.com',
+          scopes: ['email', 'profile'],
+          shouldFetchBasicProfile: true,
+        };
+
+        const androidConfig = {
           webClientId:
             '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
           offlineAccess: true,
           forceCodeForRefreshToken: true,
           scopes: ['email', 'profile'],
-          // Add iOS-specific configuration only
-          ...(Platform.OS === 'ios' && {
-            iosClientId:
-              '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
-          }),
-        });
+        };
+
+        // Configure based on platform
+        if (Platform.OS === 'ios') {
+          GoogleSignin.configure(iosConfig);
+        } else {
+          GoogleSignin.configure(androidConfig);
+        }
       } catch (error) {
-        // Silently handle configuration errors
+        console.error('Error configuring Google Sign In:', error);
       }
     };
 
@@ -173,19 +182,12 @@ const LoginScreen = () => {
 
   const {defaultEventData} = useEvent();
 
-  // const {userId} = useSelector(state => state.user);
-
   const {mutate: googleLoginApi} = useMutation(data => authGoogleLogin(data), {
     onSuccess: res => {
-      // Log the complete response for debugging
-      console.log('Google login success response:', JSON.stringify(res.data));
-
       try {
         // Extract token information for data provider
         const accessToken = res.data?.tokens?.access?.token;
         const refreshToken = res.data?.tokens?.refresh?.token;
-
-        console.log('Extracted tokens:', {accessToken, refreshToken});
 
         // Set auth token for API calls if available
         if (fetcher && fetcher.setAuthToken) {
@@ -202,7 +204,7 @@ const LoginScreen = () => {
           );
         }
 
-        // IMPORTANT: Update Redux state with isLoggedIn=true
+        // Update Redux state with isLoggedIn=true
         dispatch(setUser({isLoggedIn: true, ...res.data}));
 
         // Force isLoggedIn to true in auth slice as well
@@ -210,11 +212,6 @@ const LoginScreen = () => {
 
         // Make sure tokenChecked is true
         dispatch(setTokenChecked(true));
-
-        // Force the app to re-evaluate login state immediately
-        console.log(
-          'Google login successful, forcing AppNavigator to re-evaluate login state',
-        );
 
         // Initialize auth interceptor to handle token refresh
         if (typeof addAuthInterceptor === 'function') {
@@ -226,8 +223,6 @@ const LoginScreen = () => {
           ...defaultEventData,
           CurrentSourceName: loginSource.loginGoogleSource,
         });
-
-        // DON'T USE NAVIGATION HERE - let AppNavigator handle the switch based on Redux state
 
         setIsGoogleSignInProgress(false);
       } catch (error) {
@@ -256,19 +251,29 @@ const LoginScreen = () => {
     try {
       setIsGoogleSignInProgress(true);
 
-      GoogleSignin.configure({
-        webClientId:
-          '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
-        offlineAccess: true,
-        forceCodeForRefreshToken: true,
-        scopes: [
-          'email',
-          'profile',
-          'openid',
-          'https://www.googleapis.com/auth/userinfo.profile',
-          'https://www.googleapis.com/auth/userinfo.email',
-        ],
-      });
+      // Platform-specific configuration
+      if (Platform.OS === 'ios') {
+        GoogleSignin.configure({
+          iosClientId:
+            '920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75.apps.googleusercontent.com',
+          scopes: ['email', 'profile'],
+          shouldFetchBasicProfile: true,
+        });
+      } else {
+        GoogleSignin.configure({
+          webClientId:
+            '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
+          offlineAccess: true,
+          forceCodeForRefreshToken: true,
+          scopes: [
+            'email',
+            'profile',
+            'openid',
+            'https://www.googleapis.com/auth/userinfo.profile',
+            'https://www.googleapis.com/auth/userinfo.email',
+          ],
+        });
+      }
 
       // First try to check if signed in
       try {
@@ -316,6 +321,7 @@ const LoginScreen = () => {
       // Send the complete user object to the backend
       googleLoginApi({
         idToken: userInfo.idToken,
+        id_token: userInfo.idToken, // Include both formats
         serverAuthCode: userInfo.serverAuthCode,
         user: userInfo.user,
       });
@@ -356,15 +362,10 @@ const LoginScreen = () => {
 
   const {mutate: appleLoginApi} = useMutation(data => authAppleLogin(data), {
     onSuccess: res => {
-      // Log the complete response for debugging
-      console.log('Apple login success response:', JSON.stringify(res.data));
-
       try {
         // Extract token information for data provider
         const accessToken = res.data?.tokens?.access?.token;
         const refreshToken = res.data?.tokens?.refresh?.token;
-
-        console.log('Extracted tokens:', {accessToken, refreshToken});
 
         // Set auth token for API calls if available
         if (fetcher && fetcher.setAuthToken) {
@@ -390,11 +391,6 @@ const LoginScreen = () => {
         // Make sure tokenChecked is true
         dispatch(setTokenChecked(true));
 
-        // Force the app to re-evaluate login state immediately
-        console.log(
-          'Apple login successful, forcing AppNavigator to re-evaluate login state',
-        );
-
         // Initialize auth interceptor to handle token refresh
         if (typeof addAuthInterceptor === 'function') {
           addAuthInterceptor();
@@ -405,8 +401,6 @@ const LoginScreen = () => {
           ...defaultEventData,
           CurrentSourceName: loginSource.loginAppleSource,
         });
-
-        // DON'T USE NAVIGATION HERE - let AppNavigator handle the switch based on Redux state
 
         setIsAppleSignInProgress(false);
       } catch (error) {
@@ -542,8 +536,6 @@ const LoginScreen = () => {
       if (!identityToken) {
         throw new Error('Apple Sign-In failed - no identity token returned');
       }
-
-      console.log('Apple Sign In successful, sending data to API');
 
       // Send data to API to validate and get user tokens
       appleLoginApi({

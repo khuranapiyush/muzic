@@ -21,7 +21,6 @@ import {
   setLoading,
   setError,
 } from './stores/slices/creditSettings';
-import AppTrackingPermission from './utils/AppTrackingPermission';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,34 +73,16 @@ const AppContent = () => {
     }
   }, [dispatch]);
 
-  const initializeAppTracking = useCallback(async () => {
-    if (Platform.OS === 'ios') {
-      try {
-        console.log('Preparing to initialize App Tracking Transparency...');
-        // Request tracking permission immediately without delay
-        // This ensures the prompt will show on iOS 18.4.1
-        const status = await AppTrackingPermission.initializeTracking();
-        console.log('App Tracking Transparency status:', status);
-      } catch (error) {
-        console.error('Error initializing App Tracking Transparency:', error);
-      }
-    }
-  }, []);
-
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
   useEffect(() => {
     fetchStoredTheme();
     fetchCreditSettingsData();
 
-    // Initialize tracking immediately after app is loaded
-    // This is critical for iOS 18.4.1 compliance
-    initializeAppTracking();
-
     return () => {
-      // No cleanup needed for tracking
+      // No cleanup needed
     };
-  }, [fetchCreditSettingsData, initializeAppTracking]);
+  }, [fetchCreditSettingsData]);
 
   return (
     <ThemeContext.Provider value={appThemeProviderValue}>

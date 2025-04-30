@@ -5,12 +5,30 @@ require Pod::Executable.execute_command('node', ['-p',
     {paths: [process.argv[1]]},
   )', __dir__]).strip
 
+# Define a function to require node scripts
+def node_require(script)
+  # Resolve script with node to allow for hoisting
+  require Pod::Executable.execute_command('node', ['-p',
+    "require.resolve(
+      '#{script}',
+      {paths: [process.argv[1]]},
+    )", __dir__]).strip
+end
+
+# Load react-native script
+node_require('react-native/scripts/react_native_pods.rb')
+
+# Also include the react-native-permissions setup script
+node_require('react-native-permissions/scripts/setup.rb')
+
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-# Remove the custom pod entry that's causing issues
-# permissions_path = '../node_modules/react-native-permissions/ios'
-# pod 'Permission-Microphone', :path => "#{permissions_path}/Microphone"
+# Setup only microphone permission
+setup_permissions([
+  'Microphone'
+  # Removed App Tracking Transparency
+])
 
 linkage = ENV['USE_FRAMEWORKS']
 if linkage != nil
