@@ -130,19 +130,22 @@ const getStyles = theme => {
       letterSpacing: 0.28,
       textTransform: 'none',
     },
-    buttonContainer: {marginHorizontal: 0},
-    createButton: {
+    buttonContainer: {
       position: 'absolute',
-      bottom: 0,
+      bottom: 20,
       left: 16,
       right: 16,
+      alignItems: 'center',
+      zIndex: 999,
+    },
+    createButton: {
+      width: '100%',
       height: 56,
       borderRadius: 28,
       overflow: 'hidden',
       borderWidth: 1,
       borderStyle: 'solid',
       borderColor: '#C87D48',
-      marginBottom: 20,
     },
     gradient: {
       flex: 1,

@@ -116,34 +116,14 @@ const GlobalPlayer = () => {
     dispatch(hidePlayer());
   };
 
-  const handlePlay = () => {
-    if (currentSong) {
-      dispatch(setIsPlaying(true));
-      dispatch(hidePlayer()); // This will show the player
-    }
-  };
-
   return (
     <>
       {/* Mini Player */}
       <Animated.View
         style={[styles.container, {transform: [{scale: scaleAnimation}]}]}>
         {Platform.OS === 'ios' ? (
-          // iOS-specific player implementation
-          <TouchableOpacity
-            style={styles.iosFlatPlayerContainer}
-            activeOpacity={0.9}
-            onPress={toggleFullPlayer}>
-            {/* Background gradient with no gaps */}
-            <LinearGradient
-              colors={['#FE954A', '#FC6C14']}
-              start={{x: 0, y: 0}}
-              end={{x: 0, y: 1}}
-              style={styles.iosBackgroundGradient}
-              locations={[0, 0.8]}
-            />
-
-            {/* iOS Close button */}
+          <>
+            {/* iOS Close button placed outside the player container */}
             <TouchableOpacity
               style={styles.closePlayerButton}
               onPress={handleClose}>
@@ -151,65 +131,84 @@ const GlobalPlayer = () => {
                 <Image
                   source={appImages.closeIcon}
                   style={{
-                    width: 14,
-                    height: 14,
+                    width: Platform.OS === 'ios' ? 18 : 14,
+                    height: Platform.OS === 'ios' ? 18 : 14,
                     tintColor: '#FFFFFF',
                   }}
                 />
               </View>
             </TouchableOpacity>
 
-            {/* Song thumbnail */}
-            <View style={styles.thumbnailContainer}>
-              <Image
-                source={{uri: currentSong.poster || currentSong.thumbnail}}
-                style={styles.thumbnail}
-                onError={() =>
-                  console.log('Mini player thumbnail failed to load')
-                }
+            {/* iOS-specific player implementation */}
+            <TouchableOpacity
+              style={styles.iosFlatPlayerContainer}
+              activeOpacity={0.9}
+              onPress={toggleFullPlayer}>
+              {/* Background gradient with no gaps */}
+              <LinearGradient
+                colors={['#FE954A', '#FC6C14']}
+                start={{x: 0, y: 0}}
+                end={{x: 0, y: 1}}
+                style={styles.iosBackgroundGradient}
+                locations={[0, 0.8]}
               />
-            </View>
 
-            {/* Song info */}
-            <View style={styles.infoContainer}>
-              <Text style={styles.title} numberOfLines={1}>
-                {currentSong.title}
-              </Text>
-              <Text style={styles.artist} numberOfLines={1}>
-                {currentSong.artist}
-              </Text>
-              <Text style={styles.timeText}>
-                {formatTime(progress)} / {formatTime(duration)}
-              </Text>
-            </View>
-
-            {/* Controls */}
-            <View style={styles.controls}>
-              <TouchableOpacity
-                onPress={handlePlayPause}
-                style={styles.playPauseButton}>
+              {/* Song thumbnail */}
+              <View style={styles.thumbnailContainer}>
                 <Image
-                  source={
-                    isPlaying
-                      ? appImages.playerPauseIcon
-                      : appImages.playerPlayIcon
+                  source={{uri: currentSong.poster || currentSong.thumbnail}}
+                  style={styles.thumbnail}
+                  onError={() =>
+                    console.log('Mini player thumbnail failed to load')
                   }
-                  style={styles.playPauseIcon}
-                  resizeMode="contain"
                 />
-              </TouchableOpacity>
-            </View>
+              </View>
 
-            {/* iOS Progress bar */}
-            <View style={styles.iosMiniProgressBarContainer}>
-              <View
-                style={[
-                  styles.iosMiniProgressBar,
-                  {width: `${(progress / duration) * 100}%`},
-                ]}
-              />
-            </View>
-          </TouchableOpacity>
+              {/* Song info */}
+              <View style={styles.infoContainer}>
+                <Text style={styles.title} numberOfLines={1}>
+                  {currentSong.title}
+                </Text>
+                <Text style={styles.artist} numberOfLines={1}>
+                  {currentSong.artist}
+                </Text>
+                <Text style={styles.timeText}>
+                  {formatTime(progress)} / {formatTime(duration)}
+                </Text>
+              </View>
+
+              {/* Controls */}
+              <View style={styles.controls}>
+                <TouchableOpacity
+                  onPress={handlePlayPause}
+                  style={styles.playPauseButton}>
+                  <Image
+                    source={
+                      isPlaying
+                        ? appImages.playerPauseIcon
+                        : appImages.playerPlayIcon
+                    }
+                    style={styles.playPauseIcon}
+                    resizeMode="contain"
+                  />
+                </TouchableOpacity>
+              </View>
+
+              {/* iOS Progress bar */}
+              <View style={styles.iosMiniProgressBarContainer}>
+                <View
+                  style={[
+                    styles.iosMiniProgressBar,
+                    {
+                      width: `${
+                        progress && duration ? (progress / duration) * 100 : 0
+                      }%`,
+                    },
+                  ]}
+                />
+              </View>
+            </TouchableOpacity>
+          </>
         ) : (
           // Android implementation
           <TouchableOpacity
@@ -470,7 +469,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     zIndex: 1,
-    marginHorizontal: Platform.OS === 'ios' ? 2 : 0,
+    marginHorizontal: Platform.OS === 'ios' ? 0 : 0, // Changed from 2 to 0 for iOS
   },
   gradientContainer: {
     flexDirection: 'row',
@@ -503,6 +502,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
+    position: 'relative', // Ensure absolute positioning works correctly
   },
   iosBackgroundGradient: {
     position: 'absolute',
@@ -514,16 +514,19 @@ const styles = StyleSheet.create({
   },
   iosMiniProgressBarContainer: {
     height: 4,
-    width: '100%',
     backgroundColor: '#FE954A',
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
+    zIndex: 10,
   },
   iosMiniProgressBar: {
     height: 4,
     backgroundColor: '#FFFFFF',
+    position: 'absolute',
+    left: 0,
+    bottom: 0,
   },
   thumbnailContainer: {
     position: 'relative',
@@ -584,8 +587,10 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     ...Platform.select({
       ios: {
-        top: -8,
-        right: 0,
+        position: 'absolute',
+        top: -15,
+        right: -5,
+        zIndex: 2000, // Higher z-index for iOS
       },
     }),
   },
@@ -598,10 +603,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...Platform.select({
       ios: {
-        width: 22,
-        height: 22,
-        borderRadius: 11,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        width: 24,
+        height: 24,
+        borderRadius: 14,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        borderWidth: 1,
+        borderColor: 'rgba(255, 255, 255, 0.4)',
+        shadowColor: '#000',
+        shadowOffset: {width: 0, height: 1},
+        shadowOpacity: 0.5,
+        shadowRadius: 2,
       },
     }),
   },

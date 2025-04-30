@@ -309,6 +309,9 @@ const AIGenerator = ({pageHeading}) => {
 
   const creditsPerSong = useSelector(selectCreditsPerSong);
 
+  // Add this to check global player visibility
+  const {showGlobalPlayer} = useSelector(state => state.player);
+
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
@@ -347,7 +350,11 @@ const AIGenerator = ({pageHeading}) => {
             onVoiceSelect={handleVoiceSelect}
             resetSelections={resetSelections}
           />
-          <CView style={styles.buttonContainer}>
+          <CView
+            style={[
+              styles.buttonContainer,
+              showGlobalPlayer && {bottom: 90}, // Adjust bottom margin when player is visible
+            ]}>
             <TouchableOpacity
               style={styles.createButton}
               activeOpacity={0.8}

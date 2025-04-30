@@ -107,6 +107,9 @@ const CoverCreationScreen = () => {
 
   const creditsPerSong = useSelector(selectCreditsPerSong);
 
+  // Add this to check global player visibility
+  const {showGlobalPlayer} = useSelector(state => state.player);
+
   // Basic network check function (simplified)
   const checkNetworkConnectivity = useCallback(async () => {
     try {
@@ -776,12 +779,17 @@ const CoverCreationScreen = () => {
         </View>
       </View>
 
-      {/* Create Button */}
-      <View style={styles.buttonContainer}>
+      {/* Button container - adjust position based on global player visibility */}
+      <View
+        style={[
+          styles.buttonContainer,
+          showGlobalPlayer && {bottom: 90}, // Move button up when player is visible
+        ]}>
         <TouchableOpacity
           style={styles.createButton}
-          activeOpacity={0.8}
-          disabled={isLoading || (!selectedVoiceId && !selectedRecordingFile)}
+          disabled={
+            (!selectedVoiceId && !selectedRecordingFile) || !link || isLoading
+          }
           onPress={createVoiceConversion}>
           <LinearGradient
             colors={['#F4A460', '#DEB887']}
@@ -1162,7 +1170,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   bottomSheetContent: {
-    backgroundColor: '#1F2937',
+    backgroundColor: '#1E1E1E',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     padding: 20,
@@ -1172,6 +1180,7 @@ const styles = StyleSheet.create({
     color: '#FDF5E6',
     fontSize: 24,
     fontWeight: 'bold',
+    lineHeight: 32,
     marginBottom: 16,
     textAlign: 'center',
   },
