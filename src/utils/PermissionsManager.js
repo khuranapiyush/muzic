@@ -1,137 +1,60 @@
 import {Platform} from 'react-native';
-import {
-  request,
-  getTrackingStatus,
-  TrackingStatus,
-} from 'react-native-tracking-transparency';
+import {PERMISSIONS, RESULTS, check, request} from 'react-native-permissions';
 
-// Implementation for permissions with real ATT support
+// Implementation for permissions with focus on microphone access
 class PermissionsManager {
-  static PERMISSIONS = {
-    IOS: {
-      CAMERA: 'ios.permission.CAMERA',
-      MICROPHONE: 'ios.permission.MICROPHONE',
-      PHOTO_LIBRARY: 'ios.permission.PHOTO_LIBRARY',
-      APP_TRACKING_TRANSPARENCY: 'ios.permission.APP_TRACKING_TRANSPARENCY',
-    },
-    ANDROID: {
-      CAMERA: 'android.permission.CAMERA',
-      RECORD_AUDIO: 'android.permission.RECORD_AUDIO',
-      READ_EXTERNAL_STORAGE: 'android.permission.READ_EXTERNAL_STORAGE',
-      WRITE_EXTERNAL_STORAGE: 'android.permission.WRITE_EXTERNAL_STORAGE',
-    },
-  };
+  static PERMISSIONS = PERMISSIONS;
+  static RESULTS = RESULTS;
 
-  static RESULTS = {
-    UNAVAILABLE: 'unavailable',
-    DENIED: 'denied',
-    GRANTED: 'granted',
-    BLOCKED: 'blocked',
-  };
-
-  // Check a permission with special handling for tracking permission
+  // Check a permission
   static async check(permission) {
     console.log(`[PermissionsManager] Checking permission: ${permission}`);
 
-    // If it's the tracking permission on iOS, use the tracking transparency module
-    if (
-      Platform.OS === 'ios' &&
-      permission === this.PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY
-    ) {
-      try {
-        const trackingStatus = await getTrackingStatus();
-        switch (trackingStatus) {
-          case TrackingStatus.UNAVAILABLE:
-            return this.RESULTS.UNAVAILABLE;
-          case TrackingStatus.DENIED:
-            return this.RESULTS.DENIED;
-          case TrackingStatus.AUTHORIZED:
-            return this.RESULTS.GRANTED;
-          case TrackingStatus.RESTRICTED:
-            return this.RESULTS.BLOCKED;
-          case TrackingStatus.NOT_DETERMINED:
-          default:
-            return this.RESULTS.DENIED;
-        }
-      } catch (error) {
-        console.error(
-          '[PermissionsManager] Error checking tracking permission:',
-          error,
-        );
-        return this.RESULTS.DENIED;
-      }
+    try {
+      return await check(permission);
+    } catch (error) {
+      console.error('[PermissionsManager] Error checking permission:', error);
+      return this.RESULTS.DENIED;
     }
-
-    // For other permissions use a mock for now
-    return this.RESULTS.GRANTED;
   }
 
-  // Request permission with special handling for tracking permission
+  // Request permission with proper error handling
   static async request(permission) {
     console.log(`[PermissionsManager] Requesting permission: ${permission}`);
 
-    // If it's the tracking permission on iOS, use the tracking transparency module
-    if (
-      Platform.OS === 'ios' &&
-      permission === this.PERMISSIONS.IOS.APP_TRACKING_TRANSPARENCY
-    ) {
-      try {
-        const trackingStatus = await request();
-        switch (trackingStatus) {
-          case TrackingStatus.UNAVAILABLE:
-            return this.RESULTS.UNAVAILABLE;
-          case TrackingStatus.DENIED:
-            return this.RESULTS.DENIED;
-          case TrackingStatus.AUTHORIZED:
-            return this.RESULTS.GRANTED;
-          case TrackingStatus.RESTRICTED:
-            return this.RESULTS.BLOCKED;
-          case TrackingStatus.NOT_DETERMINED:
-          default:
-            return this.RESULTS.DENIED;
-        }
-      } catch (error) {
-        console.error(
-          '[PermissionsManager] Error requesting tracking permission:',
-          error,
-        );
-        return this.RESULTS.DENIED;
-      }
+    try {
+      return await request(permission);
+    } catch (error) {
+      console.error('[PermissionsManager] Error requesting permission:', error);
+      return this.RESULTS.DENIED;
     }
-
-    // For other permissions use a mock for now
-    return this.RESULTS.GRANTED;
   }
 
-  // Simulate requesting multiple permissions
-  static async requestMultiple(permissions) {
-    console.log(
-      `[PermissionsManager] Requesting multiple permissions: ${permissions.join(
-        ', ',
-      )}`,
-    );
-    const result = {};
+  // Check if microphone permission is granted
+  static async checkMicrophonePermission() {
+    const permission =
+      Platform.OS === 'ios'
+        ? PERMISSIONS.IOS.MICROPHONE
+        : PERMISSIONS.ANDROID.RECORD_AUDIO;
 
-    for (const permission of permissions) {
-      result[permission] = await this.request(permission);
-    }
-
-    return result;
+    return await this.check(permission);
   }
 
-  // Simulate notification permissions
-  static async requestNotifications(options) {
-    console.log(`[PermissionsManager] Requesting notification permissions`);
-    return {
-      status: this.RESULTS.GRANTED,
-    };
+  // Request microphone permission
+  static async requestMicrophonePermission() {
+    const permission =
+      Platform.OS === 'ios'
+        ? PERMISSIONS.IOS.MICROPHONE
+        : PERMISSIONS.ANDROID.RECORD_AUDIO;
+
+    return await this.request(permission);
   }
 
   // Get platform permissions
   static getPlatformPermissions() {
     return Platform.OS === 'ios'
-      ? this.PERMISSIONS.IOS
-      : this.PERMISSIONS.ANDROID;
+      ? this.PERMISSIONS.IOS || {}
+      : this.PERMISSIONS.ANDROID || {};
   }
 }
 

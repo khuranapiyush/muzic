@@ -1,57 +1,42 @@
-# App Tracking Transparency Implementation
+# Permission Management in Muzic App
 
-This document explains how App Tracking Transparency (ATT) is implemented in the Muzic app for iOS 18.4.1+ compliance.
+This document explains how permissions are managed in the Muzic app.
 
-## Overview
+## Microphone Permission
 
-The App Tracking Transparency framework requires apps to request permission from users before tracking their data across apps and websites owned by other companies. Our implementation consists of multiple layers to ensure proper functionality and compliance.
+The Muzic app only requests microphone permission for voice recording functionality. No tracking permissions are used in the app.
 
-## Implementation Details
+### Implementation Details
 
 1. **Info.plist Configuration**
-   - `NSUserTrackingUsageDescription` includes a clear explanation of why we request tracking permission
-   - The purpose string explains we use device identifiers to improve user experience and deliver personalized content
+   - `NSMicrophoneUsageDescription` includes a clear explanation of why we request microphone permission
+   - The purpose string explains we use microphone access to allow voice recording in the app
 
-2. **AppTrackingPermission Utility**
-   - Located at `src/utils/AppTrackingPermission.js`
-   - Handles all tracking-related functionality
-   - Provides fallback mechanisms to handle undefined values
-   - Properly handles iOS platform-specific behavior
+2. **Permission Request Flow**
+   - Microphone permission is only requested when needed for recording functionality
+   - When the user attempts to record audio, the permission prompt will appear
+   - The app provides clear context for why the permission is needed
 
-3. **Permission Request Points**
-   - App initialization in `App.js`: Initializes tracking early but without blocking app flow
-   - Voice Recording Screen: Presents tracking permission in context of feature usage
-   - Custom modal that explains the benefits of allowing tracking
+3. **Permission Manager**
+   - `src/utils/PermissionsManager.js` handles all permission-related functionality
+   - Provides methods for checking and requesting microphone permission
+   - Handles platform-specific differences between iOS and Android
 
-4. **Custom TrackingPermissionModal**
-   - Located at `src/components/common/TrackingPermissionModal.js`
-   - Provides a user-friendly interface to request permission
-   - Shows a detailed explanation of why tracking is needed
-   - Only appears when the system status is "not-determined"
+## No Tracking Used
 
-## iOS 18.4.1+ Considerations
+The Muzic app does NOT use tracking functionality and DOES NOT track users across apps and websites owned by other companies. The app does not:
 
-To ensure ATT works properly on iOS 18.4.1 and beyond:
+1. Track users across apps and websites
+2. Use device identifiers for advertising purposes
+3. Share user data with data brokers
+4. Collect device information for tracking purposes
 
-1. We removed the status check before requesting permission, as this was causing issues with the prompt appearing
-2. We request permission directly when needed
-3. We added a custom modal to provide context before the system prompt appears
-4. We improved error handling for iOS platform-specific behaviors
+## Privacy Considerations
 
-## Testing
+1. The app only collects data necessary for its core functionality
+2. All data collection is transparent to the user
+3. No unnecessary permissions are requested
 
-To test the App Tracking Transparency implementation:
+## App Store Privacy Information
 
-1. Reset tracking permissions on your iOS device (Settings > Privacy > Tracking > Reset)
-2. Launch the app and observe that tracking is requested during app initialization
-3. Navigate to the Voice Recording screen to see the contextual permission request
-4. Verify that the permission request appears correctly
-
-## Troubleshooting
-
-If permission prompts don't appear:
-
-1. Verify the app is running on iOS (this feature is iOS-only)
-2. Check that the device is running iOS 14 or later
-3. Ensure tracking authorization hasn't already been determined (denied or authorized)
-4. Check console logs for any error messages related to tracking permissions 
+In App Store Connect, the app's privacy information has been updated to indicate that it does NOT track users across apps and websites owned by other companies. 

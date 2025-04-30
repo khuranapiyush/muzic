@@ -90,9 +90,11 @@
 	<string>Allow access to save photos and videos to your library</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Allow access to your photo library to upload photos and videos</string>
-	<key>NSUserTrackingUsageDescription</key>
-	<string>We use device identifiers to improve your experience, measure app performance, and deliver personalized content. This helps us provide a better service tailored to your preferences.</string>
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

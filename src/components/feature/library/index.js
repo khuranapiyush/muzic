@@ -413,9 +413,8 @@ const LibraryScreen = () => {
         // Create a download path based on platform
         let downloadDir;
         if (Platform.OS === 'ios') {
-          // For iOS, we'll use the cache directory which is good for temporary files
-          // before sharing them via the share dialog
-          downloadDir = RNFS.CachesDirectoryPath;
+          // For iOS, use the document directory which works better for sharing
+          downloadDir = RNFS.DocumentDirectoryPath;
         } else {
           // For Android, use the Downloads directory
           downloadDir = RNFS.DownloadDirectoryPath;
@@ -497,7 +496,7 @@ const LibraryScreen = () => {
             // For iOS, use the built-in Share API
             try {
               // Import the Share module from React Native
-              const {Share} = require('react-native');
+              const Share = require('react-native-share').default;
 
               // Show completion message
               Alert.alert(
@@ -508,17 +507,16 @@ const LibraryScreen = () => {
                     text: 'Share',
                     onPress: async () => {
                       try {
-                        // Use the react-native Share API to share the file URL
-                        const result = await Share.share({
+                        // Use react-native-share to share the file from path
+                        const shareResponse = await Share.open({
                           url: `file://${downloadPath}`,
+                          type: 'audio/mp3',
+                          title: song.title,
                           message: `Check out this song: ${song.title}`,
+                          saveToFiles: true,
                         });
 
-                        if (result.action === Share.sharedAction) {
-                          console.log('Shared successfully');
-                        } else if (result.action === Share.dismissedAction) {
-                          console.log('Share dismissed');
-                        }
+                        console.log('Share response:', shareResponse);
                       } catch (error) {
                         console.error('Error sharing file:', error);
 

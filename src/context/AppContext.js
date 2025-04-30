@@ -2,8 +2,6 @@ import {useQuery} from '@tanstack/react-query';
 import React, {createContext, useEffect, useState} from 'react';
 import {Platform} from 'react-native';
 import PermissionsManager from '../utils/PermissionsManager';
-const {PERMISSIONS, RESULTS, check, request, requestNotifications} =
-  PermissionsManager;
 import {useDispatch, useSelector} from 'react-redux';
 import {fetchAppConfig} from '../api/app';
 import {APP_VERSION} from '../constants/app';
@@ -20,7 +18,6 @@ import {setUser} from '../stores/slices/user';
 import {getUniqueId} from '../utils/common';
 import {checkAndRefreshTokens} from '../utils/authUtils';
 import DeepLinkHandler from '../components/common/DeepLinkHandler';
-import AppTrackingPermission from '../utils/AppTrackingPermission';
 
 const AppContext = createContext();
 
@@ -96,36 +93,38 @@ export const AppProvider = ({children}) => {
     }
   }, [tokenChecked, accessToken, refreshToken, dispatch]);
 
-  const requestTrackingPermission = async () => {
+  const requestMicrophonePermission = async () => {
     try {
       if (Platform.OS === 'ios') {
-        // Delay the permission request to ensure the app is fully visible
-        // This helps with iOS 17's handling of permission dialogs
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Use our new AppTrackingPermission utility
-        console.log('Initializing App Tracking Transparency...');
-        const status = await AppTrackingPermission.initializeTracking();
-        console.log('ATT initialization result:', status);
-        return status === 'authorized';
-      }
-      return false; // Not iOS
-    } catch (error) {
-      console.log('Error in requestTrackingPermission:', error);
-      return false;
-    }
-  };
-
-  const requestNotificationPermission = async () => {
-    try {
-      if (Platform.OS === 'ios') {
-        const {status} = await requestNotifications([]);
-
-        if (status === RESULTS.GRANTED) {
-          // Permission granted, you can now use push notifications
+        console.log('Requesting microphone permissions...');
+        try {
+          const result = await PermissionsManager.request(
+            PermissionsManager.PERMISSIONS.IOS.MICROPHONE,
+          );
+          console.log('Microphone permission result:', result);
+          return result === PermissionsManager.RESULTS.GRANTED;
+        } catch (permError) {
+          // If there's an error, handle it gracefully
+          console.warn('Microphone permissions error:', permError.message);
+          return false;
+        }
+      } else if (Platform.OS === 'android') {
+        console.log('Requesting microphone permissions on Android...');
+        try {
+          const result = await PermissionsManager.request(
+            PermissionsManager.PERMISSIONS.ANDROID.RECORD_AUDIO,
+          );
+          console.log('Microphone permission result:', result);
+          return result === PermissionsManager.RESULTS.GRANTED;
+        } catch (permError) {
+          console.warn('Microphone permissions error:', permError.message);
+          return false;
         }
       }
+      return false;
     } catch (error) {
-      console.log('error in requestNotificationPermission', error);
+      console.error('Error in requestMicrophonePermission', error);
+      return false;
     }
   };
 
@@ -181,23 +180,22 @@ export const AppProvider = ({children}) => {
     };
   }, [userId]);
 
+  // Initialize only microphone permissions when needed
   useEffect(() => {
-    const requestPermissions = async () => {
-      try {
-        // Use the new setupPermissions function
-        await requestTrackingPermission();
-        await requestNotificationPermission();
-        setPermissionsLoaded(true);
-      } catch (error) {
-        console.log('Error requesting permissions:', error);
-      }
+    const initializePermissions = async () => {
+      // Only mark permissions as loaded, we'll request microphone when needed
+      setPermissionsLoaded(true);
     };
 
-    requestPermissions();
+    initializePermissions();
   }, []);
 
   return (
-    <AppContext.Provider value={isLoggedIn}>
+    <AppContext.Provider
+      value={{
+        isLoggedIn,
+        requestMicrophonePermission,
+      }}>
       <DeepLinkHandler>{children}</DeepLinkHandler>
     </AppContext.Provider>
   );
