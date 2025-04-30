@@ -27,4 +27,9 @@ class AppDelegate: RCTAppDelegate {
     Bundle.main.url(forResource: "main", withExtension: "jsbundle")
 #endif
   }
+  
+  // Handle URL scheme for Google Sign-In
+  override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    return super.application(app, open: url, options: options)
+  }
 }

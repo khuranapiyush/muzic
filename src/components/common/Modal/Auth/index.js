@@ -397,13 +397,26 @@ const AuthModal = ({
 
       // Configure Google Sign In with minimal configuration
       console.log('Configuring Google Sign In with minimal configuration...');
-      const config = {
-        webClientId:
-          '920222123505-1b6147gr46g7bp0bkjvn02i056g2e34d.apps.googleusercontent.com',
-        offlineAccess: false,
-        forceCodeForRefreshToken: false,
-        scopes: ['email'],
-      };
+      let config;
+
+      if (Platform.OS === 'ios') {
+        config = {
+          iosClientId:
+            '920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75.apps.googleusercontent.com',
+          scopes: ['email'],
+          shouldFetchBasicProfile: true,
+        };
+        console.log('Using iOS-specific Google Sign In configuration');
+      } else {
+        config = {
+          webClientId:
+            '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
+          offlineAccess: false,
+          forceCodeForRefreshToken: false,
+          scopes: ['email'],
+        };
+        console.log('Using Android-specific Google Sign In configuration');
+      }
 
       // Log configuration before applying
       console.log('Google Sign In Configuration:', {
@@ -448,7 +461,7 @@ const AuthModal = ({
 
           console.log('Calling backend API with ID token...');
           googleLoginApi({
-            id_token: userInfo.idToken,
+            idToken: userInfo.idToken,
             userId,
           });
           return; // Success, exit the function
@@ -492,7 +505,7 @@ const AuthModal = ({
               ],
               currentConfig: {
                 webClientId:
-                  '920222123505-1b6147gr46g7bp0bkjvn02i056g2e34d.apps.googleusercontent.com',
+                  '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
                 packageName: 'com.muzic',
                 platform: Platform.OS,
                 version: Platform.Version,
@@ -555,7 +568,7 @@ const AuthModal = ({
           ],
           currentConfig: {
             webClientId:
-              '920222123505-1b6147gr46g7bp0bkjvn02i056g2e34d.apps.googleusercontent.com',
+              '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
             packageName: 'com.muzic',
             platform: Platform.OS,
             version: Platform.Version,

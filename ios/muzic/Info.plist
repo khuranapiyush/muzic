@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>muzic</string>
+	<string>MakeMySong</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIconName</key>
@@ -42,6 +42,14 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.muzic</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75</string>
 			</array>
 		</dict>
 	</array>
