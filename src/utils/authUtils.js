@@ -65,8 +65,19 @@ export const isTokenExpired = (token, bufferSeconds = 60) => {
   if (!token) return true;
 
   try {
+    // Validate token format - must contain two dots (header.payload.signature)
+    if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
+      console.warn('Invalid token format');
+      return true; // Treat as expired
+    }
+
     // Decode the token to get expiration time
     const base64Url = token.split('.')[1];
+    if (!base64Url) {
+      console.warn('Token payload section missing');
+      return true; // Treat as expired
+    }
+
     const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
 
     // Use our base64Decode function instead of atob
