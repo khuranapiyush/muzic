@@ -3549,7 +3549,7 @@ const styles = StyleSheet.create({
   },
   createButton: {
     marginVertical: 10,
-    width: '90%',
+    width: Platform.OS === 'ios' ? '90%' : '100%',
     height: 60,
     borderRadius: 28,
     overflow: 'hidden',
