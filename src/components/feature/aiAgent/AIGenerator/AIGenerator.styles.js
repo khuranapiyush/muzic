@@ -31,6 +31,17 @@ const getStyles = theme => {
       borderRadius: 12,
       // padding: 5,
     },
+    scrollContainer: {
+      flex: 1,
+      width: '100%',
+    },
+    scrollContentContainer: {
+      flexGrow: 1,
+      paddingBottom: 80,
+    },
+    scrollBottomPadding: {
+      height: 80,
+    },
     titleIcon: {
       tintColor: Colors[theme]?.white,
       width: 28,

@@ -54,7 +54,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>3</string>
+	<string>5</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -64,32 +64,10 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>Allow access to your media library</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>Allow Bluetooth access to connect to devices</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Allow Bluetooth access to connect to devices</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Allow access to your calendar to schedule events</string>
-	<key>NSCameraUsageDescription</key>
-	<string>Allow access to your camera to record videos and capture photos</string>
-	<key>NSContactsUsageDescription</key>
-	<string>Allow access to your contacts to find your friends</string>
-	<key>NSFaceIDUsageDescription</key>
-	<string>Allow authentication using Face ID</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>We need to access your location to provide relevant information</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>We need to access your location to provide relevant information</string>
+
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Allow access to your microphone to record audio in videos</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Allow access to motion data for enhanced app features</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Allow access to save photos and videos to your library</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Allow access to your photo library to upload photos and videos</string>
+	<string>MakeMySong needs microphone access to record your voice for creating voice notes and audio content</string>
+	
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>

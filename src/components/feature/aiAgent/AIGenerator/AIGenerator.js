@@ -8,6 +8,7 @@ import {
   View,
   TouchableOpacity,
   TouchableWithoutFeedback,
+  ScrollView,
 } from 'react-native';
 import CView from '../../../common/core/View';
 import CText from '../../../common/core/Text';
@@ -316,40 +317,48 @@ const AIGenerator = ({pageHeading}) => {
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
       <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
         <CView style={styles.flatList}>
-          <CView style={styles.wrapper}>
-            <CText size="largeBold" style={styles.promptHeading}>
-              Write your Prompt
-            </CText>
-            <TextInputFC
-              control={control}
-              name={'promptText'}
-              autoComplete={'off'}
-              autoCorrect={false}
-              placeholder={getRenderDetail(pageHeading).placeholderText}
-              multiline={true}
-              numberOfLines={5}
-              placeholderTextColor={Colors[mode].textLightGray}
-              customStyles={styles.inputContainerStyles}
-              style={{
-                color: Colors[mode].textLightGray,
-                textAlignVertical: 'top',
-              }}
-              onChangeText={handleInputChange}
-            />
-            <View style={styles.creditsContainer}>
-              <CText style={styles.creditsText}>
-                Songs Left: {Math.floor(creditsValue / creditsPerSong)}
+          <ScrollView
+            style={styles.scrollContainer}
+            contentContainerStyle={styles.scrollContentContainer}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled">
+            <CView style={styles.wrapper}>
+              <CText size="largeBold" style={styles.promptHeading}>
+                Write your Prompt
               </CText>
-            </View>
-            {errorMessage ? (
-              <CText style={styles.errorText}>{errorMessage}</CText>
-            ) : null}
-          </CView>
-          <GenreSelectionScreen
-            onGenreSelect={handleGenreSelect}
-            onVoiceSelect={handleVoiceSelect}
-            resetSelections={resetSelections}
-          />
+              <TextInputFC
+                control={control}
+                name={'promptText'}
+                autoComplete={'off'}
+                autoCorrect={false}
+                placeholder={getRenderDetail(pageHeading).placeholderText}
+                multiline={true}
+                numberOfLines={5}
+                placeholderTextColor={Colors[mode].textLightGray}
+                customStyles={styles.inputContainerStyles}
+                style={{
+                  color: Colors[mode].textLightGray,
+                  textAlignVertical: 'top',
+                }}
+                onChangeText={handleInputChange}
+              />
+              <View style={styles.creditsContainer}>
+                <CText style={styles.creditsText}>
+                  Songs Left: {Math.floor(creditsValue / creditsPerSong)}
+                </CText>
+              </View>
+              {errorMessage ? (
+                <CText style={styles.errorText}>{errorMessage}</CText>
+              ) : null}
+            </CView>
+            <GenreSelectionScreen
+              onGenreSelect={handleGenreSelect}
+              onVoiceSelect={handleVoiceSelect}
+              resetSelections={resetSelections}
+            />
+            {/* Add padding at the bottom to ensure content isn't hidden behind the button */}
+            <View style={styles.scrollBottomPadding} />
+          </ScrollView>
           <CView
             style={[
               styles.buttonContainer,

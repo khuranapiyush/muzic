@@ -413,8 +413,14 @@ const LibraryScreen = () => {
         // Create a download path based on platform
         let downloadDir;
         if (Platform.OS === 'ios') {
-          // For iOS, use the document directory which works better for sharing
-          downloadDir = RNFS.DocumentDirectoryPath;
+          // For iOS, use the Downloads directory instead of document directory
+          // By using NSDownloadDirectory within Library directory
+          downloadDir = `${RNFS.LibraryDirectoryPath}/Downloads`;
+
+          // Create Downloads directory if it doesn't exist
+          if (!(await RNFS.exists(downloadDir))) {
+            await RNFS.mkdir(downloadDir);
+          }
         } else {
           // For Android, use the Downloads directory
           downloadDir = RNFS.DownloadDirectoryPath;
@@ -493,63 +499,38 @@ const LibraryScreen = () => {
 
           // Success handling based on platform
           if (Platform.OS === 'ios') {
-            // For iOS, use the built-in Share API
+            // For iOS, save directly to the Downloads directory without showing share menu
             try {
               // Import the Share module from React Native
               const Share = require('react-native-share').default;
 
-              // Show completion message
+              // Save the file to the device Downloads folder directly
+              const shareResponse = await Share.open({
+                url: `file://${downloadPath}`,
+                type: 'audio/mp3',
+                title: song.title,
+                saveToFiles: true, // This will save directly to Files app without showing UI
+                failOnCancel: false, // Don't throw if user cancels
+              });
+
+              console.log('Share response:', shareResponse);
+
+              // Show success message without share prompt
               Alert.alert(
                 'Download Complete',
-                'File downloaded successfully. Tap Share to open the share menu.',
-                [
-                  {
-                    text: 'Share',
-                    onPress: async () => {
-                      try {
-                        // Use react-native-share to share the file from path
-                        const shareResponse = await Share.open({
-                          url: `file://${downloadPath}`,
-                          type: 'audio/mp3',
-                          title: song.title,
-                          message: `Check out this song: ${song.title}`,
-                          saveToFiles: true,
-                        });
-
-                        console.log('Share response:', shareResponse);
-                      } catch (error) {
-                        console.error('Error sharing file:', error);
-
-                        // Fallback to opening the document if Share API fails
-                        try {
-                          await RNFS.openDocument(downloadPath);
-                        } catch (openError) {
-                          console.error('Error opening document:', openError);
-                          Alert.alert(
-                            'Error',
-                            'Could not share the file. Please try again.',
-                          );
-                        }
-                      }
-                    },
-                  },
-                  {
-                    text: 'Cancel',
-                    style: 'cancel',
-                  },
-                ],
+                `${song.title} saved to Downloads folder`,
               );
             } catch (shareError) {
-              console.error('Error during share preparation:', shareError);
+              console.error('Error during save to files:', shareError);
 
-              // Fallback to basic document opening
+              // If silent save failed, try opening the document directly
               try {
                 await RNFS.openDocument(downloadPath);
               } catch (openError) {
                 console.error('Error opening document:', openError);
                 Alert.alert(
                   'Error',
-                  'Could not open the file. Please try again.',
+                  'Could not save the file. Please try again.',
                 );
               }
             }

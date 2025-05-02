@@ -1,7 +1,7 @@
 import {useNavigation, useTheme} from '@react-navigation/native';
 import {useMutation} from '@tanstack/react-query';
 import React, {useCallback, useEffect} from 'react';
-import {Image, SafeAreaView} from 'react-native';
+import {Image, SafeAreaView, TouchableOpacity} from 'react-native';
 import Modal from 'react-native-modal';
 import {useDispatch, useSelector} from 'react-redux';
 import {deleteAccount} from '../../../../api/auth';
@@ -14,6 +14,7 @@ import CButton from '../../../common/core/Button';
 import CText from '../../../common/core/Text';
 import CView from '../../../common/core/View';
 import getStyles from './style';
+import LinearGradient from 'react-native-linear-gradient';
 
 const DeleteAccount = ({
   isVisible,
@@ -150,9 +151,9 @@ const DeleteAccount = ({
             <CText style={styles.listItem}>
               • All your generated songs and audio files
             </CText>
-            <CText style={styles.listItem}>
+            {/* <CText style={styles.listItem}>
               • Subscription and credit information
-            </CText>
+            </CText> */}
             <CText style={styles.listItem}>
               • All data associated with your account
             </CText>
@@ -166,7 +167,7 @@ const DeleteAccount = ({
               backgroundColor={'transparent'}
               customStyles={{buttonTextStyles: styles.submitBtn}}
             />
-            <CButton
+            {/* <CButton
               size="large"
               buttonType="primary"
               text="Delete"
@@ -174,7 +175,26 @@ const DeleteAccount = ({
               onPress={handleDelete}
               loading={isLoading}
               customStyles={{buttonTextStyles: styles.submitBtn}}
-            />
+            /> */}
+            <CView
+              style={[
+                styles.buttonContainer, // Adjust bottom margin when player is visible
+              ]}>
+              <TouchableOpacity
+                style={styles.createButton}
+                activeOpacity={0.8}
+                onPress={handleDelete}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={[styles.createButtonText]}>
+                    Delete Account
+                  </CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </CView>
           </CView>
         </CView>
         <Toaster />

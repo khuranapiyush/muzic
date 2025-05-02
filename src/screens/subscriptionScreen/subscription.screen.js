@@ -2328,6 +2328,7 @@ const SubscriptionScreen = () => {
         // Initialize new connection
         await RNIap.initConnection();
         console.log('RNIap connection initialized successfully');
+        iapInitialized = true;
 
         if (Platform.OS === 'ios') {
           try {
@@ -2378,7 +2379,6 @@ const SubscriptionScreen = () => {
                 global.availableProducts = formattedProducts;
                 setSelectedProductId(formattedProducts[0].productId);
                 setLoading(false);
-                iapInitialized = true;
                 return;
               }
 
@@ -2409,147 +2409,25 @@ const SubscriptionScreen = () => {
                 global.availableProducts = formattedProducts;
                 setSelectedProductId(formattedProducts[0].productId);
                 setLoading(false);
-                iapInitialized = true;
-                return;
-              }
-
-              // If all attempts return no products, create some hardcoded fallback products for simulator testing
-              if (
-                Platform.OS === 'ios' &&
-                (__DEV__ || process.env.NODE_ENV === 'development')
-              ) {
-                console.log(
-                  'Creating fallback products for development/simulator',
-                );
-
-                // Create mock products for development/simulator
-                // const mockProducts = [
-                //   {
-                //     productId: 'payment_101',
-                //     title: 'Basic Plan',
-                //     description: 'Credits for generating music',
-                //     price: '$29.99',
-                //     localizedPrice: '$29.99',
-                //     currency: 'USD',
-                //     credits: 100,
-                //     features: [
-                //       '100 Credits',
-                //       'Priority Generation queue',
-                //       'Never expires',
-                //     ],
-                //   },
-                //   {
-                //     productId: 'payment_201',
-                //     title: 'Pro Plan',
-                //     description: 'Credits for generating music',
-                //     price: '$59.99',
-                //     localizedPrice: '$59.99',
-                //     currency: 'USD',
-                //     credits: 200,
-                //     features: [
-                //       '200 Credits',
-                //       'Priority Generation queue',
-                //       'Never expires',
-                //     ],
-                //   },
-                //   {
-                //     productId: 'payment_301',
-                //     title: 'Ultra Pro Plan',
-                //     description: 'Credits for generating music',
-                //     price: '$99.99',
-                //     localizedPrice: '$99.99',
-                //     currency: 'USD',
-                //     credits: 300,
-                //     features: [
-                //       '300 Credits',
-                //       'Priority Generation queue',
-                //       'Never expires',
-                //     ],
-                //   },
-                // ];
-
-                // setProducts(mockProducts);
-                // global.availableProducts = mockProducts;
-                // setSelectedProductId(mockProducts[0].productId);
-                // console.log('Using mock products for development/simulator');
-                // setLoading(false);
-                // iapInitialized = true;
                 return;
               }
 
               console.log('No products found even with fallback options');
               Alert.alert(
                 'No Products Available',
-                'Could not load products from App Store Connect. This is normal in Simulator. On real devices, make sure your products are properly configured in App Store Connect.',
+                'Could not load products from App Store Connect. Please try again later.',
               );
+              setLoading(false);
+              return;
             } catch (fetchError) {
               console.error('Error fetching products:', fetchError);
-
-              // In development/simulator, provide mock products as fallback
-              if (
-                Platform.OS === 'ios' &&
-                (__DEV__ || process.env.NODE_ENV === 'development')
-              ) {
-                console.log(
-                  'Creating fallback products for development/simulator after error',
-                );
-
-                // Create mock products for development/simulator
-                const mockProducts = [
-                  {
-                    productId: 'payment_101',
-                    title: 'Basic Plan',
-                    description: 'Credits for generating music',
-                    price: '$29.99',
-                    localizedPrice: '$29.99',
-                    currency: 'USD',
-                    credits: 100,
-                    features: [
-                      '100 Credits',
-                      'Priority Generation queue',
-                      'Never expires',
-                    ],
-                  },
-                  {
-                    productId: 'payment_201',
-                    title: 'Pro Plan',
-                    description: 'Credits for generating music',
-                    price: '$59.99',
-                    localizedPrice: '$59.99',
-                    currency: 'USD',
-                    credits: 200,
-                    features: [
-                      '200 Credits',
-                      'Priority Generation queue',
-                      'Never expires',
-                    ],
-                  },
-                  {
-                    productId: 'payment_301',
-                    title: 'Ultra Pro Plan',
-                    description: 'Credits for generating music',
-                    price: '$99.99',
-                    localizedPrice: '$99.99',
-                    currency: 'USD',
-                    credits: 300,
-                    features: [
-                      '300 Credits',
-                      'Priority Generation queue',
-                      'Never expires',
-                    ],
-                  },
-                ];
-
-                setProducts(mockProducts);
-                global.availableProducts = mockProducts;
-                setSelectedProductId(mockProducts[0].productId);
-                console.log('Using mock products for development/simulator');
-                setLoading(false);
-                iapInitialized = true;
-                return;
-              }
+              Alert.alert(
+                'Error',
+                'Failed to fetch products. Please try again later.',
+              );
+              setLoading(false);
+              return;
             }
-            // Rest of the existing code for products fetching
           } catch (iosError) {
             console.error('Error fetching iOS products:', iosError);
             Alert.alert(
@@ -2598,32 +2476,32 @@ const SubscriptionScreen = () => {
             console.error('Error in direct Play Store fetch:', directError);
           }
         }
+
         // Fall back to RNIap if direct fetch fails
         console.log('Using RNIap to fetch products');
 
-        // Fetch all available products without hardcoding IDs
         try {
-          console.log('Fetching available subscriptions2...');
+          console.log('Fetching available one-time products...');
+          const oneTimeProductIds =
+            Platform.OS === 'ios'
+              ? ['payment_101', 'payment_201', 'payment_301']
+              : ['payment_100', 'payment_200', 'payment_300'];
+
           const oneTimeProducts = await RNIap.getProducts({
-            skus: ['payment_101', 'payment_201', 'payment_301'],
+            skus: oneTimeProductIds,
           });
-          console.log('Available subscriptions:', oneTimeProducts);
+          console.log('Available one-time products:', oneTimeProducts);
 
-          // console.log('Available one-time products:', oneTimeProducts);
-
-          // Combine both types of products
-          const allProducts = [...oneTimeProducts];
-
-          if (allProducts.length > 0) {
-            console.log('All available products:', allProducts);
-            setProducts(allProducts);
+          if (oneTimeProducts.length > 0) {
+            console.log('All available products:', oneTimeProducts);
+            setProducts(oneTimeProducts);
 
             // Store products globally for amount calculations
-            global.availableProducts = allProducts;
+            global.availableProducts = oneTimeProducts;
 
             // Set the lowest price product as default
-            let lowestPriceProduct = allProducts[0];
-            for (const product of allProducts) {
+            let lowestPriceProduct = oneTimeProducts[0];
+            for (const product of oneTimeProducts) {
               // Extract price value for comparison
               const currentPrice = parseFloat(
                 product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
@@ -2647,88 +2525,23 @@ const SubscriptionScreen = () => {
                 lowestPriceProduct.productId,
               );
             }
+            setLoading(false);
+            return;
           } else {
-            // If all else fails, try with some specific product IDs as fallback
-            const specificAndroidProductIds = [
-              'payment_100',
-              'payment_200',
-              'payment_300',
-            ];
-            const specificIOSProductIds = [
-              'payment_101',
-              'payment_201',
-              'payment_301',
-            ];
-            console.log(
-              'Trying specific product IDs:',
-              Platform.OS === 'ios'
-                ? specificIOSProductIds
-                : specificAndroidProductIds,
+            console.log('No products available from the store');
+            Alert.alert(
+              'Error',
+              'No products available from the store. Please check your configuration.',
             );
-
-            const specificProducts = await RNIap.getProducts({
-              skus:
-                Platform.OS === 'ios'
-                  ? specificIOSProductIds
-                  : specificAndroidProductIds,
-            });
-            console.log('Specific products:', specificProducts);
-
-            // Store products globally for amount calculations
-            global.availableProducts = specificProducts;
-
-            if (specificProducts.length > 0) {
-              setProducts(specificProducts);
-              setSelectedProductId(specificProducts[0].productId);
-            } else {
-              console.log('No products available from the store');
-              Alert.alert(
-                'Error',
-                'No products available from the store. Please check your configuration.',
-              );
-            }
+            setLoading(false);
           }
         } catch (err) {
           console.error('Error fetching products from store:', err);
-
-          // Last resort fallback to hardcoded product IDs
-          const fallbackIOSProductIds = [
-            'payment_101',
-            'payment_201',
-            'payment_301',
-          ];
-          const fallbackAndroidProductIds = [
-            'payment_100',
-            'payment_200',
-            'payment_300',
-          ];
-          console.log(
-            'Using fallback product IDs:',
-            Platform.OS === 'ios'
-              ? fallbackIOSProductIds
-              : fallbackAndroidProductIds,
+          Alert.alert(
+            'Error',
+            `Failed to initialize in-app purchases: ${err.message}`,
           );
-
-          try {
-            const fallbackProducts = await RNIap.getProducts({
-              skus:
-                Platform.OS === 'ios'
-                  ? fallbackIOSProductIds
-                  : fallbackAndroidProductIds,
-            });
-            if (fallbackProducts.length > 0) {
-              setProducts(fallbackProducts);
-              // Store products globally for amount calculations
-              global.availableProducts = fallbackProducts;
-              setSelectedProductId(fallbackProducts[0].productId);
-            }
-          } catch (fallbackErr) {
-            console.error('Error with fallback products:', fallbackErr);
-            Alert.alert(
-              'Error',
-              `Failed to initialize in-app purchases: ${err.message}`,
-            );
-          }
+          setLoading(false);
         }
       } catch (err) {
         console.error('Error initializing IAP:', err);
@@ -2761,59 +2574,6 @@ const SubscriptionScreen = () => {
             console.error('Failed to reconnect to IAP after navigation:', err);
           })
           .finally(() => {
-            // If we still have no products, try the hardcoded ones
-            if (!products || products.length === 0) {
-              // Create fallback products for development
-              const mockProducts = [
-                {
-                  productId: 'payment_101',
-                  title: 'Basic Plan',
-                  description: 'Credits for generating music',
-                  price: '$29.99',
-                  localizedPrice: '$29.99',
-                  currency: 'USD',
-                  credits: 100,
-                  features: [
-                    '100 Credits',
-                    'Priority Generation queue',
-                    'Never expires',
-                  ],
-                },
-                {
-                  productId: 'payment_201',
-                  title: 'Pro Plan',
-                  description: 'Credits for generating music',
-                  price: '$59.99',
-                  localizedPrice: '$59.99',
-                  currency: 'USD',
-                  credits: 200,
-                  features: [
-                    '200 Credits',
-                    'Priority Generation queue',
-                    'Never expires',
-                  ],
-                },
-                {
-                  productId: 'payment_301',
-                  title: 'Ultra Pro Plan',
-                  description: 'Credits for generating music',
-                  price: '$99.99',
-                  localizedPrice: '$99.99',
-                  currency: 'USD',
-                  credits: 300,
-                  features: [
-                    '300 Credits',
-                    'Priority Generation queue',
-                    'Never expires',
-                  ],
-                },
-              ];
-
-              setProducts(mockProducts);
-              global.availableProducts = mockProducts;
-              setSelectedProductId(mockProducts[0].productId);
-            }
-
             setLoading(false);
           });
       }
@@ -3561,7 +3321,7 @@ const SubscriptionScreen = () => {
               style={styles.backArrowIcon}
             />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Subscriptions</Text>
+          <Text style={styles.headerTitle}>Credit Packs</Text>
 
           {/* Add Restore Purchases button */}
           <TouchableOpacity

@@ -23,6 +23,7 @@ import config from 'react-native-config';
 import NetInfo from '@react-native-community/netinfo';
 import {getAuthToken} from '../../utils/authUtils';
 import CView from '../../components/common/core/View';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 
 const VoiceRecordScreen = ({navigation}) => {
   const {API_BASE_URL} = config;
@@ -265,8 +266,24 @@ const VoiceRecordScreen = ({navigation}) => {
         // Set the audioRecorder state immediately to ensure it's available
         setAudioRecorder(recorder);
 
-        // Note: We'll now request permissions when the user attempts to record
-        // This is more in line with mobile UX best practices
+        // For better UX, check (but don't request) permission on component mount
+        // This helps us know the current permission state and prepare accordingly
+        if (Platform.OS === 'ios') {
+          try {
+            console.log('Checking iOS microphone permission on startup');
+            const status = await check(PERMISSIONS.IOS.MICROPHONE);
+            console.log('Current iOS microphone permission status:', status);
+
+            // If permission is already granted, mark it in our state
+            if (status === RESULTS.GRANTED) {
+              setPermissionsGranted(true);
+            }
+            // We don't request permission here - we'll do that when the user tries to record
+          } catch (permError) {
+            console.error('Error checking permissions on startup:', permError);
+          }
+        }
+
         console.log('Permissions will be requested when recording is started');
       } catch (error) {
         console.error('Error initializing AudioRecorderPlayer:', error);
@@ -380,37 +397,66 @@ const VoiceRecordScreen = ({navigation}) => {
           return false;
         }
       } else {
-        // For iOS, we'll use the recorder directly to trigger the system dialog
+        // For iOS, use react-native-permissions the right way
         try {
-          // Create a temporary recorder
-          const tempRecorder = new AudioRecorderPlayer();
-
-          // This will trigger the system permission dialog on iOS
+          // First check if we already have permission to avoid unnecessary requests
+          const currentStatus = await check(PERMISSIONS.IOS.MICROPHONE);
           console.log(
-            'iOS: Attempting to start recorder to trigger permission dialog',
+            'iOS: Current permission status before request:',
+            currentStatus,
           );
-          await tempRecorder.startRecorder();
 
-          // If we get here without an error, permission was granted
-          // Stop the recorder immediately
-          await tempRecorder.stopRecorder();
-
-          console.log('iOS: Permission granted, recorder started and stopped');
-          setPermissionsGranted(true);
-          return true;
-        } catch (error) {
-          // If there's an error with "permission not granted" message, it means user denied
-          console.error('iOS permission error:', error);
-          if (
-            error.message &&
-            error.message.includes('permission not granted')
-          ) {
-            console.log('iOS: Microphone permission denied');
-            setPermissionsGranted(false);
-            return false;
+          if (currentStatus === RESULTS.GRANTED) {
+            console.log('iOS: Permission already granted');
+            setPermissionsGranted(true);
+            return true;
           }
 
-          // If we got a different error, we can't be sure
+          // If we don't have permission yet, request it
+          console.log('iOS: Requesting microphone permission');
+          const requestResult = await request(PERMISSIONS.IOS.MICROPHONE);
+          console.log('iOS: Permission request result:', requestResult);
+
+          // Handle the different possible results
+          switch (requestResult) {
+            case RESULTS.GRANTED:
+              console.log('iOS: Permission granted on request');
+              setPermissionsGranted(true);
+              return true;
+
+            case RESULTS.DENIED:
+              console.log('iOS: Permission denied, but can be requested again');
+              setPermissionsGranted(false);
+              return false;
+
+            case RESULTS.BLOCKED:
+              console.log(
+                'iOS: Permission permanently denied, requires settings',
+              );
+              Alert.alert(
+                'Microphone Access Required',
+                'Microphone access is blocked. Please open Settings and enable the microphone for MakeMySong.',
+                [
+                  {
+                    text: 'Open Settings',
+                    onPress: () => Linking.openSettings(),
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                ],
+              );
+              setPermissionsGranted(false);
+              return false;
+
+            default:
+              console.log('iOS: Unknown permission result');
+              setPermissionsGranted(false);
+              return false;
+          }
+        } catch (error) {
+          console.error('iOS permission error:', error);
           return false;
         }
       }
@@ -604,7 +650,41 @@ const VoiceRecordScreen = ({navigation}) => {
   );
 
   const startRecordingProcess = async () => {
-    // We've already checked permissions in handleRecordPress, no need to check again
+    // Always check permissions at the start of the recording process
+    if (Platform.OS === 'ios') {
+      const status = await check(PERMISSIONS.IOS.MICROPHONE);
+      console.log('iOS: Checking microphone permission status:', status);
+
+      if (status !== RESULTS.GRANTED) {
+        console.log('iOS: Permission not granted, requesting permission');
+        const requestResult = await request(PERMISSIONS.IOS.MICROPHONE);
+        console.log('iOS: Permission request result:', requestResult);
+
+        if (requestResult !== RESULTS.GRANTED) {
+          console.log('iOS: Permission denied after request');
+
+          if (requestResult === RESULTS.BLOCKED) {
+            // Show settings dialog if permission is blocked
+            Alert.alert(
+              'Microphone Access Required',
+              'Microphone access is blocked. Please open Settings > Privacy > Microphone and enable access for MakeMySong.',
+              [
+                {
+                  text: 'Open Settings',
+                  onPress: () => Linking.openSettings(),
+                },
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ],
+            );
+          }
+
+          throw new Error('Microphone permission denied');
+        }
+      }
+    }
 
     // Generate a unique ID for this recording
     const recordingId = Date.now().toString();
@@ -646,9 +726,34 @@ const VoiceRecordScreen = ({navigation}) => {
           console.log('Android: Starting recorder with path:', path);
           uri = await recorder.startRecorder(path);
         } else {
-          // For iOS, use the absolute simplest approach - no arguments at all
-          console.log('iOS: Starting recorder with default options');
-          uri = await recorder.startRecorder();
+          // For iOS, use appropriate options for better compatibility
+          console.log('iOS: Starting recorder with optimized options');
+
+          // Fix AAC undefined error by using a more compatible audio configuration
+          const audioSet = {
+            AudioEncoderAndroid: AudioRecorderPlayer.AudioEncoderAndroid?.AAC,
+            AudioSourceAndroid: AudioRecorderPlayer.AudioSourceAndroid?.MIC,
+            AVEncoderAudioQualityKeyIOS:
+              AudioRecorderPlayer.AVEncoderAudioQualityIOSType?.medium,
+            AVNumberOfChannelsKeyIOS: 2,
+            // Use a safer approach to access the AAC option
+            AVFormatIDKeyIOS:
+              AudioRecorderPlayer.AVEncodingOption?.aac || 'aac',
+          };
+
+          console.log('iOS: Audio settings:', JSON.stringify(audioSet));
+
+          // Use minimal options for iOS to prevent permission issues
+          try {
+            uri = await recorder.startRecorder(null, audioSet);
+          } catch (audioSetError) {
+            console.error(
+              'Error with audio settings, trying simpler approach:',
+              audioSetError,
+            );
+            // Fallback to simpler approach if audio settings error occurs
+            uri = await recorder.startRecorder();
+          }
         }
 
         console.log('Recording started at:', uri);
@@ -670,7 +775,8 @@ const VoiceRecordScreen = ({navigation}) => {
         }
 
         try {
-          // Use the absolute simplest recording approach - no path, no options
+          console.log('Final attempt to start recording with minimal options');
+          // Use the absolute simplest recording approach - minimal options
           uri = await recorder.startRecorder();
           console.log('Recording started after reset at:', uri);
 
@@ -682,6 +788,32 @@ const VoiceRecordScreen = ({navigation}) => {
           setIsRecording(true);
         } catch (finalError) {
           console.error('Final recording attempt failed:', finalError);
+
+          if (
+            Platform.OS === 'ios' &&
+            (finalError.message?.includes('permission') ||
+              finalError.message?.includes('denied'))
+          ) {
+            // This is likely a permission issue on iOS
+            console.log(
+              'iOS: Appears to be a permission issue, opening settings',
+            );
+            Alert.alert(
+              'Microphone Access Required',
+              'Please enable microphone access in Settings to record audio.',
+              [
+                {
+                  text: 'Open Settings',
+                  onPress: () => Linking.openSettings(),
+                },
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                },
+              ],
+            );
+          }
+
           throw new Error(
             'Could not start recording. Please check microphone permissions and try again.',
           );
@@ -724,35 +856,75 @@ const VoiceRecordScreen = ({navigation}) => {
       }
     }
 
+    console.log('Requesting microphone permission before recording');
+
+    // First check current permission status
+    if (Platform.OS === 'ios') {
+      const status = await check(PERMISSIONS.IOS.MICROPHONE);
+      console.log('Current microphone permission status:', status);
+
+      if (status === RESULTS.GRANTED) {
+        console.log('Permission already granted, starting recording');
+        setPermissionsGranted(true);
+        try {
+          await startRecordingProcess();
+          return;
+        } catch (error) {
+          console.error(
+            'Error starting recording process with pre-granted permission:',
+            error,
+          );
+          Alert.alert(
+            'Recording Error',
+            error.message || 'Failed to start recording',
+          );
+          return;
+        }
+      }
+    }
+
     // Request permissions (this will trigger native permission dialog)
     const permissionGranted = await checkAndRequestPermissions();
 
     if (!permissionGranted) {
       console.log('Permission denied by user');
 
-      // Only show settings dialog if the user has previously denied
-      // and we failed to get the permission when requested again
+      // Show settings dialog for iOS with a clear message
       if (Platform.OS === 'ios') {
-        Alert.alert(
-          'Microphone Access Required',
-          'You previously denied microphone access. Please open Settings and enable the microphone for this app.',
-          [
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings(),
-            },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
-          ],
-        );
+        // Check if permission is blocked (permanently denied)
+        const status = await check(PERMISSIONS.IOS.MICROPHONE);
+
+        if (status === RESULTS.BLOCKED) {
+          // Permission is permanently denied, user needs to go to settings
+          Alert.alert(
+            'Microphone Access Required',
+            'Microphone access is permanently denied. Please go to Settings > Privacy > Microphone and enable access for MakeMySong.',
+            [
+              {
+                text: 'Open Settings',
+                onPress: () => Linking.openSettings(),
+              },
+              {
+                text: 'Cancel',
+                style: 'cancel',
+              },
+            ],
+          );
+        } else {
+          // First time denied or another state
+          Alert.alert(
+            'Microphone Access Needed',
+            'MakeMySong needs microphone access to record your voice. Please allow the permission when prompted.',
+            [{text: 'OK'}],
+          );
+        }
       }
       return;
     }
 
     // Start recording if permissions are granted
     try {
+      console.log('Permission granted, starting recording process');
       await startRecordingProcess();
     } catch (error) {
       console.error('Error in recording process:', error);

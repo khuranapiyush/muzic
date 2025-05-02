@@ -75,6 +75,45 @@ const getStyles = theme => {
       fontWeight: '500',
       fontSize: 16,
     },
+    submitButton: {
+      color: Colors[theme].commonWhite,
+      textAlign: 'center',
+      fontFamily: 'Nohemi',
+      fontSize: 14,
+      fontStyle: 'normal',
+      fontWeight: '600',
+      lineHeight: 16.8,
+      letterSpacing: 0.28,
+      textTransform: 'none',
+    },
+    buttonContainer: {
+      alignItems: 'center',
+      zIndex: 999,
+    },
+    createButton: {
+      width: '100%',
+      height: 50,
+      borderRadius: 32,
+      overflow: 'hidden',
+    },
+    gradient: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      borderRadius: 100,
+      borderWidth: 2,
+      borderStyle: 'solid',
+      borderColor: '#C87D48',
+    },
+    createButtonText: {
+      color: '#000',
+      fontSize: 18,
+      fontWeight: '600',
+      paddingHorizontal: 16,
+      alignContent: 'center',
+      alignItems: 'center',
+      textAlign: 'center',
+    },
   });
 };
 export default getStyles;
