@@ -10,11 +10,8 @@ import {
   Platform,
   NativeModules,
   ActivityIndicator,
-  Dimensions,
-  ScrollView,
 } from 'react-native';
 import appImages from '../../../../resource/images';
-import {SCREEN_HEIGHT} from '@gorhom/bottom-sheet';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
@@ -26,11 +23,19 @@ import {getAuthToken} from '../../../../utils/authUtils';
 const getUserCountryCode = async () => {
   try {
     // Get country code from device locale
-    const deviceLocale =
-      Platform.OS === 'ios'
-        ? NativeModules.SettingsManager.settings.AppleLocale ||
-          NativeModules.SettingsManager.settings.AppleLanguages[0]
-        : NativeModules.I18nManager.localeIdentifier;
+    let deviceLocale;
+
+    if (Platform.OS === 'ios') {
+      // On iOS, use the preferred method
+      deviceLocale =
+        NativeModules.SettingsManager?.settings?.AppleLocale ||
+        NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
+        NativeModules.I18nManager?.localeIdentifier ||
+        'en_US'; // Default fallback for iOS
+    } else {
+      // For Android
+      deviceLocale = NativeModules.I18nManager.localeIdentifier;
+    }
 
     let countryCode = 'US'; // Default fallback
 
@@ -56,6 +61,7 @@ const getUserCountryCode = async () => {
 
     return countryCode;
   } catch (error) {
+    console.log('error', error);
     return 'US'; // Default to US if we can't determine
   }
 };
@@ -152,7 +158,9 @@ const PromoModal = ({visible, onClose}) => {
 
   // Get product price for user's country
   const getProductPrice = () => {
-    if (!productData) return null;
+    if (!productData) {
+      return null;
+    }
 
     // Try to get price for user's country
     if (productData.prices && productData.prices[userCountry]) {
@@ -188,7 +196,9 @@ const PromoModal = ({visible, onClose}) => {
     }
 
     const description = productData.listings['en-US'].description;
-    if (!description) return [];
+    if (!description) {
+      return [];
+    }
 
     return description.split('\n').filter(line => line.trim().length > 0);
   };
@@ -218,72 +228,74 @@ const PromoModal = ({visible, onClose}) => {
           ) : (
             <View style={styles.contentWrapper}>
               <LinearGradient
-                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,0)']}
+                colors={['rgba(0,0,0,0)', 'rgba(0,0,0,1)']}
                 style={styles.gradientContainer}>
-                <View style={styles.featuresContainer}>
-                  {getProductFeatures().map((feature, index) => (
-                    <Text key={index} style={styles.featureText}>
-                      • {feature}
-                    </Text>
-                  ))}
-                </View>
+                <View style={styles.gradientContent}>
+                  <View style={styles.featuresContainer}>
+                    {getProductFeatures().map((feature, index) => (
+                      <Text key={index} style={styles.featureText}>
+                        • {feature}
+                      </Text>
+                    ))}
+                  </View>
 
-                <View style={styles.priceContainer}>
-                  {(() => {
-                    const priceData = getProductPrice();
-                    const hasDiscount = !!(
-                      priceData?.discount && priceData?.discount > 0
-                    );
+                  <View style={styles.priceContainer}>
+                    {(() => {
+                      const priceData = getProductPrice();
+                      const hasDiscount = !!(
+                        priceData?.discount && priceData?.discount > 0
+                      );
 
-                    return (
-                      <>
-                        {hasDiscount && (
-                          <View style={styles.discountContainer}>
-                            <View style={styles.discountBadge}>
-                              <Text style={styles.discountText}>
-                                {priceData?.discount}% OFF
+                      return (
+                        <>
+                          {hasDiscount && (
+                            <View style={styles.discountContainer}>
+                              <View style={styles.discountBadge}>
+                                <Text style={styles.discountText}>
+                                  {priceData?.discount}% OFF
+                                </Text>
+                              </View>
+                              <Text style={styles.originalPrice}>
+                                {formatPriceWithSymbol(
+                                  priceData?.discountedPrice,
+                                )}
                               </Text>
                             </View>
-                            <Text style={styles.originalPrice}>
+                          )}
+                          <View style={styles.currentPriceContainer}>
+                            <Text style={styles.priceText}>
                               {formatPriceWithSymbol(
                                 priceData?.discountedPrice,
+                                hasDiscount,
                               )}
                             </Text>
+                            <Text style={styles.perMonthText}> per month</Text>
                           </View>
-                        )}
-                        <View style={styles.currentPriceContainer}>
-                          <Text style={styles.priceText}>
-                            {formatPriceWithSymbol(
-                              priceData?.discountedPrice,
-                              hasDiscount,
-                            )}
-                          </Text>
-                          <Text style={styles.perMonthText}> per month</Text>
-                        </View>
-                      </>
-                    );
-                  })()}
+                        </>
+                      );
+                    })()}
+                  </View>
+
+                  <Text style={styles.renewalText}>
+                    Auto renewable. Cancel anytime.
+                  </Text>
+
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      onClose();
+                      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                    }}>
+                    <LinearGradient
+                      colors={['#F4A460', '#DEB887']}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                      style={styles.buttonGradient}>
+                      <Text style={styles.createButtonText}>Continue</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
                 </View>
-
-                <Text style={styles.renewalText}>
-                  Auto renewable. Cancel anytime.
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.createButton}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    onClose();
-                    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-                  }}>
-                  <LinearGradient
-                    colors={['#F4A460', '#DEB887']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 1}}
-                    style={styles.buttonGradient}>
-                    <Text style={styles.createButtonText}>Continue</Text>
-                  </LinearGradient>
-                </TouchableOpacity>
               </LinearGradient>
             </View>
           )}
@@ -292,8 +304,6 @@ const PromoModal = ({visible, onClose}) => {
     </Modal>
   );
 };
-
-const {width: SCREEN_WIDTH, height: DEVICE_HEIGHT} = Dimensions.get('window');
 
 const styles = StyleSheet.create({
   modalContainer: {
@@ -316,10 +326,19 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   gradientContainer: {
-    marginHorizontal: 10,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 0 : 20,
     paddingTop: Platform.OS === 'ios' ? 0 : 80,
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    height: '100%',
+    width: '100%',
+  },
+  gradientContent: {
+    width: '100%',
+    marginHorizontal: 10,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: Platform.OS === 'ios' ? 40 : 0,
   },
   closeButton: {
     position: 'absolute',
@@ -412,6 +431,20 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     borderWidth: 4,
     borderColor: '#C87D48',
+  },
+  priceGradient: {
+    borderRadius: 16,
+    padding: 10,
+    paddingHorizontal: 20,
+    marginVertical: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
 });
 

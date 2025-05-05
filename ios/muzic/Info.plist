@@ -54,7 +54,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>5</string>
+	<string>9</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -67,6 +67,12 @@
 
 	<key>NSMicrophoneUsageDescription</key>
 	<string>MakeMySong needs microphone access to record your voice for creating voice notes and audio content</string>
+	
+	<key>NSCameraUsageDescription</key>
+	<string>MakeMySong needs camera access to allow you to take profile pictures and upload images for content creation</string>
+	
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MakeMySong needs access to your photo library to allow you to select images for your profile and content creation</string>
 	
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
 	<true/>

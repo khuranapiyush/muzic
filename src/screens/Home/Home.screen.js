@@ -39,6 +39,12 @@ const SongCard = ({
   const styles = getStyles(mode);
   const {isPlaying: globalIsPlaying} = useMusicPlayer('HomeScreen');
 
+  // Truncate title to prevent text overflow
+  const truncatedTitle =
+    cleanSongTitle(title).length > 18
+      ? `${cleanSongTitle(title).slice(0, 18)}...`
+      : cleanSongTitle(title);
+
   return (
     <TouchableOpacity
       style={styles.songCard}
@@ -66,8 +72,8 @@ const SongCard = ({
         locations={[0.35, 1]}
         style={styles.gradient}>
         <View style={styles.contentContainer}>
-          <Text style={styles.songTitle}>
-            {cleanSongTitle(title).slice(0, 18)}...
+          <Text style={styles.songTitle} numberOfLines={1} ellipsizeMode="tail">
+            {truncatedTitle}
           </Text>
           <Text style={styles.duration}>{formatTime(duration)}</Text>
           {/* <Text style={styles.duration}>{formatDate(createdAt)}</Text> */}

@@ -64,24 +64,22 @@ const getStyles = theme => {
       fontSize: 16,
     },
     songCard: {
-      minHeight: 250,
-      minWidth: 180,
-      // height: 'fit-content',
-      // width: 'fit-content',
-      marginLeft: 16,
+      width: 170,
+      marginRight: 8,
+      marginBottom: 0,
       borderRadius: 12,
       overflow: 'hidden',
-      backgroundColor: '#3C3129',
     },
     songThumbnail: {
       width: '100%',
-      height: 160,
-      backgroundColor: '#333',
+      height: 150,
+      position: 'relative',
       overflow: 'hidden',
     },
     thumbnailImage: {
       width: '100%',
       height: '100%',
+      resizeMode: 'cover',
     },
     playButton: {
       position: 'absolute',
@@ -114,6 +112,7 @@ const getStyles = theme => {
       color: '#fff',
       fontSize: 16,
       fontWeight: '500',
+      width: '100%',
     },
     duration: {
       marginTop: 3,
@@ -202,12 +201,14 @@ const getStyles = theme => {
     gradient: {
       flex: 1,
       width: '100%',
-      height: 40,
+      height: 70,
       overflow: 'hidden',
       backgroundColor: '#3C3129',
     },
     contentContainer: {
       padding: 12,
+      height: '100%',
+      justifyContent: 'space-between',
     },
     title: {
       fontSize: 32,
@@ -234,6 +235,13 @@ const getStyles = theme => {
       alignSelf: 'center',
       alignItems: 'center',
       justifyContent: 'center',
+    },
+    sectionContainer: {
+      marginBottom: 20,
+    },
+    songListContainer: {
+      paddingLeft: 16,
+      paddingRight: 4,
     },
   });
 };
