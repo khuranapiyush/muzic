@@ -23,7 +23,7 @@ import {
 import appImages from '../../../resource/images';
 import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
-import {hidePlayer, setIsPlaying} from '../../../stores/slices/player';
+import {hidePlayer} from '../../../stores/slices/player';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 

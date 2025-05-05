@@ -20,7 +20,7 @@
       "internalID" : "6744959337",
       "localizations" : [
         {
-          "description" : "🎵 50 credits 🕓 5 Songs/Al Covers",
+          "description" : "🎵 50 credits <br> 🕓 5 Songs/Al Covers",
           "displayName" : "Basic Plan",
           "locale" : "en_US"
         }
@@ -35,7 +35,7 @@
       "internalID" : "6744959044",
       "localizations" : [
         {
-          "description" : "🎵 250 Credits 🕓 25 Songs/AI Cover",
+          "description" : "🎵 250 credits 🕓 25 Songs/Al Covers",
           "displayName" : "Pro Plan",
           "locale" : "en_US"
         }
@@ -50,7 +50,7 @@
       "internalID" : "6744959581",
       "localizations" : [
         {
-          "description" : "🎵 3650 Credits 🕓 365 Songs/AI Cover",
+          "description" : "🎵 3560 credits 🕓 365 Songs/Al Covers",
           "displayName" : "Ultra Pro Plan",
           "locale" : "en_US"
         }
@@ -64,7 +64,7 @@
     "_applicationInternalID" : "6744594688",
     "_developerTeamID" : "GS32LP39L5",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 767515424.93238795,
+    "_lastSynchronizedDate" : 767886382.73974395,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
