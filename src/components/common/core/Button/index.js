@@ -1,6 +1,11 @@
 /* eslint-disable react-native/no-inline-styles */
 import React, {useContext} from 'react';
-import {ActivityIndicator, Image, TouchableOpacity} from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import {ThemeContext} from '../../../../context/ThemeContext';
 import CText from '../Text';
@@ -131,6 +136,7 @@ const CButton = ({
           style={{
             color: _style.clr[mode][buttonType],
             ...customStyles?.buttonTextStyles,
+            ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
           }}
         />
       </>

@@ -899,7 +899,8 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: '#000',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   controlButtons: {
     position: 'absolute',

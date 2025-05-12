@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Platform} from 'react-native';
 import Colors from '../../../common/Colors';
 
 const getStyles = theme => {
@@ -113,6 +113,7 @@ const getStyles = theme => {
       alignContent: 'center',
       alignItems: 'center',
       textAlign: 'center',
+      ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
     },
   });
 };
