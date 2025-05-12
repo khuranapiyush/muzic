@@ -16,6 +16,12 @@ const SubscriptionScreen = React.lazy(() =>
   import('../../screens/subscriptionScreen/subscription.screen'),
 );
 const AuthStackNavigator = React.lazy(() => import('../AuthStackNavigator'));
+const PrivacyPolicyScreen = React.lazy(() =>
+  import('../../screens/PrivacyPolicy/PrivacyPolicy.screen'),
+);
+const TermsAndConditionsScreen = React.lazy(() =>
+  import('../../screens/TermsAndConditions/TermsAndConditions.screen'),
+);
 
 // Loading component for Suspense
 const LoadingComponent = () => (
@@ -83,6 +89,24 @@ export const appStackRoutes = [
     key: ROUTE_NAME.SubscriptionScreen,
     options: {
       headerShown: false,
+    },
+  },
+  {
+    name: ROUTE_NAME.PrivacyPolicy,
+    component: withSuspense(PrivacyPolicyScreen),
+    key: ROUTE_NAME.PrivacyPolicy,
+    options: {
+      headerShown: false,
+      headerTitle: () => <HeaderTitle title="Privacy Policy" />,
+    },
+  },
+  {
+    name: ROUTE_NAME.TermsAndConditions,
+    component: withSuspense(TermsAndConditionsScreen),
+    key: ROUTE_NAME.TermsAndConditions,
+    options: {
+      headerShown: false,
+      headerTitle: () => <HeaderTitle title="Terms & Conditions" />,
     },
   },
   {

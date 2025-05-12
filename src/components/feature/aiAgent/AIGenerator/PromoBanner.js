@@ -208,7 +208,8 @@ const PromoModal = ({visible, onClose}) => {
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}>
+      onRequestClose={onClose}
+      statusBarTranslucent={Platform.OS === 'android'}>
       <View style={styles.modalContainer}>
         <ImageBackground
           source={appImages.promoBanner}
@@ -217,7 +218,7 @@ const PromoModal = ({visible, onClose}) => {
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Image
               source={appImages.closeIcon}
-              style={{tintColor: 'black', width: 20, height: 20}}
+              style={{tintColor: 'black', width: 40, height: 40}}
             />
           </TouchableOpacity>
 
@@ -296,6 +297,26 @@ const PromoModal = ({visible, onClose}) => {
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
+                <View style={styles.linksWrapper}>
+                  <View style={styles.linksContainer}>
+                    <TouchableOpacity
+                      style={styles.link}
+                      onPress={() => {
+                        navigation.navigate(ROUTE_NAME.PrivacyPolicy);
+                      }}>
+                      <Text style={styles.linkText}>Privacy Policy</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.linksContainer}>
+                    <TouchableOpacity
+                      style={styles.link}
+                      onPress={() => {
+                        navigation.navigate(ROUTE_NAME.TermsAndConditions);
+                      }}>
+                      <Text style={styles.linkText}>Terms & Conditions</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </LinearGradient>
             </View>
           )}
@@ -338,12 +359,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginBottom: Platform.OS === 'ios' ? 40 : 0,
+    marginBottom: Platform.OS === 'ios' ? 40 : 20,
   },
   closeButton: {
     position: 'absolute',
     right: 15,
-    top: Platform.OS === 'ios' ? 50 : 20,
+    top: Platform.OS === 'ios' ? 50 : 40,
     zIndex: 10,
     padding: 10,
   },
@@ -445,6 +466,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  linksContainer: {
+    marginBottom: 30,
+  },
+  link: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginBottom: 10,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  linksWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
 });
 

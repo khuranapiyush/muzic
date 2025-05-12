@@ -48,6 +48,8 @@ const screenRoutes = {
   AIHistory: 'AIHistory',
   VoiceRecord: 'VoiceRecord',
   SubscriptionScreen: 'SubscriptionScreen',
+  PrivacyPolicy: 'PrivacyPolicy',
+  TermsAndConditions: 'TermsAndConditions',
 };
 
 const stacks = {

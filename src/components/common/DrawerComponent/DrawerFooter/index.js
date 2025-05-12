@@ -31,6 +31,18 @@ const DrawerFooter = () => {
     }, 300);
   };
 
+  const handlePrivacyPolicy = () => {
+    setTimeout(() => {
+      navigation.navigate(ROUTE_NAME.PrivacyPolicy);
+    }, 300);
+  };
+
+  const handleTermsAndConditions = () => {
+    setTimeout(() => {
+      navigation.navigate(ROUTE_NAME.TermsAndConditions);
+    }, 300);
+  };
+
   return (
     <CView>
       <CustomDrawerItem
@@ -38,6 +50,20 @@ const DrawerFooter = () => {
         label="Subscribe"
         logoUrl={appImages.subscribeIcon}
         onPress={handleSubscribe}
+      />
+      <CustomDrawerItem
+        arrow={false}
+        label="Privacy Policy"
+        logoUrl={appImages.privacyPolicyIcon}
+        onPress={handlePrivacyPolicy}
+        customStyles={{logoStyles: {tintColor: '#FFF'}}}
+      />
+      <CustomDrawerItem
+        arrow={false}
+        label="Terms & Conditions"
+        logoUrl={appImages.termsAndConditionsIcon}
+        onPress={handleTermsAndConditions}
+        customStyles={{logoStyles: {tintColor: '#FFF'}}}
       />
       <CustomDrawerItem
         arrow={false}

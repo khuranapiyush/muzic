@@ -289,7 +289,7 @@ const GlobalPlayer = () => {
         visible={isFullPlayer}
         animationType="slide"
         transparent={false}
-        statusBarTranslucent={Platform.OS === 'ios'}
+        statusBarTranslucent={true}
         onRequestClose={toggleFullPlayer}>
         <LinearGradient
           colors={['#121212', '#232323', '#323232']}
@@ -458,7 +458,7 @@ const GlobalPlayer = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 110 : 80,
+    bottom: Platform.OS === 'ios' ? 110 : 100,
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
@@ -633,21 +633,31 @@ const styles = StyleSheet.create({
   fullPlayerBackground: {
     flex: 1,
     width: '100%',
+    height: '100%',
+    paddingTop: 0,
+    paddingBottom: 0,
+    marginTop: 0,
+    marginBottom: 0,
     ...Platform.select({
       ios: {
         backgroundColor: '#121212',
+      },
+      android: {
+        // Ensure no padding on Android
+        paddingTop: 0,
+        paddingBottom: 0,
       },
     }),
   },
   fullPlayerScrollContent: {
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 90 : 70, // Add extra padding at the top
+    paddingTop: Platform.OS === 'ios' ? 90 : 60, // Adjusted top padding for Android
     paddingBottom: 20,
   },
   closeButton: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40, // Position in the space between top and album art
+    top: Platform.OS === 'ios' ? 60 : 30, // Adjusted position for Android
     right: 20,
     zIndex: 10,
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
