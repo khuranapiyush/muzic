@@ -7,6 +7,7 @@ import CustomDrawerItem from '../DrawerItem';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {useNavigation} from '@react-navigation/native';
 import useModal from '../../../../hooks/useModal';
+import analyticsUtils from '../../../../utils/analytics';
 
 const DrawerFooter = () => {
   const dispatch = useDispatch();
@@ -14,6 +15,12 @@ const DrawerFooter = () => {
   const {showModal} = useModal();
 
   const handleLogout = () => {
+    // Track logout event
+    analyticsUtils.trackCustomEvent('user_logout', {
+      method: 'drawer_menu',
+      timestamp: Date.now(),
+    });
+
     setTimeout(() => {
       dispatch(resetUser());
     }, 300);
@@ -40,6 +47,18 @@ const DrawerFooter = () => {
   const handleTermsAndConditions = () => {
     setTimeout(() => {
       navigation.navigate(ROUTE_NAME.TermsAndConditions);
+    }, 300);
+  };
+
+  const handleAnalyticsTest = () => {
+    setTimeout(() => {
+      navigation.navigate(ROUTE_NAME.AnalyticsTest);
+    }, 300);
+  };
+
+  const handleFirebaseTest = () => {
+    setTimeout(() => {
+      navigation.navigate(ROUTE_NAME.FirebaseTest);
     }, 300);
   };
 
@@ -77,6 +96,20 @@ const DrawerFooter = () => {
         label="Logout"
         logoUrl={appImages.logout}
         onPress={handleLogout}
+        customStyles={{logoStyles: {tintColor: 'white'}}}
+      />
+      <CustomDrawerItem
+        arrow={false}
+        label="Analytics Test"
+        logoUrl={appImages.logout}
+        onPress={handleAnalyticsTest}
+        customStyles={{logoStyles: {tintColor: 'white'}}}
+      />
+      <CustomDrawerItem
+        arrow={false}
+        label="Firebase Test"
+        logoUrl={appImages.logout}
+        onPress={handleFirebaseTest}
         customStyles={{logoStyles: {tintColor: 'white'}}}
       />
     </CView>

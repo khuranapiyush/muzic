@@ -13,6 +13,7 @@ import {
   showPlayer,
   setProgress,
 } from '../stores/slices/player';
+import analyticsUtils from './analytics';
 
 // Cache for normalized songs to avoid redundant processing
 const songCache = new Map();
@@ -82,6 +83,15 @@ export const playSong = (songData, source, songList = null) => {
     id: normalizedSong.id,
     title: normalizedSong.title,
     uri: normalizedSong.uri,
+  });
+
+  // Track song played event
+  analyticsUtils.trackCustomEvent('song_played', {
+    song_id: normalizedSong.id,
+    song_title: normalizedSong.title,
+    artist: normalizedSong.artist,
+    source: source,
+    from_queue: songList ? true : false,
   });
 
   const {queue, currentSong} = store.getState().player;

@@ -30,6 +30,7 @@ import {handleLoginEvent} from '../../../events/auth';
 import useEvent from '../../../hooks/useEvent';
 import {loginSource} from '../../../constants/event';
 import {setTokenChecked} from '../../../stores/slices/app';
+import analyticsUtils from '../../../utils/analytics';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -168,6 +169,11 @@ const LoginScreen = () => {
     setIsLoading(true);
     const {mobile, phoneCountryCode, referralCode, isReferralCode} =
       getValues();
+
+    // Track mobile number entry event
+    analyticsUtils.trackMobileNumberEntry({
+      country_code: `+${phoneCountryCode.callingCode[0]}`,
+    });
 
     const data = {
       phoneNumber: mobile,

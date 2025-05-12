@@ -21,6 +21,8 @@ import {
   setLoading,
   setError,
 } from './stores/slices/creditSettings';
+import analyticsUtils from './utils/analytics';
+import {initializeApp, getApps} from '@react-native-firebase/app';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,16 +75,42 @@ const AppContent = () => {
     }
   }, [dispatch]);
 
+  const initializeFirebaseAnalytics = useCallback(async () => {
+    try {
+      // First check if Firebase is initialized, if not, initialize it
+      if (getApps().length === 0) {
+        console.log('Initializing Firebase...');
+        await initializeApp();
+      }
+
+      // Initialize Firebase Analytics and enable collection
+      const initialized = await analyticsUtils.initializeAnalytics();
+      if (initialized) {
+        console.log('✅ Firebase Analytics initialized successfully');
+        // Log app_open event on startup
+        await analyticsUtils.trackCustomEvent('app_open', {
+          timestamp: new Date().toISOString(),
+          platform: Platform.OS,
+        });
+      } else {
+        console.error('❌ Failed to initialize Firebase Analytics');
+      }
+    } catch (error) {
+      console.error('❌ Error initializing Firebase Analytics:', error);
+    }
+  }, []);
+
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
   useEffect(() => {
     fetchStoredTheme();
     fetchCreditSettingsData();
+    initializeFirebaseAnalytics();
 
     return () => {
       // No cleanup needed
     };
-  }, [fetchCreditSettingsData]);
+  }, [fetchCreditSettingsData, initializeFirebaseAnalytics]);
 
   return (
     <ThemeContext.Provider value={appThemeProviderValue}>

@@ -15,6 +15,7 @@ import CText from '../../../common/core/Text';
 import CView from '../../../common/core/View';
 import getStyles from './style';
 import LinearGradient from 'react-native-linear-gradient';
+import analyticsUtils from '../../../../utils/analytics';
 
 const DeleteAccount = ({
   isVisible,
@@ -55,6 +56,13 @@ const DeleteAccount = ({
           text1: 'Success',
           text2: 'Account Deleted Successfully',
         });
+
+        // Track account deletion event
+        analyticsUtils.trackCustomEvent('user_account_deleted', {
+          method: 'user_initiated',
+          timestamp: Date.now(),
+        });
+
         // Delay logout to allow modal to close and toast to show
         setTimeout(() => {
           dispatch(resetUser());

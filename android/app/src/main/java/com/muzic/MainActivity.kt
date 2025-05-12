@@ -7,8 +7,11 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnable
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import org.devio.rn.splashscreen.SplashScreen
 import android.view.View
+import com.google.firebase.analytics.FirebaseAnalytics
 
 class MainActivity : ReactActivity() {
+    private lateinit var firebaseAnalytics: FirebaseAnalytics
+
     /**
      * Returns the name of the main component registered from JavaScript. This is used to schedule
      * rendering of the component.
@@ -27,6 +30,19 @@ class MainActivity : ReactActivity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
         
         super.onCreate(savedInstanceState)
+        
+        // Initialize Firebase Analytics
+        try {
+            firebaseAnalytics = FirebaseAnalytics.getInstance(this)
+            
+            // Log main activity creation
+            val bundle = Bundle()
+            bundle.putString("launch_source", "direct_main_activity")
+            bundle.putLong("timestamp", System.currentTimeMillis())
+            firebaseAnalytics.logEvent("main_activity_created", bundle)
+        } catch (e: Exception) {
+            android.util.Log.e("MainActivity", "Error with Firebase Analytics: ${e.message}", e)
+        }
     }
 
     /**

@@ -24,6 +24,9 @@ node_require('react-native-permissions/scripts/setup.rb')
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
+# Remove global use_modular_headers! and use it only for specific pods
+# use_modular_headers!
+
 # Setup only microphone permission
 setup_permissions([
   'Microphone'
@@ -44,6 +47,11 @@ target 'muzic' do
     # An absolute path to your application root.
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
+
+  # Add specific pod configurations for Firebase modules
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  pod 'GoogleUtilities', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
