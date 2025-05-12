@@ -15,6 +15,7 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		823EAE7B64B8BA1760C545E0 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
+		E8A021D554EE5D7B7E077F9A /* libPods-muzic.a in Frameworks */ = {isa = PBXBuildFile; fileRef = F0350A6F7840E3A0C9BC48C7 /* libPods-muzic.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,11 +28,14 @@
 		41CF53342DB67DFE00125963 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 		41CF53362DB67E7000125963 /* muzic.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = muzic.entitlements; path = muzic/muzic.entitlements; sourceTree = "<group>"; };
 		5151DBFCB402BB18582E73FE /* Pods-muzic.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-muzic.release.xcconfig"; path = "Target Support Files/Pods-muzic/Pods-muzic.release.xcconfig"; sourceTree = "<group>"; };
+		6B5480039F1B62B3D34612D5 /* Pods-muzic.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-muzic.release.xcconfig"; path = "Target Support Files/Pods-muzic/Pods-muzic.release.xcconfig"; sourceTree = "<group>"; };
 		70535783176B90A6C07103BC /* Pods-muzic.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-muzic.debug.xcconfig"; path = "Target Support Files/Pods-muzic/Pods-muzic.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = muzic/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = muzic/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		B043230AEA9F0D75DEBF0CE2 /* libPods-muzic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-muzic.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		BEC936CA487E6C3EFA2D6338 /* Pods-muzic.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-muzic.debug.xcconfig"; path = "Target Support Files/Pods-muzic/Pods-muzic.debug.xcconfig"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
+		F0350A6F7840E3A0C9BC48C7 /* libPods-muzic.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-muzic.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -41,6 +45,7 @@
 			files = (
 				41CF53352DB67DFE00125963 /* StoreKit.framework in Frameworks */,
 				12F779ECA4AC2FC74826D2EA /* libPods-muzic.a in Frameworks */,
+				E8A021D554EE5D7B7E077F9A /* libPods-muzic.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +71,7 @@
 				41CF53342DB67DFE00125963 /* StoreKit.framework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
 				B043230AEA9F0D75DEBF0CE2 /* libPods-muzic.a */,
+				F0350A6F7840E3A0C9BC48C7 /* libPods-muzic.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -106,6 +112,8 @@
 			children = (
 				70535783176B90A6C07103BC /* Pods-muzic.debug.xcconfig */,
 				5151DBFCB402BB18582E73FE /* Pods-muzic.release.xcconfig */,
+				BEC936CA487E6C3EFA2D6338 /* Pods-muzic.debug.xcconfig */,
+				6B5480039F1B62B3D34612D5 /* Pods-muzic.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";

@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Platform} from 'react-native';
 import Colors from '../Colors';
 
 const getStyles = theme => {
@@ -102,6 +102,7 @@ const getStyles = theme => {
       color: '#000',
       fontSize: 18,
       fontWeight: '600',
+      ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
     },
   });
 };

@@ -1022,6 +1022,7 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   disabledButtonText: {
     opacity: 0.5,
