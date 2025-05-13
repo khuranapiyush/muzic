@@ -24,8 +24,8 @@ node_require('react-native-permissions/scripts/setup.rb')
 platform :ios, min_ios_version_supported
 prepare_react_native_project!
 
-# Remove global use_modular_headers! and use it only for specific pods
-# use_modular_headers!
+# Use modular headers for Swift pods, but keep options to disable modules for problematic pods
+use_modular_headers!
 
 # Setup only microphone permission
 setup_permissions([
@@ -48,10 +48,12 @@ target 'muzic' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  # Add specific pod configurations for Firebase modules
-  pod 'FirebaseCoreInternal', :modular_headers => true
-  pod 'GoogleUtilities', :modular_headers => true
-  pod 'FirebaseCore', :modular_headers => true
+  # Firebase dependencies with selective modular header settings
+  pod 'Firebase'
+  pod 'FirebaseCore'
+  pod 'FirebaseAnalytics'
+  pod 'FirebaseCoreInternal'  # Swift pod needs modular headers 
+  pod 'GoogleUtilities'
 
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
@@ -61,5 +63,30 @@ target 'muzic' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Fix for Xcode 15 warning about minimum deployment target
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '12.4'
+        
+        # Fix module conflicts by disabling modules for specific pods
+        if target.name.include?("React-") || 
+           target.name.include?("Firebase") ||
+           target.name.include?("GTM") ||
+           target.name.include?("Google") ||
+           target.name.include?("RNFB")
+           
+          # Skip disabling modules for Swift-based Firebase pods
+          unless target.name.include?("FirebaseCoreInternal") ||
+                 target.name.include?("SwiftAudioEx")
+            config.build_settings['CLANG_ENABLE_MODULES'] = 'NO'
+          end
+          
+          # Force traditional preprocessor includes
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FB_SONARKIT_ENABLED=1'
+        end
+      end
+    end
   end
 end

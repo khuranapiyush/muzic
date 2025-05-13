@@ -22,7 +22,7 @@ import {
   setError,
 } from './stores/slices/creditSettings';
 import analyticsUtils from './utils/analytics';
-import {initializeApp, getApps} from '@react-native-firebase/app';
+import tagManagerUtils from './utils/tagManager';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,29 +75,65 @@ const AppContent = () => {
     }
   }, [dispatch]);
 
-  const initializeFirebaseAnalytics = useCallback(async () => {
-    try {
-      // First check if Firebase is initialized, if not, initialize it
-      if (getApps().length === 0) {
-        console.log('Initializing Firebase...');
-        await initializeApp();
-      }
+  // Initialize Firebase Analytics and Google Tag Manager in a completely non-blocking way
+  const initializeTracking = useCallback(() => {
+    // Use setTimeout to make sure this runs after app has rendered and not block the UI
+    setTimeout(async () => {
+      try {
+        console.log(
+          'Starting Firebase Analytics and Tag Manager initialization...',
+        );
 
-      // Initialize Firebase Analytics and enable collection
-      const initialized = await analyticsUtils.initializeAnalytics();
-      if (initialized) {
-        console.log('✅ Firebase Analytics initialized successfully');
-        // Log app_open event on startup
-        await analyticsUtils.trackCustomEvent('app_open', {
-          timestamp: new Date().toISOString(),
-          platform: Platform.OS,
+        // Initialize analytics with a 5 second timeout
+        const analyticsInitialized = await Promise.race([
+          analyticsUtils.initializeAnalytics(),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Analytics initialization timed out')),
+              5000,
+            ),
+          ),
+        ]).catch(error => {
+          console.log('Analytics initialization failed:', error.message);
+          return false;
         });
-      } else {
-        console.error('❌ Failed to initialize Firebase Analytics');
+
+        if (analyticsInitialized) {
+          console.log('Firebase Analytics initialized successfully');
+
+          // Initialize Tag Manager after Analytics
+          try {
+            await tagManagerUtils.initializeTagManager();
+            console.log('Google Tag Manager initialized successfully');
+
+            // Track app start event via Tag Manager
+            await tagManagerUtils.pushEvent('app_started', {
+              timestamp: new Date().toISOString(),
+            });
+            console.log('✅ App start event logged via Tag Manager');
+          } catch (tagManagerError) {
+            console.log(
+              'Tag Manager initialization failed:',
+              tagManagerError.message,
+            );
+
+            // Fallback to regular analytics if tag manager fails
+            await analyticsUtils.trackCustomEvent('app_started', {
+              timestamp: new Date().toISOString(),
+            });
+            console.log('✅ App start event logged via Analytics fallback');
+          }
+        } else {
+          console.log('Analytics will use mock implementation');
+        }
+      } catch (error) {
+        // Completely suppress errors to never block app functionality
+        console.log(
+          'Analytics setup failed but app will continue:',
+          error.message,
+        );
       }
-    } catch (error) {
-      console.error('❌ Error initializing Firebase Analytics:', error);
-    }
+    }, 2000); // Delay initialization to prioritize UI rendering
   }, []);
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
@@ -105,12 +141,14 @@ const AppContent = () => {
   useEffect(() => {
     fetchStoredTheme();
     fetchCreditSettingsData();
-    initializeFirebaseAnalytics();
+
+    // Start analytics initialization as a background task
+    initializeTracking();
 
     return () => {
       // No cleanup needed
     };
-  }, [fetchCreditSettingsData, initializeFirebaseAnalytics]);
+  }, [fetchCreditSettingsData, initializeTracking]);
 
   return (
     <ThemeContext.Provider value={appThemeProviderValue}>

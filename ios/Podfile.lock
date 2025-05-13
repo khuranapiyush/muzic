@@ -13,6 +13,8 @@ PODS:
   - DoubleConversion (1.1.6)
   - fast_float (6.1.4)
   - FBLazyVector (0.78.0)
+  - Firebase (11.12.0):
+    - Firebase/Core (= 11.12.0)
   - Firebase/Analytics (11.12.0):
     - Firebase/Core
   - Firebase/Core (11.12.0):
@@ -2279,6 +2281,8 @@ DEPENDENCIES:
   - DoubleConversion (from `../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec`)
   - fast_float (from `../node_modules/react-native/third-party-podspecs/fast_float.podspec`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
+  - Firebase
+  - FirebaseAnalytics
   - FirebaseCore
   - FirebaseCoreInternal
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
@@ -2724,6 +2728,6 @@ SPEC CHECKSUMS:
   SwiftAudioEx: f6aa653770f3a0d3851edaf8d834a30aee4a7646
   Yoga: afd04ff05ebe0121a00c468a8a3c8080221cb14c
 
-PODFILE CHECKSUM: dd57a8e0ff71e39364309e0286a846122a891483
+PODFILE CHECKSUM: 001af32dabfe72225e23558f9d0cddf7b410594a
 
 COCOAPODS: 1.16.2
