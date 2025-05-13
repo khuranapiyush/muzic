@@ -1,7 +1,7 @@
 /* eslint-disable react-native/no-inline-styles */
 import get from 'lodash/get';
 import React, {useContext} from 'react';
-import {Text as RNText} from 'react-native';
+import {Text as RNText, Platform} from 'react-native';
 import {ThemeContext} from '../../../../context/ThemeContext';
 import Colors from '../../Colors';
 
@@ -137,6 +137,7 @@ const CText = ({
           color: get(Colors[mode], color, undefined),
           textAlign: centered ? 'center' : undefined,
           fontFamily: 'Nohemi-Regular',
+          ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
         },
         _style.size[size],
         style,

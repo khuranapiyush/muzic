@@ -18,50 +18,74 @@ import ROUTE_NAME from '../../../../navigator/config/routeName';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
 import {getAuthToken} from '../../../../utils/authUtils';
+import * as RNLocalize from 'react-native-localize';
 
 // Helper function to get user's country code
 const getUserCountryCode = async () => {
   try {
-    // Get country code from device locale
+    // Use react-native-localize to get country code reliably
+    const countryFromLib = RNLocalize.getCountry();
+    console.log(
+      'Detected country code from react-native-localize:',
+      countryFromLib,
+    );
+
+    // Validate country code (should be 2 uppercase letters)
+    if (
+      countryFromLib &&
+      countryFromLib.length === 2 &&
+      /^[A-Z]{2}$/.test(countryFromLib)
+    ) {
+      return countryFromLib;
+    }
+
+    // Fallback to get country code from locale if direct method fails
+    const locales = RNLocalize.getLocales();
+    if (locales && locales.length > 0 && locales[0].countryCode) {
+      console.log(
+        'Using country code from device locale:',
+        locales[0].countryCode,
+      );
+      return locales[0].countryCode;
+    }
+
+    // Legacy fallback approach
     let deviceLocale;
 
     if (Platform.OS === 'ios') {
-      // On iOS, use the preferred method
-      deviceLocale =
-        NativeModules.SettingsManager?.settings?.AppleLocale ||
-        NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ||
-        NativeModules.I18nManager?.localeIdentifier ||
-        'en_US'; // Default fallback for iOS
-    } else {
-      // For Android
-      deviceLocale = NativeModules.I18nManager.localeIdentifier;
+      const settings = NativeModules.SettingsManager?.settings;
+      if (settings) {
+        const appleLanguages = settings.AppleLanguages;
+        if (Array.isArray(appleLanguages) && appleLanguages.length > 0) {
+          deviceLocale = appleLanguages[0]; // e.g., "en-IN"
+        } else if (settings.AppleLocale) {
+          deviceLocale = settings.AppleLocale; // older iOS versions
+        }
+      }
+    } else if (Platform.OS === 'android') {
+      deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en_US';
     }
 
-    let countryCode = 'US'; // Default fallback
+    console.log('Device locale from legacy method:', deviceLocale);
+
+    let fallbackCountryCode = 'US'; // Default fallback
 
     if (deviceLocale) {
-      // Method 1: Extract from locale format like "en_US" or "en-US"
+      // Extract from locale format like "en_US" or "en-US"
       const parts = deviceLocale.split(/[_-]/);
       if (parts.length > 1) {
         const lastPart = parts[parts.length - 1].toUpperCase();
         // Verify it's a valid country code (2 uppercase letters)
         if (/^[A-Z]{2}$/.test(lastPart)) {
-          countryCode = lastPart;
+          fallbackCountryCode = lastPart;
         }
-      }
-
-      // Method 2: If deviceLocale itself is just a country code
-      if (
-        deviceLocale.length === 2 &&
-        /^[A-Z]{2}$/.test(deviceLocale.toUpperCase())
-      ) {
-        countryCode = deviceLocale.toUpperCase();
       }
     }
 
-    return countryCode;
+    console.log('Detected country code for IAP:', fallbackCountryCode);
+    return fallbackCountryCode;
   } catch (error) {
-    console.log('error', error);
+    console.warn('Error getting country code, using default:', error);
     return 'US'; // Default to US if we can't determine
   }
 };
@@ -208,7 +232,8 @@ const PromoModal = ({visible, onClose}) => {
       animationType="slide"
       transparent={true}
       visible={visible}
-      onRequestClose={onClose}>
+      onRequestClose={onClose}
+      statusBarTranslucent={Platform.OS === 'android'}>
       <View style={styles.modalContainer}>
         <ImageBackground
           source={appImages.promoBanner}
@@ -217,7 +242,7 @@ const PromoModal = ({visible, onClose}) => {
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Image
               source={appImages.closeIcon}
-              style={{tintColor: 'black', width: 20, height: 20}}
+              style={{tintColor: 'black', width: 40, height: 40}}
             />
           </TouchableOpacity>
 
@@ -296,6 +321,26 @@ const PromoModal = ({visible, onClose}) => {
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
+                <View style={styles.linksWrapper}>
+                  <View style={styles.linksContainer}>
+                    <TouchableOpacity
+                      style={styles.link}
+                      onPress={() => {
+                        navigation.navigate(ROUTE_NAME.PrivacyPolicy);
+                      }}>
+                      <Text style={styles.linkText}>Privacy Policy</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.linksContainer}>
+                    <TouchableOpacity
+                      style={styles.link}
+                      onPress={() => {
+                        navigation.navigate(ROUTE_NAME.TermsAndConditions);
+                      }}>
+                      <Text style={styles.linkText}>Terms & Conditions</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </LinearGradient>
             </View>
           )}
@@ -338,12 +383,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'flex-end',
-    marginBottom: Platform.OS === 'ios' ? 40 : 0,
+    marginBottom: Platform.OS === 'ios' ? 40 : 20,
   },
   closeButton: {
     position: 'absolute',
     right: 15,
-    top: Platform.OS === 'ios' ? 50 : 20,
+    top: Platform.OS === 'ios' ? 50 : 40,
     zIndex: 10,
     padding: 10,
   },
@@ -423,6 +468,8 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: Platform.OS === 'ios' ? 5 : 0,
   },
   buttonGradient: {
     flex: 1,
@@ -445,6 +492,31 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  linksContainer: {
+    marginBottom: 30,
+  },
+  link: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  linkText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+    textAlign: 'center',
+    marginBottom: 10,
+    marginTop: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  linksWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
   },
 });
 

@@ -17,6 +17,7 @@ import config from 'react-native-config';
 import {useSelector} from 'react-redux';
 import useCredits from '../../hooks/useCredits';
 import {selectCreditsPerSong} from '../../stores/selector';
+import * as RNLocalize from 'react-native-localize';
 
 const API_URL = config.API_BASE_URL;
 
@@ -798,21 +799,67 @@ const getCreditsForProduct = productId => {
 // Add a helper function to get user's country code
 const getUserCountryCode = async () => {
   try {
-    if (Platform.OS === 'ios') {
-      // Use React Native's Platform.constants for iOS
-      const locale =
-        NativeModules.SettingsManager.settings.AppleLanguages?.[0] ||
-        NativeModules.SettingsManager.settings.AppleLocale ||
-        'en_US';
+    // Use react-native-localize to get country code reliably
+    const countryFromLib = RNLocalize.getCountry();
+    console.log(
+      'Detected country code from react-native-localize:',
+      countryFromLib,
+    );
 
-      // Extract country code from locale
-      const countryCode = locale.split('_').pop() || 'US';
-      return countryCode;
-    } else {
-      // For Android
-      const locale = NativeModules.I18nManager.localeIdentifier || 'en_US';
-      return locale.slice(-2).toUpperCase();
+    // Validate country code (should be 2 uppercase letters)
+    if (
+      countryFromLib &&
+      countryFromLib.length === 2 &&
+      /^[A-Z]{2}$/.test(countryFromLib)
+    ) {
+      return countryFromLib;
     }
+
+    // Fallback to get country code from locale if direct method fails
+    const locales = RNLocalize.getLocales();
+    if (locales && locales.length > 0 && locales[0].countryCode) {
+      console.log(
+        'Using country code from device locale:',
+        locales[0].countryCode,
+      );
+      return locales[0].countryCode;
+    }
+
+    // Legacy fallback approach
+    let deviceLocale;
+
+    if (Platform.OS === 'ios') {
+      const settings = NativeModules.SettingsManager?.settings;
+      if (settings) {
+        const appleLanguages = settings.AppleLanguages;
+        if (Array.isArray(appleLanguages) && appleLanguages.length > 0) {
+          deviceLocale = appleLanguages[0]; // e.g., "en-IN"
+        } else if (settings.AppleLocale) {
+          deviceLocale = settings.AppleLocale; // older iOS versions
+        }
+      }
+    } else if (Platform.OS === 'android') {
+      deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en_US';
+    }
+
+    console.log('Device locale from legacy method:', deviceLocale);
+
+    let fallbackCountryCode = 'US'; // Default fallback
+
+    if (deviceLocale) {
+      // Extract from locale format like "en_US" or "en-US"
+      const parts = deviceLocale.split(/[_-]/);
+      if (parts.length > 1) {
+        const lastPart = parts[parts.length - 1].toUpperCase();
+        // Verify it's a valid country code (2 uppercase letters)
+        if (/^[A-Z]{2}$/.test(lastPart)) {
+          fallbackCountryCode = lastPart;
+        }
+      }
+    }
+
+    console.log('Detected country code for IAP:', fallbackCountryCode);
+    return fallbackCountryCode;
   } catch (error) {
     console.warn('Error getting country code, using default:', error);
     return 'US'; // Default to US if we can't determine
@@ -927,6 +974,22 @@ const extractFeaturesFromDescription = description => {
   }
 
   return featureMatches;
+};
+
+// Helper function to extract numeric price from a price string
+const extractNumericPrice = priceString => {
+  if (!priceString) return 9999;
+  const matches = priceString.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
+  return matches && matches[0] ? parseFloat(matches[0]) : 9999;
+};
+
+// Helper function to sort products by price
+const sortProductsByPrice = products => {
+  return [...products].sort((a, b) => {
+    const priceA = extractNumericPrice(a.localizedPrice || a.price);
+    const priceB = extractNumericPrice(b.localizedPrice || b.price);
+    return priceA - priceB; // Sort in ascending order
+  });
 };
 
 const PlanCard = ({
@@ -1274,22 +1337,23 @@ const SubscriptionScreen = () => {
               );
               setProducts(directProducts);
               global.availableProducts = directProducts;
-              let lowestPriceProduct = directProducts[0];
-              for (const product of directProducts) {
-                const currentPrice = parseFloat(
-                  product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
-                    '999999',
+
+              // Sort products by price
+              const sortedProducts = sortProductsByPrice(directProducts);
+
+              // Log sorted products for verification
+              console.log(
+                'Android products sorted by price (lowest to highest):',
+              );
+              sortedProducts.forEach((product, idx) => {
+                console.log(
+                  `${idx + 1}. ${product.productId}: ${product.price}`,
                 );
-                const lowestPrice = parseFloat(
-                  lowestPriceProduct.price?.match(
-                    /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
-                  )?.[0] || '999999',
-                );
-                if (currentPrice < lowestPrice) {
-                  lowestPriceProduct = product;
-                }
-              }
-              if (lowestPriceProduct?.productId) {
+              });
+
+              // Set the lowest price product as default
+              if (sortedProducts.length > 0) {
+                const lowestPriceProduct = sortedProducts[0];
                 setSelectedProductId(lowestPriceProduct.productId);
               }
               setLoading(false);
@@ -1322,32 +1386,30 @@ const SubscriptionScreen = () => {
             // Store products globally for amount calculations
             global.availableProducts = allProducts;
 
-            // Set the lowest price product as default
-            let lowestPriceProduct = allProducts[0];
-            for (const product of allProducts) {
-              // Extract price value for comparison
-              const currentPrice = parseFloat(
-                product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
-                  '999999',
-              );
-              const lowestPrice = parseFloat(
-                lowestPriceProduct.price?.match(
+            // Sort products by price and select the lowest price product
+            const sortedProducts = [...allProducts].sort((a, b) => {
+              // Extract numeric value from price strings
+              const getNumericPrice = product => {
+                const priceString = product.price || '';
+                const matches = priceString.match(
                   /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
-                )?.[0] || '999999',
-              );
+                );
+                return matches && matches[0] ? parseFloat(matches[0]) : 9999;
+              };
+              return getNumericPrice(a) - getNumericPrice(b);
+            });
 
-              if (currentPrice < lowestPrice) {
-                lowestPriceProduct = product;
-              }
-            }
-
-            if (lowestPriceProduct?.productId) {
+            // Set the lowest price product as default
+            if (sortedProducts.length > 0) {
+              const lowestPriceProduct = sortedProducts[0];
               setSelectedProductId(lowestPriceProduct.productId);
               console.log(
                 'Setting initial selected product ID:',
                 lowestPriceProduct.productId,
               );
             }
+            setLoading(false);
+            return;
           } else {
             // If all else fails, try with some specific product IDs as fallback
             const specificAndroidProductIds = [
@@ -2297,12 +2359,30 @@ const SubscriptionScreen = () => {
             });
 
             if (refreshedProducts && refreshedProducts.length > 0) {
-              console.log('Successfully refreshed products');
-              setProducts(refreshedProducts);
-              global.availableProducts = refreshedProducts;
-              setSelectedProductId(refreshedProducts[0].productId);
-              setLoading(false);
-              return;
+              console.log(
+                `Successfully refreshed ${refreshedProducts.length} products`,
+              );
+
+              // Sort products by price
+              const sortedProducts = sortProductsByPrice(refreshedProducts);
+
+              // Log sorted products for verification
+              console.log(
+                'Refreshed iOS products sorted by price (lowest to highest):',
+              );
+              sortedProducts.forEach((product, idx) => {
+                console.log(
+                  `${idx + 1}. ${product.productId}: ${product.price}`,
+                );
+              });
+
+              setProducts(sortedProducts);
+              global.availableProducts = sortedProducts;
+
+              // Set the lowest price product as default
+              if (sortedProducts.length > 0) {
+                setSelectedProductId(sortedProducts[0].productId);
+              }
             }
           }
         } catch (refreshErr) {
@@ -2333,12 +2413,7 @@ const SubscriptionScreen = () => {
         if (Platform.OS === 'ios') {
           try {
             // Define the exact product IDs we want to fetch
-            const productIds = [
-              'payment_50',
-              'payment_101',
-              'payment_201',
-              'payment_301',
-            ];
+            const productIds = ['payment_101', 'payment_201', 'payment_301'];
             console.log(
               'Fetching iOS products with exact IDs:',
               productIds.join(', '),
@@ -2353,63 +2428,114 @@ const SubscriptionScreen = () => {
             try {
               // Try with forceRefresh first
               console.log('Attempt 1: Fetching with forceRefresh option');
-              const productsAttempt1 = await RNIap.getProducts({
-                skus: productIds,
-                forceRefresh: true,
-              });
-
-              console.log(
-                `Attempt 1 results: Found ${productsAttempt1.length} products`,
-              );
-
-              if (productsAttempt1.length > 0) {
-                console.log(
-                  'Products found in first attempt:',
-                  productsAttempt1.map(p => p.productId).join(', '),
-                );
-
-                // Format products for display
-                const formattedProducts = productsAttempt1.map(product => {
-                  return {
-                    ...product,
-                  };
+              try {
+                const productsAttempt1 = await RNIap.getProducts({
+                  skus: productIds,
+                  forceRefresh: true,
                 });
 
-                setProducts(formattedProducts);
-                global.availableProducts = formattedProducts;
-                setSelectedProductId(formattedProducts[0].productId);
-                setLoading(false);
-                return;
+                console.log(
+                  `Attempt 1 results: Found ${productsAttempt1.length} products`,
+                );
+
+                if (productsAttempt1.length > 0) {
+                  console.log(
+                    'Products found in first attempt:',
+                    productsAttempt1.map(p => p.productId).join(', '),
+                  );
+
+                  // Format products for display
+                  const formattedProducts = productsAttempt1.map(product => {
+                    return {
+                      ...product,
+                    };
+                  });
+
+                  // Sort products by price
+                  const sortedProducts = sortProductsByPrice(formattedProducts);
+
+                  // Log sorted products for verification
+                  console.log(
+                    'iOS products sorted by price (lowest to highest):',
+                  );
+                  sortedProducts.forEach((product, idx) => {
+                    console.log(
+                      `${idx + 1}. ${product.productId}: ${product.price}`,
+                    );
+                  });
+
+                  setProducts(sortedProducts);
+                  global.availableProducts = sortedProducts;
+                  setSelectedProductId(sortedProducts[0].productId);
+                  setLoading(false);
+                  return;
+                }
+              } catch (attempt1Error) {
+                console.log('Error in first attempt:', attempt1Error);
+                if (
+                  attempt1Error.message &&
+                  attempt1Error.message.includes('cancelled')
+                ) {
+                  console.log(
+                    'Request was cancelled. This is expected if multiple requests are made in sequence.',
+                  );
+                }
+                // Continue to second attempt
               }
 
               // If first attempt fails, try with slightly different options
               console.log('Attempt 2: Fetching with different options');
-              const productsAttempt2 = await RNIap.getProducts({
-                skus: productIds,
-              });
-
-              console.log(
-                `Attempt 2 results: Found ${productsAttempt2.length} products`,
-              );
-
-              if (productsAttempt2.length > 0) {
-                console.log(
-                  'Products found in second attempt:',
-                  productsAttempt2.map(p => p.productId).join(', '),
-                );
-
-                // Format products for display
-                const formattedProducts = productsAttempt2.map(product => {
-                  return {
-                    ...product,
-                  };
+              try {
+                const productsAttempt2 = await RNIap.getProducts({
+                  skus: productIds,
                 });
 
-                setProducts(formattedProducts);
-                global.availableProducts = formattedProducts;
-                setSelectedProductId(formattedProducts[0].productId);
-                setLoading(false);
-                return;
+                console.log(
+                  `Attempt 2 results: Found ${productsAttempt2.length} products`,
+                );
+
+                if (productsAttempt2.length > 0) {
+                  console.log(
+                    'Products found in second attempt:',
+                    productsAttempt2.map(p => p.productId).join(', '),
+                  );
+
+                  // Format products for display
+                  const formattedProducts = productsAttempt2.map(product => {
+                    return {
+                      ...product,
+                    };
+                  });
+
+                  // Sort products by price
+                  const sortedProducts = sortProductsByPrice(formattedProducts);
+
+                  // Log sorted products for verification
+                  console.log(
+                    'iOS products sorted by price (lowest to highest):',
+                  );
+                  sortedProducts.forEach((product, idx) => {
+                    console.log(
+                      `${idx + 1}. ${product.productId}: ${product.price}`,
+                    );
+                  });
+
+                  setProducts(sortedProducts);
+                  global.availableProducts = sortedProducts;
+                  setSelectedProductId(sortedProducts[0].productId);
+                  setLoading(false);
+                  return;
+                }
+              } catch (attempt2Error) {
+                console.log('Error in second attempt:', attempt2Error);
+                if (
+                  attempt2Error.message &&
+                  attempt2Error.message.includes('cancelled')
+                ) {
+                  console.log(
+                    'Request was cancelled. This is expected if multiple requests are made in sequence.',
+                  );
+                }
               }
 
               console.log('No products found even with fallback options');
@@ -2451,22 +2577,23 @@ const SubscriptionScreen = () => {
               );
               setProducts(directProducts);
               global.availableProducts = directProducts;
-              let lowestPriceProduct = directProducts[0];
-              for (const product of directProducts) {
-                const currentPrice = parseFloat(
-                  product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
-                    '999999',
+
+              // Sort products by price
+              const sortedProducts = sortProductsByPrice(directProducts);
+
+              // Log sorted products for verification
+              console.log(
+                'Android products sorted by price (lowest to highest):',
+              );
+              sortedProducts.forEach((product, idx) => {
+                console.log(
+                  `${idx + 1}. ${product.productId}: ${product.price}`,
                 );
-                const lowestPrice = parseFloat(
-                  lowestPriceProduct.price?.match(
-                    /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
-                  )?.[0] || '999999',
-                );
-                if (currentPrice < lowestPrice) {
-                  lowestPriceProduct = product;
-                }
-              }
-              if (lowestPriceProduct?.productId) {
+              });
+
+              // Set the lowest price product as default
+              if (sortedProducts.length > 0) {
+                const lowestPriceProduct = sortedProducts[0];
                 setSelectedProductId(lowestPriceProduct.productId);
               }
               setLoading(false);
@@ -2499,34 +2626,26 @@ const SubscriptionScreen = () => {
             // Store products globally for amount calculations
             global.availableProducts = oneTimeProducts;
 
+            // Sort products by price
+            const sortedProducts = sortProductsByPrice(oneTimeProducts);
+
+            // Log sorted products for verification
+            console.log('Products sorted by price (lowest to highest):');
+            sortedProducts.forEach((product, idx) => {
+              console.log(`${idx + 1}. ${product.productId}: ${product.price}`);
+            });
+
+            setProducts(sortedProducts);
+            global.availableProducts = sortedProducts;
+
             // Set the lowest price product as default
-            let lowestPriceProduct = oneTimeProducts[0];
-            for (const product of oneTimeProducts) {
-              // Extract price value for comparison
-              const currentPrice = parseFloat(
-                product.price?.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/)?.[0] ||
-                  '999999',
-              );
-              const lowestPrice = parseFloat(
-                lowestPriceProduct.price?.match(
-                  /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
-                )?.[0] || '999999',
-              );
-
-              if (currentPrice < lowestPrice) {
-                lowestPriceProduct = product;
-              }
-            }
-
-            if (lowestPriceProduct?.productId) {
-              setSelectedProductId(lowestPriceProduct.productId);
+            if (sortedProducts.length > 0) {
+              setSelectedProductId(sortedProducts[0].productId);
               console.log(
                 'Setting initial selected product ID:',
-                lowestPriceProduct.productId,
+                sortedProducts[0].productId,
               );
             }
-            setLoading(false);
-            return;
           } else {
             console.log('No products available from the store');
             Alert.alert(
@@ -3004,10 +3123,25 @@ const SubscriptionScreen = () => {
       );
     }
 
-    // Render cards dynamically from fetched products
+    // Sort products by price (lowest to highest)
+    const sortedProducts = sortProductsByPrice(products);
+
+    // Log sorted products for verification
+    if (Platform.OS === 'ios') {
+      console.log('Sorted products (lowest to highest):');
+      sortedProducts.forEach((product, idx) => {
+        console.log(
+          `${idx + 1}. ${product.productId}: ${
+            product.localizedPrice || product.price
+          }`,
+        );
+      });
+    }
+
+    // Render cards dynamically from sorted products
     return (
       <View style={styles.plansContainer}>
-        {products.map((product, index) => {
+        {sortedProducts.map((product, index) => {
           // Extract features from the product's description
           const features = product.features ||
             extractFeaturesFromDescription(product.description) || [
@@ -3258,19 +3392,107 @@ const SubscriptionScreen = () => {
           await reconnectIAP();
         }
 
-        const refreshedProducts = await RNIap.getProducts({
-          skus: productIds,
-          forceRefresh: true,
-        });
+        try {
+          console.log('Attempting to fetch iOS products...');
+          const refreshedProducts = await RNIap.getProducts({
+            skus: productIds,
+            forceRefresh: true,
+          });
 
-        if (refreshedProducts && refreshedProducts.length > 0) {
-          console.log(
-            `Successfully refreshed ${refreshedProducts.length} products`,
-          );
-          setProducts(refreshedProducts);
-          global.availableProducts = refreshedProducts;
-        } else {
-          console.log('No products found during refresh');
+          if (refreshedProducts && refreshedProducts.length > 0) {
+            console.log(
+              `Successfully refreshed ${refreshedProducts.length} products`,
+            );
+
+            // Sort products by price
+            const sortedProducts = sortProductsByPrice(refreshedProducts);
+
+            // Log sorted products for verification
+            console.log(
+              'Refreshed iOS products sorted by price (lowest to highest):',
+            );
+            sortedProducts.forEach((product, idx) => {
+              console.log(`${idx + 1}. ${product.productId}: ${product.price}`);
+            });
+
+            setProducts(sortedProducts);
+            global.availableProducts = sortedProducts;
+
+            // Set the lowest price product as default
+            if (sortedProducts.length > 0) {
+              setSelectedProductId(sortedProducts[0].productId);
+            }
+          } else {
+            console.log(
+              'No products found during refresh, trying second attempt...',
+            );
+
+            // Try a second attempt with different options
+            const productsSecondAttempt = await RNIap.getProducts({
+              skus: productIds,
+              forceRefresh: false, // Try without force refresh
+            });
+
+            if (productsSecondAttempt && productsSecondAttempt.length > 0) {
+              console.log(
+                `Second attempt successful: ${productsSecondAttempt.length} products`,
+              );
+
+              // Sort products by price
+              const sortedProducts = sortProductsByPrice(productsSecondAttempt);
+              setProducts(sortedProducts);
+              global.availableProducts = sortedProducts;
+
+              if (sortedProducts.length > 0) {
+                setSelectedProductId(sortedProducts[0].productId);
+              }
+            } else {
+              console.log('No products found in second attempt');
+            }
+          }
+        } catch (refreshError) {
+          console.error('Error refreshing iOS products:', refreshError);
+
+          if (
+            refreshError.message &&
+            refreshError.message.includes('cancelled')
+          ) {
+            console.log(
+              'Request was cancelled due to a new request. This is normal behavior when rapid requests are made.',
+            );
+          } else {
+            // Try reconnecting if there was a non-cancellation error
+            try {
+              console.log('Trying to reconnect IAP after refresh error...');
+              await RNIap.endConnection();
+              await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay
+              await RNIap.initConnection();
+              iapInitialized = true;
+
+              // Try one more time to fetch products
+              console.log(
+                'Attempting final product fetch after reconnection...',
+              );
+              const finalProducts = await RNIap.getProducts({
+                skus: productIds,
+              });
+
+              if (finalProducts && finalProducts.length > 0) {
+                const sortedProducts = sortProductsByPrice(finalProducts);
+                setProducts(sortedProducts);
+                global.availableProducts = sortedProducts;
+
+                if (sortedProducts.length > 0) {
+                  setSelectedProductId(sortedProducts[0].productId);
+                }
+              }
+            } catch (reconnectError) {
+              console.error(
+                'Error reconnecting after refresh error:',
+                reconnectError,
+              );
+            }
+          }
         }
       } else {
         // Android refresh
@@ -3280,8 +3502,33 @@ const SubscriptionScreen = () => {
           console.log(
             `Successfully refreshed ${directProducts.length} Android products`,
           );
-          setProducts(directProducts);
-          global.availableProducts = directProducts;
+
+          // Sort products by price
+          const sortedProducts = [...directProducts].sort((a, b) => {
+            // Extract numeric value from price strings
+            const getNumericPrice = product => {
+              const priceString = product.price || '';
+              const matches = priceString.match(
+                /([0-9]+([.][0-9]*)?|[.][0-9]+)/,
+              );
+              return matches && matches[0] ? parseFloat(matches[0]) : 9999;
+            };
+            return getNumericPrice(a) - getNumericPrice(b);
+          });
+
+          // Log sorted products for verification
+          console.log('Android products sorted by price (lowest to highest):');
+          sortedProducts.forEach((product, idx) => {
+            console.log(`${idx + 1}. ${product.productId}: ${product.price}`);
+          });
+
+          setProducts(sortedProducts);
+          global.availableProducts = sortedProducts;
+
+          // Set the lowest price product as default
+          if (sortedProducts.length > 0) {
+            setSelectedProductId(sortedProducts[0].productId);
+          }
         } else {
           console.log('No Android products found during refresh');
         }
@@ -3578,6 +3825,7 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   disabledButtonText: {
     color: '#666',

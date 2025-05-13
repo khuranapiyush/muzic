@@ -1,4 +1,4 @@
-import {StyleSheet} from 'react-native';
+import {StyleSheet, Platform} from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
@@ -118,6 +118,11 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
+    paddingHorizontal: 16,
+    alignContent: 'center',
+    alignItems: 'center',
+    textAlign: 'center',
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   checkmark: {
     position: 'absolute',
