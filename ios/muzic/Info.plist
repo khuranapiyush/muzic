@@ -63,12 +63,23 @@
 	</array>
 	<key>CFBundleVersion</key>
 	<string>9</string>
+	<key>FacebookAppID</key>
+	<string>2359835304391514</string>
+	<key>FacebookDisplayName</key>
+	<string>MakeMySong</string>
+	<key>GTM_CONTAINER_ID</key>
+	<string>GTM-59BRDP8X</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>fbapi</string>
+		<string>fb-messenger-api</string>
+		<string>fbauth2</string>
+		<string>fbshareextension</string>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>audio</string>
-	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
@@ -76,21 +87,19 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-
-	<key>NSMicrophoneUsageDescription</key>
-	<string>MakeMySong needs microphone access to record your voice for creating voice notes and audio content</string>
-	
 	<key>NSCameraUsageDescription</key>
 	<string>MakeMySong needs camera access to allow you to take profile pictures and upload images for content creation</string>
-	
+	<key>NSMicrophoneUsageDescription</key>
+	<string>MakeMySong needs microphone access to record your voice for creating voice notes and audio content</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>MakeMySong needs access to your photo library to allow you to select images for your profile and content creation</string>
-	
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+	</array>
 	<key>UIFileSharingEnabled</key>
-	<true/>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
@@ -104,16 +113,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>FacebookAppID</key>
-	<string>2359835304391514</string>
-	<key>FacebookDisplayName</key>
-	<string>MakeMySong</string>
-	<key>LSApplicationQueriesSchemes</key>
-	<array>
-		<string>fbapi</string>
-		<string>fb-messenger-api</string>
-		<string>fbauth2</string>
-		<string>fbshareextension</string>
-	</array>
 </dict>
 </plist>
