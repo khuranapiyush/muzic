@@ -2,6 +2,7 @@ import UIKit
 import React
 import React_RCTAppDelegate
 import ReactAppDependencyProvider
+import FBSDKCoreKit
 
 @main
 class AppDelegate: RCTAppDelegate {
@@ -12,7 +13,16 @@ class AppDelegate: RCTAppDelegate {
     // You can add your custom initial props in the dictionary below.
     // They will be passed down to the ViewController used by React Native.
     self.initialProps = [:]
-
+    
+    // Initialize GTM Container Manager
+    let _ = GTMContainerManager.shared
+    
+    // Initialize Facebook SDK
+    FBSDKCoreKit.ApplicationDelegate.shared.application(
+      application,
+      didFinishLaunchingWithOptions: launchOptions
+    )
+    
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
@@ -28,8 +38,13 @@ class AppDelegate: RCTAppDelegate {
 #endif
   }
   
-  // Handle URL scheme for Google Sign-In
+  // Handle URL scheme for Google Sign-In and Facebook SDK
   override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    // Handle Facebook SDK URL scheme
+    if ApplicationDelegate.shared.application(app, open: url, options: options) {
+      return true
+    }
+    
     return super.application(app, open: url, options: options)
   }
 }

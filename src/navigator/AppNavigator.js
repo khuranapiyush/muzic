@@ -1,5 +1,5 @@
 import {NavigationContainer, DefaultTheme} from '@react-navigation/native';
-import React, {useEffect, useState, useCallback, useMemo} from 'react';
+import React, {useEffect, useState, useCallback, useMemo, useRef} from 'react';
 import {useSelector, useDispatch} from 'react-redux';
 import AppProvider from '../context/AppContext';
 import {ModalProvider} from '../context/ModalContext';
@@ -7,6 +7,8 @@ import Toaster from '../components/common/Toaster';
 import {useAuthUser} from '../stores/selector';
 import {ActivityIndicator, View} from 'react-native';
 import {setTokenChecked} from '../stores/slices/app/index';
+import analyticsUtils from '../utils/analytics';
+import facebookEvents from '../utils/facebookEvents';
 
 // Lazy load navigators
 const AppStackNavigator = React.lazy(() => import('./AppStackNavigator'));
@@ -30,6 +32,8 @@ const AppNavigator = () => {
   const {tokenChecked} = useSelector(state => state.app);
   const [showFallback, setShowFallback] = useState(false);
   const dispatch = useDispatch();
+  const routeNameRef = useRef();
+  const navigationRef = useRef();
 
   const [forceRender, setForceRender] = useState(0);
 
@@ -67,7 +71,7 @@ const AppNavigator = () => {
 
     const Navigator = isLoggedIn ? AppStackNavigator : AuthStackNavigator;
     return <Navigator />;
-  }, [isLoggedIn, tokenChecked, showFallback, forceRender]);
+  }, [isLoggedIn, tokenChecked, showFallback]);
 
   // Add fallback timer for loading state
   useEffect(() => {
@@ -87,8 +91,40 @@ const AppNavigator = () => {
     };
   }, [tokenChecked, dispatch]);
 
+  // Handle screen tracking for analytics
+  const handleNavigationStateChange = useCallback(state => {
+    if (!state) return;
+
+    // Get current route name
+    const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;
+
+    // Track screen view only when route changes
+    if (currentRouteName && routeNameRef.current !== currentRouteName) {
+      // Track with Firebase Analytics
+      analyticsUtils.trackScreenView(currentRouteName, currentRouteName);
+
+      // Track with Facebook Events
+      try {
+        facebookEvents.logCustomEvent('screen_view', {
+          screen_name: currentRouteName,
+        });
+      } catch (error) {
+        console.error('Error logging Facebook screen view event:', error);
+      }
+
+      // Save the route name for later comparison
+      routeNameRef.current = currentRouteName;
+    }
+  }, []);
+
   return (
-    <NavigationContainer theme={DarkTheme}>
+    <NavigationContainer
+      theme={DarkTheme}
+      ref={navigationRef}
+      onStateChange={handleNavigationStateChange}
+      onReady={() => {
+        routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
+      }}>
       <ModalProvider>
         <AppProvider>
           <React.Suspense

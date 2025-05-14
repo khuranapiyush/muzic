@@ -36,6 +36,7 @@ import {
 } from '../../../../stores/slices/player';
 import appImages from '../../../../resource/images';
 import {selectCreditsPerSong} from '../../../../stores/selector';
+import analyticsUtils from '../../../../utils/analytics';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
@@ -258,6 +259,19 @@ const CoverCreationScreen = () => {
               dispatch(setGeneratingSongId(response.data._id));
             }
 
+            // Track song creation event for AI Cover
+            analyticsUtils.trackCustomEvent('song_created', {
+              method: 'ai_cover',
+              song_id: response.data._id || 'unknown',
+              url: link,
+              screen: 'ai_cover',
+              title: songTitle || 'My Cover',
+              artist: artistName || 'AI Cover',
+              voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
+              voice_id: requestData.voiceModelId,
+              timestamp: Date.now(),
+            });
+
             // Make sure to refresh credits after successful generation
             setTimeout(() => {
               refreshCredits();
@@ -319,9 +333,31 @@ const CoverCreationScreen = () => {
   const handlePaste = async () => {
     try {
       const clipboardContent = await Clipboard.getString();
+
+      // Determine URL type
+      let urlType = 'unknown';
+      if (
+        clipboardContent.includes('youtube.com') ||
+        clipboardContent.includes('youtu.be')
+      ) {
+        urlType = 'youtube';
+      } else if (clipboardContent.includes('spotify.com')) {
+        urlType = 'spotify';
+      }
+
+      // Track AI Cover URL paste event
+      analyticsUtils.trackAiCoverUrlPaste(urlType, {
+        url_length: clipboardContent.length,
+      });
+
       setLink(clipboardContent);
+
+      if (Platform.OS === 'android') {
+        ToastAndroid.show('URL pasted from clipboard', ToastAndroid.SHORT);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to paste from clipboard');
+      console.error('Error pasting from clipboard:', error);
+      Alert.alert('Error', 'Could not paste from clipboard');
     }
   };
 

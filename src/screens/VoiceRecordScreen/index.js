@@ -24,6 +24,7 @@ import NetInfo from '@react-native-community/netinfo';
 import {getAuthToken} from '../../utils/authUtils';
 import CView from '../../components/common/core/View';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import analyticsUtils from '../../utils/analytics';
 
 const VoiceRecordScreen = ({navigation}) => {
   const {API_BASE_URL} = config;
@@ -257,6 +258,12 @@ const VoiceRecordScreen = ({navigation}) => {
 
   // First fix - checking permissions in iOS during initialization
   useEffect(() => {
+    // Track add new recording event when component mounts
+    analyticsUtils.trackAddNewRecording({
+      source: 'ai_cover',
+      screen: 'voice_record_screen',
+    });
+
     // Initialize the recorder once when component mounts
     const initializeRecorder = async () => {
       try {
@@ -650,135 +657,120 @@ const VoiceRecordScreen = ({navigation}) => {
   );
 
   const startRecordingProcess = async () => {
-    // Always check permissions at the start of the recording process
-    if (Platform.OS === 'ios') {
-      const status = await check(PERMISSIONS.IOS.MICROPHONE);
-      console.log('iOS: Checking microphone permission status:', status);
-
-      if (status !== RESULTS.GRANTED) {
-        console.log('iOS: Permission not granted, requesting permission');
-        const requestResult = await request(PERMISSIONS.IOS.MICROPHONE);
-        console.log('iOS: Permission request result:', requestResult);
-
-        if (requestResult !== RESULTS.GRANTED) {
-          console.log('iOS: Permission denied after request');
-
-          if (requestResult === RESULTS.BLOCKED) {
-            // Show settings dialog if permission is blocked
-            Alert.alert(
-              'Microphone Access Required',
-              'Microphone access is blocked. Please open Settings > Privacy > Microphone and enable access for MakeMySong.',
-              [
-                {
-                  text: 'Open Settings',
-                  onPress: () => Linking.openSettings(),
-                },
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-              ],
-            );
-          }
-
-          throw new Error('Microphone permission denied');
-        }
-      }
-    }
-
-    // Generate a unique ID for this recording
-    const recordingId = Date.now().toString();
-
-    // Set up the file path based on platform - use correct extensions for better compatibility
-    // For iOS, just use the default path by not specifying anything
-    const path = Platform.select({
-      ios: null, // Don't specify path for iOS, let the library use its default
-      android: `${RNFS.CachesDirectoryPath}/recording_${recordingId}.mp3`,
-    });
-
     try {
-      setSelectedRecording(recordingId);
+      // Track recording start event
+      analyticsUtils.trackStartRecording('vocal', {
+        screen: 'voice_record_screen',
+        microphone_access: permissionsGranted,
+      });
 
-      // Make sure no recording/playback is active
-      let recorder = audioRecorder;
-      if (!recorder) {
-        console.log('Recorder not available, creating new instance');
-        recorder = new AudioRecorderPlayer();
-        setAudioRecorder(recorder);
-        // Add a small delay to ensure recorder is initialized
-        await new Promise(resolve => setTimeout(resolve, 300));
-      }
+      // Always check permissions at the start of the recording process
+      if (Platform.OS === 'ios') {
+        const status = await check(PERMISSIONS.IOS.MICROPHONE);
+        console.log('iOS: Checking microphone permission status:', status);
 
-      try {
-        // Try to stop any ongoing player or recorder
-        await recorder.stopPlayer().catch(() => {});
-        await recorder.stopRecorder().catch(() => {});
-        setIsPlaying(false);
-      } catch (error) {
-        console.log('No active recorder/player to stop, continuing');
-      }
+        if (status !== RESULTS.GRANTED) {
+          console.log('iOS: Permission not granted, requesting permission');
+          const requestResult = await request(PERMISSIONS.IOS.MICROPHONE);
+          console.log('iOS: Permission request result:', requestResult);
 
-      // Start recording with audio configuration
-      let uri;
-      try {
-        if (Platform.OS === 'android') {
-          // For Android, use the path and settings
-          console.log('Android: Starting recorder with path:', path);
-          uri = await recorder.startRecorder(path);
-        } else {
-          // For iOS, use appropriate options for better compatibility
-          console.log('iOS: Starting recorder with optimized options');
+          if (requestResult !== RESULTS.GRANTED) {
+            console.log('iOS: Permission denied after request');
 
-          // Fix AAC undefined error by using a more compatible audio configuration
-          const audioSet = {
-            AudioEncoderAndroid: AudioRecorderPlayer.AudioEncoderAndroid?.AAC,
-            AudioSourceAndroid: AudioRecorderPlayer.AudioSourceAndroid?.MIC,
-            AVEncoderAudioQualityKeyIOS:
-              AudioRecorderPlayer.AVEncoderAudioQualityIOSType?.medium,
-            AVNumberOfChannelsKeyIOS: 2,
-            // Use a safer approach to access the AAC option
-            AVFormatIDKeyIOS:
-              AudioRecorderPlayer.AVEncodingOption?.aac || 'aac',
-          };
+            if (requestResult === RESULTS.BLOCKED) {
+              // Show settings dialog if permission is blocked
+              Alert.alert(
+                'Microphone Access Required',
+                'Microphone access is blocked. Please open Settings > Privacy > Microphone and enable access for MakeMySong.',
+                [
+                  {
+                    text: 'Open Settings',
+                    onPress: () => Linking.openSettings(),
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                ],
+              );
+            }
 
-          console.log('iOS: Audio settings:', JSON.stringify(audioSet));
-
-          // Use minimal options for iOS to prevent permission issues
-          try {
-            uri = await recorder.startRecorder(null, audioSet);
-          } catch (audioSetError) {
-            console.error(
-              'Error with audio settings, trying simpler approach:',
-              audioSetError,
-            );
-            // Fallback to simpler approach if audio settings error occurs
-            uri = await recorder.startRecorder();
+            throw new Error('Microphone permission denied');
           }
         }
+      }
 
-        console.log('Recording started at:', uri);
+      // Generate a unique ID for this recording
+      const recordingId = Date.now().toString();
 
-        // Set up the recording progress listener
-        recordBackListenerRef.current = recorder.addRecordBackListener(e => {
-          setRecordingTime(formatTime(e.currentPosition));
-        });
+      // Set up the file path based on platform - use correct extensions for better compatibility
+      // For iOS, just use the default path by not specifying anything
+      const path = Platform.select({
+        ios: null, // Don't specify path for iOS, let the library use its default
+        android: `${RNFS.CachesDirectoryPath}/recording_${recordingId}.mp3`,
+      });
 
-        setIsRecording(true);
-      } catch (recorderError) {
-        console.error('Error starting recorder:', recorderError);
+      try {
+        setSelectedRecording(recordingId);
 
-        // Try to reset the recorder and attempt one more time
-        console.log('Trying to reset and restart recorder...');
-        recorder = await resetRecorder();
+        // Make sure no recording/playback is active
+        let recorder = audioRecorder;
         if (!recorder) {
-          throw new Error('Failed to reset recorder');
+          console.log('Recorder not available, creating new instance');
+          recorder = new AudioRecorderPlayer();
+          setAudioRecorder(recorder);
+          // Add a small delay to ensure recorder is initialized
+          await new Promise(resolve => setTimeout(resolve, 300));
         }
 
         try {
-          console.log('Final attempt to start recording with minimal options');
-          // Use the absolute simplest recording approach - minimal options
-          uri = await recorder.startRecorder();
-          console.log('Recording started after reset at:', uri);
+          // Try to stop any ongoing player or recorder
+          await recorder.stopPlayer().catch(() => {});
+          await recorder.stopRecorder().catch(() => {});
+          setIsPlaying(false);
+        } catch (error) {
+          console.log('No active recorder/player to stop, continuing');
+        }
+
+        // Start recording with audio configuration
+        let uri;
+        try {
+          if (Platform.OS === 'android') {
+            // For Android, use the path and settings
+            console.log('Android: Starting recorder with path:', path);
+            uri = await recorder.startRecorder(path);
+          } else {
+            // For iOS, use appropriate options for better compatibility
+            console.log('iOS: Starting recorder with optimized options');
+
+            // Fix AAC undefined error by using a more compatible audio configuration
+            const audioSet = {
+              AudioEncoderAndroid: AudioRecorderPlayer.AudioEncoderAndroid?.AAC,
+              AudioSourceAndroid: AudioRecorderPlayer.AudioSourceAndroid?.MIC,
+              AVEncoderAudioQualityKeyIOS:
+                AudioRecorderPlayer.AVEncoderAudioQualityIOSType?.medium,
+              AVNumberOfChannelsKeyIOS: 2,
+              // Use a safer approach to access the AAC option
+              AVFormatIDKeyIOS:
+                AudioRecorderPlayer.AVEncodingOption?.aac || 'aac',
+            };
+
+            console.log('iOS: Audio settings:', JSON.stringify(audioSet));
+
+            // Use minimal options for iOS to prevent permission issues
+            try {
+              uri = await recorder.startRecorder(null, audioSet);
+            } catch (audioSetError) {
+              console.error(
+                'Error with audio settings, trying simpler approach:',
+                audioSetError,
+              );
+              // Fallback to simpler approach if audio settings error occurs
+              uri = await recorder.startRecorder();
+            }
+          }
+
+          console.log('Recording started at:', uri);
 
           // Set up the recording progress listener
           recordBackListenerRef.current = recorder.addRecordBackListener(e => {
@@ -786,44 +778,74 @@ const VoiceRecordScreen = ({navigation}) => {
           });
 
           setIsRecording(true);
-        } catch (finalError) {
-          console.error('Final recording attempt failed:', finalError);
+        } catch (recorderError) {
+          console.error('Error starting recorder:', recorderError);
 
-          if (
-            Platform.OS === 'ios' &&
-            (finalError.message?.includes('permission') ||
-              finalError.message?.includes('denied'))
-          ) {
-            // This is likely a permission issue on iOS
-            console.log(
-              'iOS: Appears to be a permission issue, opening settings',
-            );
-            Alert.alert(
-              'Microphone Access Required',
-              'Please enable microphone access in Settings to record audio.',
-              [
-                {
-                  text: 'Open Settings',
-                  onPress: () => Linking.openSettings(),
-                },
-                {
-                  text: 'Cancel',
-                  style: 'cancel',
-                },
-              ],
-            );
+          // Try to reset the recorder and attempt one more time
+          console.log('Trying to reset and restart recorder...');
+          recorder = await resetRecorder();
+          if (!recorder) {
+            throw new Error('Failed to reset recorder');
           }
 
-          throw new Error(
-            'Could not start recording. Please check microphone permissions and try again.',
-          );
+          try {
+            console.log(
+              'Final attempt to start recording with minimal options',
+            );
+            // Use the absolute simplest recording approach - minimal options
+            uri = await recorder.startRecorder();
+            console.log('Recording started after reset at:', uri);
+
+            // Set up the recording progress listener
+            recordBackListenerRef.current = recorder.addRecordBackListener(
+              e => {
+                setRecordingTime(formatTime(e.currentPosition));
+              },
+            );
+
+            setIsRecording(true);
+          } catch (finalError) {
+            console.error('Final recording attempt failed:', finalError);
+
+            if (
+              Platform.OS === 'ios' &&
+              (finalError.message?.includes('permission') ||
+                finalError.message?.includes('denied'))
+            ) {
+              // This is likely a permission issue on iOS
+              console.log(
+                'iOS: Appears to be a permission issue, opening settings',
+              );
+              Alert.alert(
+                'Microphone Access Required',
+                'Please enable microphone access in Settings to record audio.',
+                [
+                  {
+                    text: 'Open Settings',
+                    onPress: () => Linking.openSettings(),
+                  },
+                  {
+                    text: 'Cancel',
+                    style: 'cancel',
+                  },
+                ],
+              );
+            }
+
+            throw new Error(
+              'Could not start recording. Please check microphone permissions and try again.',
+            );
+          }
         }
+      } catch (error) {
+        console.error('Error in recording process:', error);
+        setIsRecording(false);
+        setSelectedRecording(null);
+        throw error; // Re-throw to be handled by the caller
       }
     } catch (error) {
-      console.error('Error in recording process:', error);
-      setIsRecording(false);
-      setSelectedRecording(null);
-      throw error; // Re-throw to be handled by the caller
+      console.error('Failed to start recording:', error);
+      Alert.alert('Error', `Could not start recording: ${error.message}`);
     }
   };
 

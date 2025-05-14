@@ -21,6 +21,9 @@ import {
   setLoading,
   setError,
 } from './stores/slices/creditSettings';
+import analyticsUtils from './utils/analytics';
+import tagManagerUtils from './utils/tagManager';
+import facebookEvents from './utils/facebookEvents';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -73,16 +76,85 @@ const AppContent = () => {
     }
   }, [dispatch]);
 
+  // Initialize Firebase Analytics, Google Tag Manager, and Facebook SDK in a completely non-blocking way
+  const initializeTracking = useCallback(() => {
+    // Use setTimeout to make sure this runs after app has rendered and not block the UI
+    setTimeout(async () => {
+      try {
+        console.log(
+          'Starting Firebase Analytics, Tag Manager, and Facebook SDK initialization...',
+        );
+
+        // Initialize Facebook SDK
+        facebookEvents.initializeFacebookSDK();
+        facebookEvents.logAppOpen();
+        console.log('✅ Facebook SDK initialized and app open event logged');
+
+        // Initialize analytics with a 5 second timeout
+        const analyticsInitialized = await Promise.race([
+          analyticsUtils.initializeAnalytics(),
+          new Promise((_, reject) =>
+            setTimeout(
+              () => reject(new Error('Analytics initialization timed out')),
+              5000,
+            ),
+          ),
+        ]).catch(error => {
+          console.log('Analytics initialization failed:', error.message);
+          return false;
+        });
+
+        if (analyticsInitialized) {
+          console.log('Firebase Analytics initialized successfully');
+
+          // Initialize Tag Manager after Analytics
+          try {
+            await tagManagerUtils.initializeTagManager();
+            console.log('Google Tag Manager initialized successfully');
+
+            // Track app start event via Tag Manager
+            await tagManagerUtils.pushEvent('app_started', {
+              timestamp: new Date().toISOString(),
+            });
+            console.log('✅ App start event logged via Tag Manager');
+          } catch (tagManagerError) {
+            console.log(
+              'Tag Manager initialization failed:',
+              tagManagerError.message,
+            );
+
+            // Fallback to regular analytics if tag manager fails
+            await analyticsUtils.trackCustomEvent('app_started', {
+              timestamp: new Date().toISOString(),
+            });
+            console.log('✅ App start event logged via Analytics fallback');
+          }
+        } else {
+          console.log('Analytics will use mock implementation');
+        }
+      } catch (error) {
+        // Completely suppress errors to never block app functionality
+        console.log(
+          'Analytics setup failed but app will continue:',
+          error.message,
+        );
+      }
+    }, 2000); // Delay initialization to prioritize UI rendering
+  }, []);
+
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
   useEffect(() => {
     fetchStoredTheme();
     fetchCreditSettingsData();
 
+    // Start analytics initialization as a background task
+    initializeTracking();
+
     return () => {
       // No cleanup needed
     };
-  }, [fetchCreditSettingsData]);
+  }, [fetchCreditSettingsData, initializeTracking]);
 
   return (
     <ThemeContext.Provider value={appThemeProviderValue}>

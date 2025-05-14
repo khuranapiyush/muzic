@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "22319693149",
+    "project_id": "makemysong-4af52",
+    "storage_bucket": "makemysong-4af52.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:22319693149:android:acc5128ae72e8cd97d3cb4",
+        "android_client_info": {
+          "package_name": "com.muzic"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBsKytFp6jT866XtdgT5E_-0muHUckGLok"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

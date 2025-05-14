@@ -35,6 +35,7 @@ import {
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {selectCreditsPerSong} from '../../../../stores/selector';
+import analyticsUtils from '../../../../utils/analytics';
 
 const AIGenerator = ({pageHeading}) => {
   const dispatch = useDispatch();
@@ -147,6 +148,20 @@ const AIGenerator = ({pageHeading}) => {
             type: 'success',
             text1: 'Success',
             text2: 'Song generated successfully!',
+          });
+
+          // Track song prompt creation - using enhanced event name with more detail
+          analyticsUtils.trackCustomEvent('song_created', {
+            method: 'ai_generator',
+            song_id: data._id || 'unknown',
+            prompt: data.prompt,
+            screen: 'dashboard',
+            word_count: data.prompt.split(' ').length,
+            title: data.title || 'Untitled',
+            singer: data.singer || 'Unknown',
+            genre: data.genre || 'Not specified',
+            voice: data.voice || 'Not specified',
+            timestamp: Date.now(),
           });
         } else {
           setErrorMessage(`Error: ${data.message || 'Unknown error'}`);

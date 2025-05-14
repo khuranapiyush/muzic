@@ -18,6 +18,7 @@ import {useSelector} from 'react-redux';
 import useCredits from '../../hooks/useCredits';
 import {selectCreditsPerSong} from '../../stores/selector';
 import * as RNLocalize from 'react-native-localize';
+import facebookEvents from '../../utils/facebookEvents';
 
 const API_URL = config.API_BASE_URL;
 
@@ -161,6 +162,21 @@ const processPurchase = async (purchase, token) => {
           resultData.status = 'SUCCESS';
         }
 
+        // Track the purchase with Facebook SDK
+        const amount = getAmountFromProductId(purchase.productId);
+        if (resultData.status === 'SUCCESS' && amount) {
+          try {
+            facebookEvents.logPurchase(
+              amount,
+              'USD', // Or get currency from resultData
+              purchase.productId,
+            );
+            console.log('Facebook purchase event logged successfully');
+          } catch (fbError) {
+            console.error('Error logging Facebook purchase event:', fbError);
+          }
+        }
+
         console.log('Apple receipt validation result:', resultData);
         return resultData;
       } catch (validationError) {
@@ -198,11 +214,37 @@ const processPurchase = async (purchase, token) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`Server error (${response.status}):`, errorText);
-        throw new Error(`Failed to process purchase: ${response.status}`);
+        console.error(
+          `Google payment event error (${response.status}):`,
+          errorText,
+        );
+        return {
+          status: 'ERROR',
+          isValid: false,
+          errorMessage: `Failed to validate purchase: ${response.status}`,
+        };
       }
 
-      return response.json();
+      const resultData = await response.json();
+
+      // Track the purchase with Facebook SDK for Android
+      if (resultData.status === 'SUCCESS') {
+        try {
+          const amount = getAmountFromProductId(purchase.productId);
+          if (amount) {
+            facebookEvents.logPurchase(
+              amount,
+              'USD', // Or get currency from resultData
+              purchase.productId,
+            );
+            console.log('Facebook purchase event logged successfully');
+          }
+        } catch (fbError) {
+          console.error('Error logging Facebook purchase event:', fbError);
+        }
+      }
+
+      return resultData;
     }
   } catch (err) {
     console.error('Error processing purchase:', err);
