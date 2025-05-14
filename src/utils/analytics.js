@@ -61,6 +61,75 @@ export const trackSignUp = method => {
   return logAnalyticsEvent('sign_up', {method});
 };
 
+// Track mobile number entry
+export const trackMobileNumberEntry = params => {
+  return logAnalyticsEvent('mobile_number_entry', params);
+};
+
+// Track OTP verification shown
+export const trackOtpVerificationShown = params => {
+  return logAnalyticsEvent('otp_verification_shown', params);
+};
+
+// Track OTP verification success
+export const trackOtpVerificationSuccess = params => {
+  return logAnalyticsEvent('otp_verification_success', params);
+};
+
+// Track button click
+export const trackButtonClick = (buttonName, params = {}) => {
+  return logAnalyticsEvent('button_click', {
+    button_name: buttonName,
+    ...params,
+  });
+};
+
+// Track song prompt creation
+export const trackSongPromptCreation = (promptText, params = {}) => {
+  return logAnalyticsEvent('song_prompt_creation', {
+    prompt_text: promptText,
+    word_count: promptText ? promptText.split(' ').length : 0,
+    ...params,
+  });
+};
+
+// Track AI Cover URL paste
+export const trackAiCoverUrlPaste = (urlType, params = {}) => {
+  return logAnalyticsEvent('ai_cover_url_paste', {
+    url_type: urlType,
+    ...params,
+  });
+};
+
+// Track add new recording
+export const trackAddNewRecording = params => {
+  return logAnalyticsEvent('add_new_recording', params);
+};
+
+// Track start recording
+export const trackStartRecording = (recordingType, params = {}) => {
+  return logAnalyticsEvent('start_recording', {
+    recording_type: recordingType,
+    ...params,
+  });
+};
+
+// Track purchase initiated
+export const trackPurchaseInitiated = (source, params = {}) => {
+  return logAnalyticsEvent('purchase_initiated', {
+    source: source,
+    ...params,
+  });
+};
+
+// Track voice upload
+export const trackVoiceUpload = (uploadType, params = {}) => {
+  return logAnalyticsEvent('voice_upload', {
+    upload_type: uploadType,
+    ...params,
+  });
+};
+
 // Track purchases
 export const trackPurchase = params => {
   return logAnalyticsEvent('purchase', params);
@@ -78,4 +147,14 @@ export default {
   trackSignUp,
   trackPurchase,
   trackCustomEvent,
+  trackMobileNumberEntry,
+  trackOtpVerificationShown,
+  trackOtpVerificationSuccess,
+  trackButtonClick,
+  trackSongPromptCreation,
+  trackAiCoverUrlPaste,
+  trackAddNewRecording,
+  trackStartRecording,
+  trackPurchaseInitiated,
+  trackVoiceUpload,
 };

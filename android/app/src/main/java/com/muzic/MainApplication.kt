@@ -45,6 +45,9 @@ class MainApplication : Application(), ReactApplication {
       load()
     }
     
+    // Facebook SDK is initialized automatically via AndroidManifest.xml
+    // No need to call FacebookSdk.sdkInitialize() or AppEventsLogger.activateApp() here
+    
     // Initialize Firebase
     try {
       // Initialize Firebase if not already initialized

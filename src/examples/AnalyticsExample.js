@@ -6,6 +6,7 @@ import {
   logPurchase,
 } from '@react-native-firebase/analytics';
 import analyticsUtils from '../utils/analytics';
+import facebookEvents from '../utils/facebookEvents';
 
 const AnalyticsExample = ({navigation}) => {
   // Track screen view when component mounts
@@ -38,6 +39,12 @@ const AnalyticsExample = ({navigation}) => {
       source: 'example_screen',
     });
 
+    // Facebook Events tracking
+    facebookEvents.logCustomEvent('subscribe_click', {
+      source: 'example_screen',
+      user_type: 'free_user',
+    });
+
     // Perform actual subscribe action here
     console.log('Subscribe button clicked');
   };
@@ -63,6 +70,9 @@ const AnalyticsExample = ({navigation}) => {
       ],
     });
 
+    // Facebook Events purchase tracking
+    facebookEvents.logPurchase(29.99, 'USD', 'premium_subscription');
+
     // Perform actual purchase action here
     console.log('Purchase completed');
   };
@@ -78,6 +88,13 @@ const AnalyticsExample = ({navigation}) => {
 
     // Method 2: Direct Firebase call
     await logEvent(getAnalytics(), 'share_content', {
+      content_type: 'song',
+      content_id: '12345',
+      method: 'whatsapp',
+    });
+
+    // Facebook Events custom event tracking
+    facebookEvents.logCustomEvent('share_content', {
       content_type: 'song',
       content_id: '12345',
       method: 'whatsapp',

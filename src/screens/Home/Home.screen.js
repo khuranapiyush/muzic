@@ -20,6 +20,7 @@ import {useTheme} from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import useMusicPlayer from '../../hooks/useMusicPlayer';
 import appImages from '../../resource/images';
+import facebookEvents from '../../utils/facebookEvents';
 
 // Add helper function to clean song titles
 const cleanSongTitle = title => {
@@ -198,37 +199,26 @@ export default function HomeScreen() {
     }
   }, [fetchAudioList]);
 
-  const handleSongPress = (song, sectionData) => {
-    // Format the song to match the expected format for the global player
-    const formattedSong = {
-      id: song.audioUrl, // Use audioUrl as unique ID
-      title: cleanSongTitle(song.title),
-      artist: 'Artist', // Add a default artist or get it from your data
-      uri: song.audioUrl,
-      thumbnail: song.imageUrl,
-      poster: song.imageUrl,
-      duration: song.duration,
-    };
+  // Handle song press
+  const handleSongPress = useCallback(
+    song => {
+      // Track song play event with Facebook SDK
+      facebookEvents.logSongPlay(
+        song.audioUrl, // Using audioUrl as the song ID
+        song.title || 'Unknown Song',
+      );
 
-    // Format the full section list of songs
-    const formattedSongList = sectionData.map(item => ({
-      id: item.audioUrl,
-      title: cleanSongTitle(item.title),
-      artist: 'Artist',
-      uri: item.audioUrl,
-      thumbnail: item.imageUrl,
-      poster: item.imageUrl,
-      duration: item.duration,
-    }));
+      // If this is the current song, just toggle play/pause
+      if (currentSong && currentSong.audioUrl === song.audioUrl) {
+        togglePlayPause();
+        return;
+      }
 
-    // If the same song is playing, toggle play/pause
-    if (currentSong && currentSong.uri === song.audioUrl) {
-      togglePlayPause();
-    } else {
-      // Otherwise play the new song with the full list
-      play(formattedSong, formattedSongList);
-    }
-  };
+      // Otherwise play the new song
+      play(song);
+    },
+    [play, currentSong, togglePlayPause],
+  );
 
   const sections = [
     {
@@ -260,8 +250,8 @@ export default function HomeScreen() {
             key={index}
             title={section.title}
             data={section.data}
-            onSongPress={song => handleSongPress(song, section.data)}
-            currentSongId={currentSong?.uri}
+            onSongPress={song => handleSongPress(song)}
+            currentSongId={currentSong?.audioUrl}
             isListLoading={isListLoading}
           />
         ))}

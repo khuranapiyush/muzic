@@ -55,6 +55,11 @@ target 'muzic' do
   pod 'FirebaseCoreInternal'  # Swift pod needs modular headers 
   pod 'GoogleUtilities'
 
+  # Facebook SDK dependencies via CocoaPods (alternative to Swift Package Manager)
+  pod 'FBSDKCoreKit'
+  pod 'FBSDKLoginKit'
+  pod 'FBSDKShareKit'
+
   post_install do |installer|
     # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
     react_native_post_install(

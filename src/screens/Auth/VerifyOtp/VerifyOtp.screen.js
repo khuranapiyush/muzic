@@ -18,6 +18,7 @@ import ROUTE_NAME from '../../../navigator/config/routeName';
 import VerifyOtp from '../../../components/feature/auth/verifyOtp';
 import {setUser} from '../../../stores/slices/user';
 import analyticsUtils from '../../../utils/analytics';
+import facebookEvents from '../../../utils/facebookEvents';
 
 const VerifyOtpScreen = ({route}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -66,6 +67,9 @@ const VerifyOtpScreen = ({route}) => {
         method: 'sms',
         phone_country_code: countryCode,
       });
+
+      // Track registration/login with Facebook SDK
+      facebookEvents.logUserRegistration('phone');
 
       // Update user state with isLoggedIn=true, isGuest=false
       dispatch(setUser({isLoggedIn: true, ...res.data}));

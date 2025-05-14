@@ -23,6 +23,7 @@ import {
 } from './stores/slices/creditSettings';
 import analyticsUtils from './utils/analytics';
 import tagManagerUtils from './utils/tagManager';
+import facebookEvents from './utils/facebookEvents';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -75,14 +76,19 @@ const AppContent = () => {
     }
   }, [dispatch]);
 
-  // Initialize Firebase Analytics and Google Tag Manager in a completely non-blocking way
+  // Initialize Firebase Analytics, Google Tag Manager, and Facebook SDK in a completely non-blocking way
   const initializeTracking = useCallback(() => {
     // Use setTimeout to make sure this runs after app has rendered and not block the UI
     setTimeout(async () => {
       try {
         console.log(
-          'Starting Firebase Analytics and Tag Manager initialization...',
+          'Starting Firebase Analytics, Tag Manager, and Facebook SDK initialization...',
         );
+
+        // Initialize Facebook SDK
+        facebookEvents.initializeFacebookSDK();
+        facebookEvents.logAppOpen();
+        console.log('✅ Facebook SDK initialized and app open event logged');
 
         // Initialize analytics with a 5 second timeout
         const analyticsInitialized = await Promise.race([

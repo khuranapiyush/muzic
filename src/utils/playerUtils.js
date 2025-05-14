@@ -94,6 +94,18 @@ export const playSong = (songData, source, songList = null) => {
     from_queue: songList ? true : false,
   });
 
+  // Track song play with Facebook Events
+  try {
+    // Import facebookEvents dynamically to avoid circular dependencies
+    const facebookEvents = require('./facebookEvents').default;
+    facebookEvents.logSongPlay(
+      normalizedSong.id,
+      normalizedSong.title || 'Unknown Song',
+    );
+  } catch (error) {
+    console.error('Error logging Facebook song play event:', error);
+  }
+
   const {queue, currentSong} = store.getState().player;
 
   // If songList is provided, use it as the new queue
