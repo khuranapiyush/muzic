@@ -1,6 +1,7 @@
 apply plugin: "com.android.application"
 apply plugin: "org.jetbrains.kotlin.android"
 apply plugin: "com.facebook.react"
+apply plugin: 'com.google.gms.google-services'
 
 /**
  * This is the configuration block to customize your React Native Android app.
@@ -91,10 +92,11 @@ android {
         applicationId "com.muzic"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 5
-        versionName "1.01"
+        versionCode 6
+        versionName "1.0.6"
         missingDimensionStrategy 'store', 'play'
         multiDexEnabled true
+        manifestPlaceholders = [firebase_analytics_collection_enabled: "true", firebase_analytics_collection_deactivated: "false"]
     }
     signingConfigs {
         debug {
@@ -132,8 +134,16 @@ dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
     implementation 'com.google.android.gms:play-services-auth:20.5.0'  // Use the latest version
+    implementation 'com.google.android.gms:play-services-tagmanager:18.3.0'
 
+    // Firebase dependencies using BoM (Bill of Materials)
+    implementation platform('com.google.firebase:firebase-bom:33.13.0')
 
+    // Add Firebase analytics without specifying version
+    implementation 'com.google.firebase:firebase-analytics'
+    
+    // Facebook SDK dependencies
+    implementation 'com.facebook.android:facebook-android-sdk:16.3.0'
     
     // Explicitly include react-native-config
     implementation project(':react-native-config')

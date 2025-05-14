@@ -13,6 +13,7 @@ import {
   showPlayer,
   setProgress,
 } from '../stores/slices/player';
+import analyticsUtils from './analytics';
 
 // Cache for normalized songs to avoid redundant processing
 const songCache = new Map();
@@ -83,6 +84,27 @@ export const playSong = (songData, source, songList = null) => {
     title: normalizedSong.title,
     uri: normalizedSong.uri,
   });
+
+  // Track song played event
+  analyticsUtils.trackCustomEvent('song_played', {
+    song_id: normalizedSong.id,
+    song_title: normalizedSong.title,
+    artist: normalizedSong.artist,
+    source: source,
+    from_queue: songList ? true : false,
+  });
+
+  // Track song play with Facebook Events
+  try {
+    // Import facebookEvents dynamically to avoid circular dependencies
+    const facebookEvents = require('./facebookEvents').default;
+    facebookEvents.logSongPlay(
+      normalizedSong.id,
+      normalizedSong.title || 'Unknown Song',
+    );
+  } catch (error) {
+    console.error('Error logging Facebook song play event:', error);
+  }
 
   const {queue, currentSong} = store.getState().player;
 

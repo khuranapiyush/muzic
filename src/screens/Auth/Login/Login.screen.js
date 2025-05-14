@@ -30,6 +30,8 @@ import {handleLoginEvent} from '../../../events/auth';
 import useEvent from '../../../hooks/useEvent';
 import {loginSource} from '../../../constants/event';
 import {setTokenChecked} from '../../../stores/slices/app';
+import analyticsUtils from '../../../utils/analytics';
+import facebookEvents from '../../../utils/facebookEvents';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -169,6 +171,11 @@ const LoginScreen = () => {
     const {mobile, phoneCountryCode, referralCode, isReferralCode} =
       getValues();
 
+    // Track mobile number entry event
+    analyticsUtils.trackMobileNumberEntry({
+      country_code: `+${phoneCountryCode.callingCode[0]}`,
+    });
+
     const data = {
       phoneNumber: mobile,
       phoneCountryCode: `+${phoneCountryCode.callingCode[0]}`,
@@ -194,52 +201,62 @@ const LoginScreen = () => {
           fetcher.setAuthToken(accessToken);
         }
 
-        // Update tokens in Redux store
-        if (updateToken) {
+        // Add token to axios interceptor
+        addAuthInterceptor(accessToken);
+
+        // Store user data in Redux
+        if (res.data?.user) {
+          dispatch(setUser(res.data.user));
+        }
+
+        // Save token in Redux
+        if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              access: accessToken,
-              refresh: refreshToken,
+              accessToken,
+              refreshToken,
             }),
           );
         }
 
-        // Update Redux state with isLoggedIn=true
-        dispatch(setUser({isLoggedIn: true, ...res.data}));
-
-        // Force isLoggedIn to true in auth slice as well
+        // Mark user as logged in
         dispatch(setLoggedIn(true));
 
-        // Make sure tokenChecked is true
+        // Set token check complete flag
         dispatch(setTokenChecked(true));
 
-        // Initialize auth interceptor to handle token refresh
-        if (typeof addAuthInterceptor === 'function') {
-          addAuthInterceptor();
-        }
-
-        // Track login event
-        handleLoginEvent(res?.data?.user, {
+        // Log the login event for analytics
+        handleLoginEvent({
           ...defaultEventData,
-          CurrentSourceName: loginSource.loginGoogleSource,
+          loginSource: loginSource.GOOGLE,
         });
 
-        setIsGoogleSignInProgress(false);
+        // Track registration/login with Facebook SDK
+        facebookEvents.logUserRegistration('google');
+
+        // Show success message
+        showToaster({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Login successful',
+        });
       } catch (error) {
-        console.error('Error during login process:', error);
+        console.error('Error handling Google login success:', error);
+      } finally {
+        // Clear loading states
         setIsGoogleSignInProgress(false);
+        setIsLoading(false);
       }
     },
     onError: err => {
+      console.error('Error during Google login API call:', err);
+      setIsGoogleSignInProgress(false);
+      setIsLoading(false);
       showToaster({
         type: 'error',
         text1: 'Error',
-        text2: err.response?.data?.message || 'Failed to login with Google',
+        text2: err.response?.data?.message || 'Login failed',
       });
-      setIsGoogleSignInProgress(false);
-    },
-    onSettled: () => {
-      setIsLoading(prev => ({...prev, login: false}));
     },
   });
 
@@ -363,61 +380,71 @@ const LoginScreen = () => {
   const {mutate: appleLoginApi} = useMutation(data => authAppleLogin(data), {
     onSuccess: res => {
       try {
-        // Extract token information for data provider
+        // Extract token information
         const accessToken = res.data?.tokens?.access?.token;
         const refreshToken = res.data?.tokens?.refresh?.token;
 
-        // Set auth token for API calls if available
+        // Set auth token for API calls
         if (fetcher && fetcher.setAuthToken) {
           fetcher.setAuthToken(accessToken);
         }
 
-        // Update tokens in Redux store
-        if (updateToken) {
+        // Add token to axios interceptor
+        addAuthInterceptor(accessToken);
+
+        // Store user data in Redux
+        if (res.data?.user) {
+          dispatch(setUser(res.data.user));
+        }
+
+        // Save token in Redux
+        if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              access: accessToken,
-              refresh: refreshToken,
+              accessToken,
+              refreshToken,
             }),
           );
         }
 
-        // IMPORTANT: Update Redux state with isLoggedIn=true
-        dispatch(setUser({isLoggedIn: true, ...res.data}));
-
-        // Force isLoggedIn to true in auth slice as well
+        // Mark user as logged in
         dispatch(setLoggedIn(true));
 
-        // Make sure tokenChecked is true
+        // Set token check complete flag
         dispatch(setTokenChecked(true));
 
-        // Initialize auth interceptor to handle token refresh
-        if (typeof addAuthInterceptor === 'function') {
-          addAuthInterceptor();
-        }
-
-        // Track login event
-        handleLoginEvent(res?.data?.user, {
+        // Log the login event for analytics
+        handleLoginEvent({
           ...defaultEventData,
-          CurrentSourceName: loginSource.loginAppleSource,
+          loginSource: loginSource.APPLE,
         });
 
-        setIsAppleSignInProgress(false);
+        // Track registration/login with Facebook SDK
+        facebookEvents.logUserRegistration('apple');
+
+        // Show success message
+        showToaster({
+          type: 'success',
+          text1: 'Success',
+          text2: 'Login successful',
+        });
       } catch (error) {
-        console.error('Error during Apple login process:', error);
+        console.error('Error handling Apple login success:', error);
+      } finally {
+        // Clear loading states
         setIsAppleSignInProgress(false);
+        setIsLoading(false);
       }
     },
     onError: err => {
+      console.error('Error during Apple login API call:', err);
+      setIsAppleSignInProgress(false);
+      setIsLoading(false);
       showToaster({
         type: 'error',
         text1: 'Error',
-        text2: err.response?.data?.message || 'Failed to login with Apple',
+        text2: err.response?.data?.message || 'Login failed',
       });
-      setIsAppleSignInProgress(false);
-    },
-    onSettled: () => {
-      setIsLoading(prev => ({...prev, login: false}));
     },
   });
 
