@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -17,6 +17,8 @@ import {handleLoginEvent} from '../../../events/auth';
 import ROUTE_NAME from '../../../navigator/config/routeName';
 import VerifyOtp from '../../../components/feature/auth/verifyOtp';
 import {setUser} from '../../../stores/slices/user';
+import analyticsUtils from '../../../utils/analytics';
+import facebookEvents from '../../../utils/facebookEvents';
 
 const VerifyOtpScreen = ({route}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -28,6 +30,14 @@ const VerifyOtpScreen = ({route}) => {
 
   // Get parameters from route
   const {phone, countryCode} = route.params || {};
+
+  // Track when OTP verification screen is shown
+  useEffect(() => {
+    analyticsUtils.trackOtpVerificationShown({
+      source: 'signup',
+      phone_country_code: countryCode,
+    });
+  }, [countryCode]);
 
   const {mutate: loginMobileApi} = useMutation(data => authLoginSignup(data), {
     onSuccess: () => {
@@ -52,6 +62,15 @@ const VerifyOtpScreen = ({route}) => {
 
   const {mutate: verifyOtpApi} = useMutation(data => authVerifyOtp(data), {
     onSuccess: res => {
+      // Track OTP verification success
+      analyticsUtils.trackOtpVerificationSuccess({
+        method: 'sms',
+        phone_country_code: countryCode,
+      });
+
+      // Track registration/login with Facebook SDK
+      facebookEvents.logUserRegistration('phone');
+
       // Update user state with isLoggedIn=true, isGuest=false
       dispatch(setUser({isLoggedIn: true, ...res.data}));
 

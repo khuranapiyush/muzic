@@ -1,7 +1,15 @@
 import './utils/backHandlerPolyfill';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import React, {useEffect, useMemo, useState, useCallback} from 'react';
-import {StatusBar, Platform} from 'react-native';
+import {
+  StatusBar,
+  Platform,
+  View,
+  Text,
+  StyleSheet,
+  AppState,
+  Alert,
+} from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {
   SafeAreaProvider,
@@ -21,6 +29,15 @@ import {
   setLoading,
   setError,
 } from './stores/slices/creditSettings';
+import analyticsUtils from './utils/analytics';
+import tagManagerUtils from './utils/tagManager';
+import facebookEvents from './utils/facebookEvents';
+import {initializeFirebase} from './utils/firebase';
+
+// Default credit settings in case API fails
+const DEFAULT_CREDIT_SETTINGS = {
+  creditsPerSong: 5,
+};
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,47 +60,150 @@ const AppContent = () => {
   const [theme, setTheme] = useState({
     mode: 'dark',
   });
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [initError, setInitError] = useState(null);
+  const [splashHidden, setSplashHidden] = useState(false);
+
+  // Better splash screen handling function
+  const hideSplash = useCallback(() => {
+    if (!splashHidden) {
+      try {
+        // Check if SplashScreen has the hide method before calling it
+        if (SplashScreen && typeof SplashScreen.hide === 'function') {
+          SplashScreen.hide();
+        }
+        setSplashHidden(true);
+      } catch (error) {
+        setSplashHidden(true); // Mark as hidden anyway to prevent retries
+      }
+    }
+  }, [splashHidden]);
+
+  // Force hide splash screen after a timeout as a fallback
+  useEffect(() => {
+    // Ensure splash screen is hidden after a timeout regardless of other operations
+    const splashTimer = setTimeout(() => {
+      hideSplash();
+    }, 3000);
+
+    return () => clearTimeout(splashTimer);
+  }, [hideSplash]);
 
   const updateTheme = () => {
     setTheme({mode: 'dark'});
   };
 
-  const fetchStoredTheme = async () => {
+  // Initialize app services - should only be called once at app startup
+  const initializeApp = useCallback(async () => {
     try {
-      const timer = setTimeout(() => {
-        SplashScreen.hide();
-      }, 100);
-      StatusBar.setBarStyle('light-content');
-      return () => clearTimeout(timer);
-    } catch (error) {
-      console.error('Error hiding splash screen:', error);
-    }
-  };
+      // Initialize Firebase
+      const firebaseReady = await initializeFirebase();
 
-  const fetchCreditSettingsData = useCallback(async () => {
-    try {
-      dispatch(setLoading(true));
-      const data = await fetchCreditSettings();
-      dispatch(setCreditsPerSong(data.creditsPerSong));
+      // Initialize Facebook SDK
+      try {
+        facebookEvents.initializeFacebookSDK();
+        facebookEvents.logAppOpen();
+      } catch (fbError) {
+        // Silent error handling
+      }
+
+      // Initialize Analytics
+      try {
+        await analyticsUtils.initializeAnalytics();
+      } catch (analyticsError) {
+        // Silent error handling
+      }
+
+      // Initialize Tag Manager
+      try {
+        await tagManagerUtils.initializeTagManager();
+      } catch (tagError) {
+        // Silent error handling
+      }
+
+      // Fetch app settings
+      try {
+        dispatch(setLoading(true));
+        const data = await fetchCreditSettings();
+        dispatch(setCreditsPerSong(data.creditsPerSong));
+      } catch (settingsError) {
+        dispatch(setError(settingsError.message));
+
+        // Use default settings when API fails
+        dispatch(setCreditsPerSong(DEFAULT_CREDIT_SETTINGS.creditsPerSong));
+      } finally {
+        dispatch(setLoading(false));
+      }
+
+      // Hide splash screen after all initialization is complete
+      hideSplash();
+
+      // Update status bar appearance
+      StatusBar.setBarStyle('light-content');
+
+      // Track app initialization success
+      analyticsUtils.trackCustomEvent('app_initialized', {
+        timestamp: new Date().toISOString(),
+        platform: Platform.OS,
+      });
+
+      // Mark app as initialized
+      setIsInitialized(true);
     } catch (error) {
-      dispatch(setError(error.message));
-      console.error('Error fetching credit settings:', error);
-    } finally {
-      dispatch(setLoading(false));
+      setInitError(error.message || 'Failed to initialize app');
+
+      // Hide splash screen even if there's an error
+      hideSplash();
+
+      // Mark as initialized anyway to show error UI
+      setIsInitialized(true);
     }
-  }, [dispatch]);
+  }, [dispatch, hideSplash]);
+
+  // Handle app state changes
+  const handleAppStateChange = useCallback(nextAppState => {
+    if (nextAppState === 'active') {
+      // App came to foreground, log event
+      analyticsUtils.trackCustomEvent('app_foregrounded', {
+        timestamp: new Date().toISOString(),
+      });
+    } else if (nextAppState === 'background') {
+      // App went to background, log event
+      analyticsUtils.trackCustomEvent('app_backgrounded', {
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }, []);
+
+  useEffect(() => {
+    // Initialize app on startup
+    initializeApp();
+
+    // Set up app state change listener
+    const subscription = AppState.addEventListener(
+      'change',
+      handleAppStateChange,
+    );
+
+    return () => {
+      // Clean up app state listener
+      subscription.remove();
+    };
+  }, [initializeApp, handleAppStateChange]);
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
-  useEffect(() => {
-    fetchStoredTheme();
-    fetchCreditSettingsData();
+  // If app initialization failed, show error screen
+  if (initError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Failed to start app</Text>
+        <Text style={styles.errorDescription}>{initError}</Text>
+      </View>
+    );
+  }
 
-    return () => {
-      // No cleanup needed
-    };
-  }, [fetchCreditSettingsData]);
-
+  // Show normal app UI
   return (
     <ThemeContext.Provider value={appThemeProviderValue}>
       <GestureHandlerRootView style={{flex: 1}}>
@@ -109,5 +229,26 @@ const App = () => {
     </Provider>
   );
 };
+
+const styles = StyleSheet.create({
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#000',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FE954A',
+    marginBottom: 10,
+  },
+  errorDescription: {
+    fontSize: 16,
+    color: '#FFF',
+    textAlign: 'center',
+  },
+});
 
 export default App;

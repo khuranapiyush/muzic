@@ -7,6 +7,7 @@ import CustomDrawerItem from '../DrawerItem';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {useNavigation} from '@react-navigation/native';
 import useModal from '../../../../hooks/useModal';
+import analyticsUtils from '../../../../utils/analytics';
 
 const DrawerFooter = () => {
   const dispatch = useDispatch();
@@ -14,6 +15,12 @@ const DrawerFooter = () => {
   const {showModal} = useModal();
 
   const handleLogout = () => {
+    // Track logout event
+    analyticsUtils.trackCustomEvent('user_logout', {
+      method: 'drawer_menu',
+      timestamp: Date.now(),
+    });
+
     setTimeout(() => {
       dispatch(resetUser());
     }, 300);

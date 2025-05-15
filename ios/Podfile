@@ -1,57 +1,91 @@
-# Resolve react_native_pods.rb with node to allow for hoisting
+# Allow resolving react_native_pods.rb even when hoisted
 require Pod::Executable.execute_command('node', ['-p',
-  'require.resolve(
-    "react-native/scripts/react_native_pods.rb",
-    {paths: [process.argv[1]]},
-  )', __dir__]).strip
+  'require.resolve("react-native/scripts/react_native_pods.rb", {paths: [process.argv[1]]})', __dir__]).strip
 
-# Define a function to require node scripts
+# Define helper to resolve other node-based pod scripts
 def node_require(script)
-  # Resolve script with node to allow for hoisting
   require Pod::Executable.execute_command('node', ['-p',
-    "require.resolve(
-      '#{script}',
-      {paths: [process.argv[1]]},
-    )", __dir__]).strip
+    "require.resolve('#{script}', {paths: [process.argv[1]]})", __dir__]).strip
 end
 
-# Load react-native script
+# Load required pod setup scripts
 node_require('react-native/scripts/react_native_pods.rb')
-
-# Also include the react-native-permissions setup script
 node_require('react-native-permissions/scripts/setup.rb')
 
-platform :ios, min_ios_version_supported
+# Minimum iOS version 
+platform :ios, '15.1'
+
+# Disable new architecture to fix build issues
+# ENV['RCT_NEW_ARCH_ENABLED'] = '0'
+# ENV['NO_FLIPPER'] = '1'
+
+# Critical fix: We use static frameworks for compatibility with Facebook SDK
+use_frameworks! :linkage => :static
+
 prepare_react_native_project!
 
-# Setup only microphone permission
-setup_permissions([
-  'Microphone'
-  # Removed App Tracking Transparency
-])
-
-linkage = ENV['USE_FRAMEWORKS']
-if linkage != nil
-  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
-  use_frameworks! :linkage => linkage.to_sym
-end
+# Setup permissions only for microphone
+setup_permissions(['Microphone'])
 
 target 'muzic' do
   config = use_native_modules!
 
   use_react_native!(
     :path => config[:reactNativePath],
-    # An absolute path to your application root.
+    :hermes_enabled => true,
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+  # Firebase modules
+  # pod 'Firebase/Core'
+  pod 'FirebaseAnalytics', :modular_headers => true
+  pod 'FirebaseCore', :modular_headers => true
+  pod 'FirebaseCoreInternal', :modular_headers => true
+  
+  # Facebook SDK 
+  pod 'FBSDKCoreKit'
+  pod 'FBSDKLoginKit'
+  pod 'FBSDKShareKit'
+  
+  # Splash Screen
+  # pod 'react-native-splash-screen', :path => '../node_modules/react-native-splash-screen'
+
   post_install do |installer|
-    # https://github.com/facebook/react-native/blob/main/packages/react-native/scripts/react_native_pods.rb#L197-L202
+    # Apply React Native recommended settings
     react_native_post_install(
       installer,
       config[:reactNativePath],
-      :mac_catalyst_enabled => false,
-      # :ccache_enabled => true
+      :mac_catalyst_enabled => false
     )
+    
+    # Firebase plist copy script to ensure it's in the app bundle
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Ensure deployment target is consistent
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.1'
+        
+        # Fix for non-modular includes in framework module
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+        config.build_settings['CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER'] = 'NO'
+        
+        # Fix warning flags that can cause build failures
+        config.build_settings['GCC_WARN_INHIBIT_ALL_WARNINGS'] = 'YES'
+        config.build_settings['OTHER_CFLAGS'] = [
+          '$(inherited)',
+          '-Wno-error=non-modular-include-in-framework-module',
+          '-Wno-error', 
+          '-Wno-warning', 
+          '-Wno-everything'
+        ]
+        
+        # Disable strict validation of modules
+        config.build_settings['VALIDATE_WORKSPACE'] = 'NO'
+        
+        # Fix specific build paths on M1/M2 chips
+        if target.name == 'React-Core'
+          config.build_settings['USER_HEADER_SEARCH_PATHS'] = '$(inherited) "${PODS_ROOT}/Headers/Public" "${PODS_ROOT}/Headers/Public/DoubleConversion" "${PODS_ROOT}/Headers/Public/RCT-Folly" "${PODS_ROOT}/Headers/Public/React-Core" "${PODS_ROOT}/Headers/Public/React-callinvoker" "${PODS_ROOT}/Headers/Public/React-cxxreact" "${PODS_ROOT}/Headers/Public/React-jsi" "${PODS_ROOT}/Headers/Public/React-jsiexecutor" "${PODS_ROOT}/Headers/Public/React-jsinspector" "${PODS_ROOT}/Headers/Public/React-logger" "${PODS_ROOT}/Headers/Public/React-perflogger" "${PODS_ROOT}/Headers/Public/React-runtimeexecutor" "${PODS_ROOT}/Headers/Public/Yoga" "${PODS_ROOT}/Headers/Public/fmt" "${PODS_ROOT}/Headers/Public/glog"'
+        end
+      end
+    end
   end
 end
