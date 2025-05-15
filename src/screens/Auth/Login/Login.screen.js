@@ -5,9 +5,6 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
-  Text,
-  TouchableOpacity,
-  Alert,
 } from 'react-native';
 import {useForm} from 'react-hook-form';
 import {useMutation} from '@tanstack/react-query';
@@ -42,23 +39,6 @@ const LoginScreen = () => {
   const [isAppleSignInProgress, setIsAppleSignInProgress] = useState(false);
   const {showToaster} = useToaster();
   const navigation = useNavigation();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-
-    // Show a welcome alert after a delay to confirm the screen is mounted and visible
-    const timer = setTimeout(() => {
-      if (mounted) {
-        Alert.alert('Welcome', 'Login to MakeMySong');
-      }
-    }, 1500);
-
-    return () => {
-      clearTimeout(timer);
-      setMounted(false);
-    };
-  }, [mounted]);
 
   // Initialize Google Sign-In when component mounts
   useEffect(() => {
