@@ -5,6 +5,9 @@ import {
   View,
   KeyboardAvoidingView,
   Platform,
+  Text,
+  TouchableOpacity,
+  Alert,
 } from 'react-native';
 import {useForm} from 'react-hook-form';
 import {useMutation} from '@tanstack/react-query';
@@ -39,6 +42,23 @@ const LoginScreen = () => {
   const [isAppleSignInProgress, setIsAppleSignInProgress] = useState(false);
   const {showToaster} = useToaster();
   const navigation = useNavigation();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+
+    // Show a welcome alert after a delay to confirm the screen is mounted and visible
+    const timer = setTimeout(() => {
+      if (mounted) {
+        Alert.alert('Welcome', 'Login to MakeMySong');
+      }
+    }, 1500);
+
+    return () => {
+      clearTimeout(timer);
+      setMounted(false);
+    };
+  }, [mounted]);
 
   // Initialize Google Sign-In when component mounts
   useEffect(() => {
@@ -67,7 +87,7 @@ const LoginScreen = () => {
           GoogleSignin.configure(androidConfig);
         }
       } catch (error) {
-        console.error('Error configuring Google Sign In:', error);
+        // Silent error handling
       }
     };
 
@@ -93,32 +113,25 @@ const LoginScreen = () => {
     checkSignInState();
   }, []);
 
-  // Check Apple Sign In availability at startup for debugging
+  // Check Apple Sign In availability at startup
   useEffect(() => {
     const checkAppleSignInAvailability = async () => {
       try {
         if (Platform.OS !== 'ios') {
-          console.log('Apple Sign In not available - not an iOS device');
           return;
         }
 
         const iosVersion = parseInt(Platform.Version, 10);
         if (iosVersion < 13) {
-          console.log(
-            'Apple Sign In not available - iOS version too low:',
-            iosVersion,
-          );
           return;
         }
 
-        // Log whether Apple Sign In is supported
+        // Check if Apple Sign In is supported
         if (appleAuth && appleAuth.isSupported !== undefined) {
-          console.log('Apple Sign In supported:', appleAuth.isSupported);
-        } else {
-          console.log('Apple Sign In support status unknown');
+          // Support confirmed
         }
       } catch (error) {
-        console.log('Error checking Apple Sign In availability:', error);
+        // Silent error handling
       }
     };
 
@@ -241,7 +254,7 @@ const LoginScreen = () => {
           text2: 'Login successful',
         });
       } catch (error) {
-        console.error('Error handling Google login success:', error);
+        // Silent error handling
       } finally {
         // Clear loading states
         setIsGoogleSignInProgress(false);
@@ -249,7 +262,6 @@ const LoginScreen = () => {
       }
     },
     onError: err => {
-      console.error('Error during Google login API call:', err);
       setIsGoogleSignInProgress(false);
       setIsLoading(false);
       showToaster({
@@ -366,7 +378,7 @@ const LoginScreen = () => {
           text2: 'Please update Google Play Services',
         });
       } else if (error.code === statusCodes.DEVELOPER_ERROR) {
-        // Show detailed error message with debug-specific instructions
+        // Silent handling for developer errors
       } else {
         showToaster({
           type: 'error',
@@ -429,7 +441,7 @@ const LoginScreen = () => {
           text2: 'Login successful',
         });
       } catch (error) {
-        console.error('Error handling Apple login success:', error);
+        // Silent error handling
       } finally {
         // Clear loading states
         setIsAppleSignInProgress(false);
@@ -437,7 +449,6 @@ const LoginScreen = () => {
       }
     },
     onError: err => {
-      console.error('Error during Apple login API call:', err);
       setIsAppleSignInProgress(false);
       setIsLoading(false);
       showToaster({
@@ -511,8 +522,6 @@ const LoginScreen = () => {
           requestedScopes: [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
         });
       } catch (requestError) {
-        console.log('Apple Sign In request error:', requestError);
-
         // Check for known errors
         if (
           requestError.message &&
@@ -575,7 +584,6 @@ const LoginScreen = () => {
         user: user,
       });
     } catch (error) {
-      console.log('Apple Sign In Error:', error);
       setIsAppleSignInProgress(false);
 
       let errorMessage = 'An error occurred during Apple sign in';

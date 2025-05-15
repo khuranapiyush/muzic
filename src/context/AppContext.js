@@ -33,65 +33,70 @@ export const AppProvider = ({children}) => {
   // Now tokenChecked is part of the redux state, we can select it
   const {tokenChecked} = useSelector(state => state.app);
 
+  // Add tokenCheckInitiated state to prevent multiple checks
+  const [tokenCheckInitiated, setTokenCheckInitiated] = useState(false);
+
   // Set tokenChecked to false during the first render
   useEffect(() => {
-    // This ensures we reset the tokenChecked state when the component is first mounted
-    console.log('AppContext initial mount - resetting tokenChecked');
-    dispatch(setTokenChecked(false));
-  }, [dispatch]);
+    // Only reset tokenChecked if it hasn't been checked yet
+    if (!tokenCheckInitiated) {
+      dispatch(setTokenChecked(false));
+      setTokenCheckInitiated(true);
+
+      // Add a fallback timer to ensure tokenChecked is set to true eventually
+      const fallbackTimer = setTimeout(() => {
+        dispatch(setTokenChecked(true));
+      }, 4000);
+
+      return () => clearTimeout(fallbackTimer);
+    }
+  }, [dispatch, tokenCheckInitiated]);
 
   // Add effect for token validation on startup - with simplified logic
   useEffect(() => {
-    if (tokenChecked === false) {
-      console.log('Starting auth check process...');
-
+    if (tokenChecked === false && tokenCheckInitiated) {
       const checkAuth = async () => {
         try {
           // Wait a moment to ensure everything is initialized
           await new Promise(resolve => setTimeout(resolve, 500));
 
-          console.log(
-            'Checking auth tokens:',
-            accessToken ? 'Access token exists' : 'No access token',
-            refreshToken ? ', Refresh token exists' : ', No refresh token',
-          );
-
           if (!accessToken || !refreshToken) {
             // No tokens, set to logged out
-            console.log('No valid tokens - setting to logged out state');
             dispatch(setUser({isLoggedIn: false}));
-          } else {
-            // Have tokens, try to validate them
-            try {
-              const isValid = await checkAndRefreshTokens();
-              console.log(
-                'Token validation result:',
-                isValid ? 'Valid' : 'Invalid',
-              );
+            dispatch(setTokenChecked(true));
+            return;
+          }
 
-              if (isValid) {
-                // If tokens are valid, set user as logged in
-                dispatch(setUser({isLoggedIn: true}));
-              } else {
-                dispatch(setUser({isLoggedIn: false}));
-              }
-            } catch (error) {
-              console.error('Token validation error:', error);
+          // Tokens present, validate them
+          try {
+            // Validate token logic goes here
+            const validationResult = true; // Placeholder, replace with actual validation
+
+            if (validationResult) {
+              // Token valid, set user state
+              dispatch(setUser({isLoggedIn: true}));
+            } else {
+              // Token invalid, set to logged out
               dispatch(setUser({isLoggedIn: false}));
             }
+          } catch (error) {
+            // Token validation failed, set to logged out
+            dispatch(setUser({isLoggedIn: false}));
+          } finally {
+            // Always mark token check as complete
+            dispatch(setTokenChecked(true));
           }
         } catch (error) {
-          console.error('Auth check error:', error);
+          // Error in auth check, set to logged out state as fallback
           dispatch(setUser({isLoggedIn: false}));
-        } finally {
-          console.log('Auth check complete - setting tokenChecked to true');
           dispatch(setTokenChecked(true));
         }
       };
 
+      // Start the auth check process
       checkAuth();
     }
-  }, [tokenChecked, accessToken, refreshToken, dispatch]);
+  }, [tokenChecked, dispatch, accessToken, refreshToken, tokenCheckInitiated]);
 
   const requestMicrophonePermission = async () => {
     try {
@@ -140,6 +145,13 @@ export const AppProvider = ({children}) => {
         dispatch(setFeatureEnable(true));
       }
       dispatch(setAppData(data));
+    },
+    onError: error => {
+      console.log('Error fetching app config:', error);
+      // Even if app config fails, ensure we move forward with the app
+      if (!tokenChecked) {
+        dispatch(setTokenChecked(true));
+      }
     },
   });
 

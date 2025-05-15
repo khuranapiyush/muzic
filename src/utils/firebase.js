@@ -1,7 +1,9 @@
-import {initializeApp, getApps} from '@react-native-firebase/app';
+import {getApps} from '@react-native-firebase/app';
 import {Platform} from 'react-native';
 
-// Firebase configuration for makemysong-4af52 project
+// Firebase configuration for the native applications
+// This is used as a fallback in case the GoogleService-Info.plist
+// or google-services.json files aren't properly loaded
 const firebaseConfig = {
   apiKey: 'AIzaSyClMnC-5uhmdNsfg2d0QwVC1Pr_UpenUpk',
   authDomain: 'makemysong-4af52.firebaseapp.com',
@@ -13,26 +15,28 @@ const firebaseConfig = {
 };
 
 /**
- * Initialize Firebase with explicit configuration
- * @returns {Promise<boolean>} Whether initialization was successful
+ * Initialize Firebase for native platforms
+ *
+ * Firebase should be auto-initialized through the native SDKs with
+ * google-services.json and GoogleService-Info.plist, but we check
+ * that initialization happened correctly.
+ *
+ * @returns {Promise<boolean>} Whether Firebase is properly set up
  */
 export const initializeFirebase = async () => {
   try {
-    // Check if Firebase is already initialized
-    if (getApps().length === 0) {
-      console.log('Initializing Firebase with explicit configuration...');
-
-      // Initialize with explicit config instead of relying on GoogleService-Info.plist
-      await initializeApp(firebaseConfig);
-
-      console.log('Firebase initialized successfully with explicit config');
+    // For native platforms, Firebase initialization happens automatically
+    // through the native Firebase SDK with google-services.json and GoogleService-Info.plist
+    const apps = getApps();
+    if (apps.length > 0) {
+      console.log('Firebase is initialized in native mode');
       return true;
     } else {
-      console.log('Firebase already initialized');
-      return true;
+      console.error('Firebase app not found - check native configuration');
+      return false;
     }
   } catch (error) {
-    console.error('Error initializing Firebase:', error);
+    console.error('Error checking Firebase initialization:', error);
     return false;
   }
 };

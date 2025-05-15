@@ -5,14 +5,24 @@ import AppProvider from '../context/AppContext';
 import {ModalProvider} from '../context/ModalContext';
 import Toaster from '../components/common/Toaster';
 import {useAuthUser} from '../stores/selector';
-import {ActivityIndicator, View} from 'react-native';
+import {ActivityIndicator, View, Platform, Text} from 'react-native';
 import {setTokenChecked} from '../stores/slices/app/index';
 import analyticsUtils from '../utils/analytics';
 import facebookEvents from '../utils/facebookEvents';
 
-// Lazy load navigators
-const AppStackNavigator = React.lazy(() => import('./AppStackNavigator'));
-const AuthStackNavigator = React.lazy(() => import('./AuthStackNavigator'));
+// Import directly for iOS to prevent lazy loading issues
+import AppStackNavigatorDirect from './AppStackNavigator';
+import AuthStackNavigatorDirect from './AuthStackNavigator';
+
+// Keep lazy loading for Android which works fine
+const AppStackNavigator =
+  Platform.OS === 'ios'
+    ? AppStackNavigatorDirect
+    : React.lazy(() => import('./AppStackNavigator'));
+const AuthStackNavigator =
+  Platform.OS === 'ios'
+    ? AuthStackNavigatorDirect
+    : React.lazy(() => import('./AuthStackNavigator'));
 
 // Loading component
 const LoadingComponent = () => (
@@ -27,23 +37,58 @@ const LoadingComponent = () => (
   </View>
 );
 
+// iOS Fallback UI if navigation fails
+const IOSFallbackUI = () => (
+  <View
+    style={{
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: '#FE954A',
+      padding: 20,
+    }}>
+    <Text
+      style={{
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: 'white',
+        marginBottom: 10,
+        textAlign: 'center',
+      }}>
+      Welcome to MakeMySong
+    </Text>
+    <Text
+      style={{
+        fontSize: 16,
+        color: 'white',
+        marginBottom: 20,
+        textAlign: 'center',
+      }}>
+      Loading app...
+    </Text>
+    <ActivityIndicator size="large" color="white" />
+  </View>
+);
+
 const AppNavigator = () => {
   const {isLoggedIn} = useSelector(useAuthUser);
   const {tokenChecked} = useSelector(state => state.app);
   const [showFallback, setShowFallback] = useState(false);
+  const [renderFailed, setRenderFailed] = useState(false);
   const dispatch = useDispatch();
   const routeNameRef = useRef();
   const navigationRef = useRef();
 
-  const [forceRender, setForceRender] = useState(0);
-
+  // Force navigation token check earlier on iOS
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setForceRender(prev => prev + 1);
-    }, 50);
+    if (Platform.OS === 'ios') {
+      const timer = setTimeout(() => {
+        dispatch(setTokenChecked(true));
+      }, 1500);
 
-    return () => clearTimeout(timer);
-  }, [isLoggedIn]);
+      return () => clearTimeout(timer);
+    }
+  }, [dispatch]);
 
   // Memoize theme to prevent unnecessary re-renders
   const DarkTheme = useMemo(
@@ -63,25 +108,49 @@ const AppNavigator = () => {
     [],
   );
 
-  // Memoize the navigator component
+  // Enhanced navigator rendering with better error handling for iOS
   const renderNavigator = useCallback(() => {
+    // If rendering failed (iOS only), show fallback UI
+    if (renderFailed && Platform.OS === 'ios') {
+      return <IOSFallbackUI />;
+    }
+
+    // Show loading component if token check not complete
     if (!tokenChecked && !showFallback) {
       return <LoadingComponent />;
     }
 
-    const Navigator = isLoggedIn ? AppStackNavigator : AuthStackNavigator;
-    return <Navigator />;
-  }, [isLoggedIn, tokenChecked, showFallback]);
+    try {
+      // Different approach based on platform
+      if (Platform.OS === 'ios') {
+        // On iOS, directly return the navigator without any wrapper
+        return isLoggedIn ? (
+          <AppStackNavigatorDirect />
+        ) : (
+          <AuthStackNavigatorDirect />
+        );
+      } else {
+        // For Android, use lazy loading via Navigator variable
+        const Navigator = isLoggedIn ? AppStackNavigator : AuthStackNavigator;
+        return <Navigator />;
+      }
+    } catch (error) {
+      return Platform.OS === 'ios' ? <IOSFallbackUI /> : <LoadingComponent />;
+    }
+  }, [isLoggedIn, tokenChecked, showFallback, renderFailed]);
 
-  // Add fallback timer for loading state
+  // Add fallback timer for loading state - shorter for iOS
   useEffect(() => {
     let fallbackTimer;
 
     if (!tokenChecked) {
-      fallbackTimer = setTimeout(() => {
-        setShowFallback(true);
-        dispatch(setTokenChecked(true));
-      }, 7000);
+      fallbackTimer = setTimeout(
+        () => {
+          setShowFallback(true);
+          dispatch(setTokenChecked(true));
+        },
+        Platform.OS === 'ios' ? 3000 : 7000,
+      ); // Shorter timeout for iOS
     }
 
     return () => {
@@ -109,13 +178,43 @@ const AppNavigator = () => {
           screen_name: currentRouteName,
         });
       } catch (error) {
-        console.error('Error logging Facebook screen view event:', error);
+        // Silent error handling
       }
 
       // Save the route name for later comparison
       routeNameRef.current = currentRouteName;
     }
   }, []);
+
+  // Use platform-specific wrapping for the navigator
+  const renderPlatformSpecificNavigator = () => {
+    if (Platform.OS === 'ios') {
+      // iOS: Direct rendering without Suspense
+      try {
+        return renderNavigator();
+      } catch (error) {
+        return <IOSFallbackUI />;
+      }
+    } else {
+      // Android: Use Suspense as it works fine
+      return (
+        <React.Suspense
+          fallback={
+            <View
+              style={{
+                flex: 1,
+                justifyContent: 'center',
+                alignItems: 'center',
+                backgroundColor: '#000',
+              }}>
+              <ActivityIndicator size="large" color="#FE954A" />
+            </View>
+          }>
+          {renderNavigator()}
+        </React.Suspense>
+      );
+    }
+  };
 
   return (
     <NavigationContainer
@@ -126,22 +225,7 @@ const AppNavigator = () => {
         routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name;
       }}>
       <ModalProvider>
-        <AppProvider>
-          <React.Suspense
-            fallback={
-              <View
-                style={{
-                  flex: 1,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  backgroundColor: '#000',
-                }}>
-                <ActivityIndicator size="large" color="#FE954A" />
-              </View>
-            }>
-            {renderNavigator()}
-          </React.Suspense>
-        </AppProvider>
+        <AppProvider>{renderPlatformSpecificNavigator()}</AppProvider>
       </ModalProvider>
       <Toaster />
     </NavigationContainer>

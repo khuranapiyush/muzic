@@ -1,25 +1,24 @@
 import {Platform} from 'react-native';
+import analytics from '@react-native-firebase/analytics';
 
-// Flag to completely disable Firebase - set to true to avoid Firebase initialization errors
-const DISABLE_FIREBASE = true;
+// Flag for debugging analytics - set to true to see log messages
+const DEBUG_ANALYTICS = __DEV__;
 
-// Create mock analytics object for when Firebase is not available
-const createMockAnalytics = () => ({
-  logEvent: () => Promise.resolve(),
-  setAnalyticsCollectionEnabled: () => Promise.resolve(),
-  setUserProperty: () => Promise.resolve(),
-  logScreenView: () => Promise.resolve(),
-  logPurchase: () => Promise.resolve(),
-});
-
-// Store a mock analytics instance
-const mockAnalytics = createMockAnalytics();
-
-// Helper function to enable debug collection - call this in your app initialization
+// Helper function to enable analytics collection
 export const initializeAnalytics = async () => {
-  // Return immediately with success, but using mock implementations
-  console.log('Using mock Firebase Analytics implementation');
-  return true;
+  try {
+    // Enable analytics collection
+    await analytics().setAnalyticsCollectionEnabled(true);
+
+    if (DEBUG_ANALYTICS) {
+      console.log('Firebase Analytics initialized successfully');
+    }
+    return true;
+  } catch (error) {
+    console.error('Error initializing Firebase Analytics:', error);
+    // Return false to indicate initialization failed
+    return false;
+  }
 };
 
 // Helper function to log analytics events safely - never throws errors
@@ -31,11 +30,11 @@ const logAnalyticsEvent = (eventName, params) => {
       platform: Platform.OS,
     };
 
-    if (__DEV__) {
-      console.log(`📊 MOCK ANALYTICS EVENT: ${eventName}`, analyticsParams);
+    // Use Firebase Analytics
+    if (DEBUG_ANALYTICS) {
+      console.log(`📊 ANALYTICS EVENT: ${eventName}`, analyticsParams);
     }
-
-    return Promise.resolve();
+    return analytics().logEvent(eventName, analyticsParams);
   } catch (error) {
     // Silent fail for analytics errors, never block app functionality
     console.log(`Failed to log event ${eventName}:`, error);

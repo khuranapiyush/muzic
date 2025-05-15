@@ -50,18 +50,6 @@ const DrawerFooter = () => {
     }, 300);
   };
 
-  const handleAnalyticsTest = () => {
-    setTimeout(() => {
-      navigation.navigate(ROUTE_NAME.AnalyticsTest);
-    }, 300);
-  };
-
-  const handleFirebaseTest = () => {
-    setTimeout(() => {
-      navigation.navigate(ROUTE_NAME.FirebaseTest);
-    }, 300);
-  };
-
   return (
     <CView>
       <CustomDrawerItem
@@ -96,20 +84,6 @@ const DrawerFooter = () => {
         label="Logout"
         logoUrl={appImages.logout}
         onPress={handleLogout}
-        customStyles={{logoStyles: {tintColor: 'white'}}}
-      />
-      <CustomDrawerItem
-        arrow={false}
-        label="Analytics Test"
-        logoUrl={appImages.logout}
-        onPress={handleAnalyticsTest}
-        customStyles={{logoStyles: {tintColor: 'white'}}}
-      />
-      <CustomDrawerItem
-        arrow={false}
-        label="Firebase Test"
-        logoUrl={appImages.logout}
-        onPress={handleFirebaseTest}
         customStyles={{logoStyles: {tintColor: 'white'}}}
       />
     </CView>
