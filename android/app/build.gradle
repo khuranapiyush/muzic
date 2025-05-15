@@ -52,6 +52,7 @@ react {
     // hermesFlags = ["-O", "-output-source-map"]
 
     /* Autolinking */
+    nodeExecutableAndArgs = ["/opt/homebrew/opt/node@20/bin/node"]
     autolinkLibrariesWithApp()
 }
 

@@ -74,3 +74,21 @@
 -keepclassmembers class * {
     @android.webkit.JavascriptInterface <methods>;
 }
+
+# Firebase / Protobuf / Google Tag Manager - fix R8 minify crash
+-keep class com.google.protobuf.** { *; }
+-keep interface com.google.protobuf.** { *; }
+-keep class com.google.tagmanager.** { *; }
+-keep class com.google.firebase.** { *; }
+-keep class com.google.android.gms.tagmanager.** { *; }
+
+# Preserve service loader metadata (required by protobuf extensions)
+-keepattributes *Annotation*,InnerClasses,Signature,EnclosingMethod,Exceptions
+-keepnames class com.google.protobuf.GeneratedExtensionRegistryLoader
+-keepnames class **.GeneratedExtensionRegistryLite$Loader
+
+# FastServiceLoader workaround
+-keep class kotlinx.coroutines.internal.** { *; }
+
+# Add specific rule for the missing Google Protobuf class
+-dontwarn com.google.protobuf.java_com_google_android_gmscore_sdk_target_granule__proguard_group_gtm_N1281923064GeneratedExtensionRegistryLite$Loader
