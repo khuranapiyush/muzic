@@ -39,7 +39,7 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   logoContainer: {
-    marginBottom: 40,
+    marginBottom: 20,
     alignItems: 'center',
     zIndex: 1,
   },
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
   },
   labelContainer: {
-    marginBottom: 20,
+    marginBottom: 10,
     alignItems: 'center',
     zIndex: 1,
   },
