@@ -259,6 +259,7 @@ const LoginScreen = () => {
 
     try {
       setIsGoogleSignInProgress(true);
+      setIsLoading(true);
 
       // Platform-specific configuration
       if (Platform.OS === 'ios') {
@@ -337,6 +338,7 @@ const LoginScreen = () => {
     } catch (error) {
       // Reset sign-in progress state
       setIsGoogleSignInProgress(false);
+      setIsLoading(false);
 
       // Handle specific error cases
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -447,6 +449,7 @@ const LoginScreen = () => {
     try {
       // Set in-progress state
       setIsAppleSignInProgress(true);
+      setIsLoading(true);
 
       // Platform check first
       if (Platform.OS !== 'ios') {
@@ -456,6 +459,7 @@ const LoginScreen = () => {
           text2: 'Apple Sign In is only available on iOS devices',
         });
         setIsAppleSignInProgress(false);
+        setIsLoading(false);
         return;
       }
 
@@ -468,6 +472,7 @@ const LoginScreen = () => {
           text2: 'Apple Sign In requires iOS 13 or later',
         });
         setIsAppleSignInProgress(false);
+        setIsLoading(false);
         return;
       }
 
@@ -479,6 +484,7 @@ const LoginScreen = () => {
           text2: 'Apple Sign In is not supported on this device',
         });
         setIsAppleSignInProgress(false);
+        setIsLoading(false);
         return;
       }
 
@@ -491,6 +497,7 @@ const LoginScreen = () => {
             'Apple Sign In is not available on this device. Please use another login method.',
         });
         setIsAppleSignInProgress(false);
+        setIsLoading(false);
         return;
       }
 
@@ -534,6 +541,7 @@ const LoginScreen = () => {
           });
         }
         setIsAppleSignInProgress(false);
+        setIsLoading(false);
         return;
       }
 
@@ -565,6 +573,7 @@ const LoginScreen = () => {
       });
     } catch (error) {
       setIsAppleSignInProgress(false);
+      setIsLoading(false);
 
       let errorMessage = 'An error occurred during Apple sign in';
 
@@ -602,7 +611,12 @@ const LoginScreen = () => {
             errors={errors}
             handleGoogleLogin={handleGoogleLogin}
             handleAppleLogin={handleAppleLogin}
-            appleSignInAvailable={true}
+            appleSignInAvailable={
+              Platform.OS === 'ios' &&
+              parseInt(Platform.Version, 10) >= 13 &&
+              appleAuth &&
+              appleAuth.isSupported
+            }
           />
         </View>
       </KeyboardAvoidingView>
@@ -613,14 +627,13 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    // Background is now handled by the Login component
   },
   keyboardAvoidView: {
     flex: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
   },
 });
 

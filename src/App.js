@@ -8,7 +8,6 @@ import {
   Text,
   StyleSheet,
   AppState,
-  Alert,
 } from 'react-native';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
 import {
