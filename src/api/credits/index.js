@@ -1,6 +1,6 @@
 import config from 'react-native-config';
-import {getAuthToken} from '../../utils/authUtils';
-import axios from 'axios';
+import {makeAuthenticatedRequest} from '../../utils/authUtils';
+import fetcher from '../../dataProvider';
 
 /**
  * Fetch the user's credits from the API
@@ -8,19 +8,11 @@ import axios from 'axios';
  */
 export const fetchUserCredits = async () => {
   try {
-    const token = await getAuthToken();
-    if (!token) {
-      throw new Error('Authentication required');
-    }
-
-    const response = await axios.get(`${config.API_BASE_URL}/v1/credits`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
+    // Use the makeAuthenticatedRequest wrapper to handle token validation and refresh
+    return await makeAuthenticatedRequest(async () => {
+      const response = await fetcher.get(`${config.API_BASE_URL}/v1/credits`);
+      return response.data;
     });
-
-    return response.data;
   } catch (error) {
     console.error('Error fetching user credits:', error);
     throw error;

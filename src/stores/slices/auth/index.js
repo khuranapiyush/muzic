@@ -12,9 +12,22 @@ const auth = createSlice({
   initialState,
   reducers: {
     updateToken: (state, action) => {
-      state.refreshToken = action.payload.refresh;
-      state.accessToken = action.payload.access;
-      state.isLoggedIn = true;
+      // Handle different formats of token payload
+      if (typeof action.payload === 'string') {
+        // If the payload is just a string token, update access token only
+        state.accessToken = action.payload;
+        state.isLoggedIn = true;
+      } else if (action.payload && typeof action.payload === 'object') {
+        // Handle object with access, refresh format
+        if (action.payload.access) {
+          state.accessToken = action.payload.access;
+        }
+        if (action.payload.refresh) {
+          state.refreshToken = action.payload.refresh;
+        }
+        // Always set logged in when tokens are updated
+        state.isLoggedIn = true;
+      }
     },
     setLoggedIn: (state, action) => {
       state.isLoggedIn = action.payload;

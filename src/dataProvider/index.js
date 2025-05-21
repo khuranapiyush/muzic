@@ -13,6 +13,7 @@ import {
 } from '../utils/authUtils';
 import {store} from '../stores';
 import config from 'react-native-config';
+import {Platform} from 'react-native';
 
 let isRefreshing = false;
 let failedQueue = [];
@@ -75,12 +76,24 @@ const fetcher = {
       }
 
       console.log('Setting auth token in axios instances');
+
       // Update token in all axios instances
       fanTvInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
       strapiInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
 
-      // Also update the Redux store with the new token
-      store.dispatch(updateToken(token));
+      // Check if token is already an object or a string
+      if (typeof token === 'string') {
+        // If it's a string, update Redux with proper structure
+        store.dispatch(
+          updateToken({
+            access: token,
+            refresh: store.getState()?.auth?.refreshToken, // Keep existing refresh token
+          }),
+        );
+      } else if (token.access && token.refresh) {
+        // If it's already the correct structure with access & refresh
+        store.dispatch(updateToken(token));
+      }
 
       console.log('Auth token set successfully');
     } catch (error) {
@@ -260,7 +273,7 @@ const fetcher = {
 export const addAuthInterceptor = async () => {
   const authInterceptorId = fanTvInstance.interceptors.request.use(
     async req => {
-      if (
+      const shouldAddAuthHeaders =
         (req.url.includes('v1/') ||
           req.url.includes('v2/') ||
           req.url.includes('v3/') ||
@@ -270,46 +283,65 @@ export const addAuthInterceptor = async () => {
         !req.url.includes('login') &&
         !req.url.includes('/api') &&
         !req.url.includes('verify-email') &&
-        !req.url.includes('refresh-tokens') // Skip token check for refresh endpoint
-      ) {
-        // Check Redux store first for tokens
-        const state = store.getState();
-        let accessToken = state?.auth?.accessToken;
-        const refreshToken = state?.auth?.refreshToken;
+        !req.url.includes('refresh-tokens');
 
-        // If not in Redux, try from AsyncStorage
-        if (!accessToken) {
-          let {accessToken: token} = await getData('persist:auth');
-          accessToken = token?.replace(/^"|"$/g, '');
-        }
+      if (shouldAddAuthHeaders) {
+        console.log(`Adding auth headers to request: ${req.url}`);
 
-        // If we have an access token, check if it's expired
-        if (accessToken && isTokenExpired(accessToken)) {
-          console.log('Access token is expired, attempting to refresh...');
+        try {
+          // Use our token utility directly instead of trying to get from multiple places
+          const state = store.getState();
+          const userIsLoggedIn = state?.user?.isLoggedIn;
+          const authIsLoggedIn = state?.auth?.isLoggedIn;
 
-          // Only try to refresh if we have a refresh token
-          if (refreshToken) {
-            try {
-              // Get a new access token
-              accessToken = await refreshAccessToken();
-              console.log('Access token refreshed successfully');
-            } catch (error) {
-              console.error('Failed to refresh token:', error);
-              // Will proceed with existing token or no token
+          // Only proceed if user is logged in according to either state
+          if (userIsLoggedIn || authIsLoggedIn) {
+            // Get current token and validate
+            let accessToken = state?.auth?.accessToken;
+            const refreshToken = state?.auth?.refreshToken;
+
+            // If we have a refresh token and access token is expired/missing, try to refresh
+            if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
+              try {
+                console.log(
+                  'Interceptor: Token expired or missing, refreshing...',
+                );
+                // This will update Redux store with new tokens
+                accessToken = await refreshAccessToken();
+                console.log('Interceptor: Token refreshed successfully');
+              } catch (error) {
+                console.error('Interceptor: Failed to refresh token:', error);
+              }
             }
-          }
-        }
 
-        // Set the Authorization header if we have a token
-        if (accessToken) {
-          req.headers.Authorization = `Bearer ${accessToken}`;
+            // Set the Authorization header if we have a valid token
+            if (accessToken) {
+              // Handle accessToken as object with access property
+              const tokenValue =
+                typeof accessToken === 'object' && accessToken.access
+                  ? accessToken.access
+                  : accessToken;
+
+              req.headers.Authorization = `Bearer ${tokenValue}`;
+              console.log('Interceptor: Auth header set successfully');
+            } else {
+              console.warn('Interceptor: No valid token available for request');
+            }
+          } else {
+            console.log(
+              'Interceptor: User not logged in, skipping auth header',
+            );
+          }
+        } catch (error) {
+          console.error('Interceptor: Error setting auth header:', error);
         }
       }
 
       console.log('🚀 ~ addAuthInterceptor ~ req:', req.url);
 
-      req.headers.platform = 'ios';
-      req.headers['os-type'] = 'ios';
+      // Add platform headers
+      req.headers.platform = Platform.OS;
+      req.headers['os-type'] = Platform.OS;
       return req;
     },
   );

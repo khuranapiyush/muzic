@@ -49,7 +49,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75</string>
+				<string>com.googleusercontent.apps.22319693149-dnbne0s46dolsvnprlrcgafb10072ish</string>
 			</array>
 		</dict>
 		<dict>
@@ -62,7 +62,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>1.1</string>
+	<string>1.2</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UIBackgroundModes</key>

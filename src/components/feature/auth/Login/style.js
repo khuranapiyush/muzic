@@ -163,6 +163,7 @@ const styles = StyleSheet.create({
   googleLogoIcon: {
     width: 30,
     height: 30,
+    marginBottom: Platform.OS === 'ios' ? 6 : 0,
     resizeMode: 'contain',
   },
   emailIcon: {
@@ -194,12 +195,12 @@ const styles = StyleSheet.create({
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
-    lineHeight: 24,
+    lineHeight: 32,
     paddingHorizontal: 10,
     alignContent: 'center',
     alignItems: 'center',
     textAlign: 'center',
-    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
+    ...(Platform.OS === 'ios' ? {paddingBottom: 8} : {}),
   },
   checkmark: {
     position: 'absolute',

@@ -143,7 +143,11 @@ export const refreshAccessToken = async () => {
     // Get current state
     const state = store.getState();
     const refreshToken = state?.auth?.refreshToken;
-    const isLoggedIn = state?.auth?.isLoggedIn;
+    const authIsLoggedIn = state?.auth?.isLoggedIn;
+    const userIsLoggedIn = state?.user?.isLoggedIn;
+
+    // Check both isLoggedIn flags to ensure compatibility
+    const isLoggedIn = authIsLoggedIn || userIsLoggedIn;
 
     // If user is not logged in, don't attempt to refresh
     if (!isLoggedIn) {
@@ -220,19 +224,72 @@ export const refreshAccessToken = async () => {
  * @returns {Promise<string|null>} Current token or null if not available
  */
 export const getAuthToken = async () => {
-  // Try to get token from Redux store
-  const state = store.getState();
-  let token = state?.auth?.accessToken;
+  try {
+    // Try to get token from Redux store
+    const state = store.getState();
+    let token = state?.auth?.accessToken;
 
-  // If not in Redux, try from AsyncStorage
-  if (!token) {
-    const authData = await getData('persist:auth');
-    if (authData && authData.accessToken) {
-      token = authData.accessToken?.replace(/^"|"$/g, '');
+    // Debug output
+    console.log(
+      'getAuthToken - token from redux:',
+      token ? 'present' : 'missing',
+    );
+
+    // If not in Redux, try from AsyncStorage
+    if (!token) {
+      try {
+        const authData = await getData('persist:auth');
+        console.log(
+          'getAuthToken - fetched from AsyncStorage:',
+          authData ? 'data found' : 'no data',
+        );
+
+        if (authData && authData.accessToken) {
+          try {
+            // Parse the token correctly - handle both string and JSON formats
+            if (
+              authData.accessToken.startsWith('"') &&
+              authData.accessToken.endsWith('"')
+            ) {
+              token = authData.accessToken.replace(/^"|"$/g, '');
+            } else {
+              token = JSON.parse(authData.accessToken);
+            }
+            console.log(
+              'getAuthToken - parsed from AsyncStorage:',
+              token ? 'success' : 'failed',
+            );
+          } catch (parseError) {
+            console.error(
+              'getAuthToken - Error parsing token from AsyncStorage:',
+              parseError,
+            );
+          }
+        }
+      } catch (storageError) {
+        console.error(
+          'getAuthToken - Error accessing AsyncStorage:',
+          storageError,
+        );
+      }
     }
-  }
 
-  return token;
+    // Final validation
+    if (!token) {
+      console.log('getAuthToken - No valid token found');
+      return null;
+    }
+
+    // Handle token as object with access property
+    if (typeof token === 'object' && token !== null && token.access) {
+      return token.access;
+    }
+
+    return token;
+  } catch (error) {
+    console.error('getAuthToken - Unexpected error:', error);
+    return null;
+  }
 };
 
 /**
