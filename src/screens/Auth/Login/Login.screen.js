@@ -15,7 +15,7 @@ import {
   authAppleLogin,
 } from '../../../api/auth';
 import fetcher, {addAuthInterceptor} from '../../../dataProvider';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, CommonActions} from '@react-navigation/native';
 import useToaster from '../../../hooks/useToaster';
 import ROUTE_NAME from '../../../navigator/config/routeName';
 import Login from '../../../components/feature/auth/Login';
@@ -32,6 +32,7 @@ import {loginSource} from '../../../constants/event';
 import {setTokenChecked} from '../../../stores/slices/app';
 import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
+import {store} from '../../../stores';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +48,7 @@ const LoginScreen = () => {
         // Platform-specific configuration
         const iosConfig = {
           iosClientId:
-            '920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75.apps.googleusercontent.com',
+            '22319693149-dnbne0s46dolsvnprlrcgafb10072ish.apps.googleusercontent.com',
           scopes: ['email', 'profile'],
           shouldFetchBasicProfile: true,
         };
@@ -161,6 +162,19 @@ const LoginScreen = () => {
 
   const handleLogin = () => {
     setIsLoading(true);
+
+    // Track the button click in analytics
+    analyticsUtils.trackButtonClick('phone_login', {
+      screen: 'login',
+      platform: Platform.OS,
+    });
+
+    // Track Facebook event
+    facebookEvents.logCustomEvent('login_button_click', {
+      method: 'phone',
+      platform: Platform.OS,
+    });
+
     const {mobile, phoneCountryCode, referralCode, isReferralCode} =
       getValues();
 
@@ -182,41 +196,95 @@ const LoginScreen = () => {
 
   const {defaultEventData} = useEvent();
 
+  // Function to navigate to the app after successful login
+  const navigateToApp = () => {
+    try {
+      console.log('Login successful, updating Redux states');
+
+      // Ensure proper token structure for consistent usage across app
+      const state = store.getState();
+      const currentToken = state?.auth?.accessToken;
+      const currentRefreshToken = state?.auth?.refreshToken;
+
+      console.log('Current token state:', {
+        hasAccessToken: !!currentToken,
+        hasRefreshToken: !!currentRefreshToken,
+        authLoggedIn: state?.auth?.isLoggedIn,
+        userLoggedIn: state?.user?.isLoggedIn,
+      });
+
+      // First store data in Redux - order matters here!
+      // Set both auth and user slices correctly
+      dispatch(setUser({isLoggedIn: true}));
+      dispatch(setLoggedIn(true));
+
+      // Set token check complete flag last
+      dispatch(setTokenChecked(true));
+
+      // Show success message
+      showToaster({
+        type: 'success',
+        text1: 'Success',
+        text2: 'Login successful',
+      });
+
+      // Add a small delay to ensure state updates are processed
+      setTimeout(() => {
+        const updatedState = store.getState();
+        console.log('Updated token state:', {
+          hasAccessToken: !!updatedState?.auth?.accessToken,
+          hasRefreshToken: !!updatedState?.auth?.refreshToken,
+          authLoggedIn: updatedState?.auth?.isLoggedIn,
+          userLoggedIn: updatedState?.user?.isLoggedIn,
+        });
+      }, 100);
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
+  };
+
   const {mutate: googleLoginApi} = useMutation(data => authGoogleLogin(data), {
     onSuccess: res => {
       try {
+        console.log('Google login API successful, processing response');
+
         // Extract token information for data provider
         const accessToken = res.data?.tokens?.access?.token;
         const refreshToken = res.data?.tokens?.refresh?.token;
 
         // Set auth token for API calls if available
-        if (fetcher && fetcher.setAuthToken) {
-          fetcher.setAuthToken(accessToken);
+        if (fetcher && fetcher.setAuthToken && accessToken) {
+          // Pass tokens in the correct format expected by Redux
+          fetcher.setAuthToken({
+            access: accessToken,
+            refresh: refreshToken,
+          });
+          console.log('Auth token set in axios instances');
         }
 
         // Add token to axios interceptor
         addAuthInterceptor(accessToken);
 
-        // Store user data in Redux
-        if (res.data?.user) {
-          dispatch(setUser(res.data.user));
-        }
-
         // Save token in Redux
         if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              accessToken,
-              refreshToken,
+              accessToken: accessToken,
+              refreshToken: refreshToken,
             }),
           );
+          console.log('Tokens saved in Redux');
         }
 
-        // Mark user as logged in
-        dispatch(setLoggedIn(true));
-
-        // Set token check complete flag
-        dispatch(setTokenChecked(true));
+        // Store user data in Redux - this contains isLoggedIn flag
+        if (res.data?.user) {
+          dispatch(setUser({...res.data.user, isLoggedIn: true}));
+          console.log('User data saved in Redux with isLoggedIn=true');
+        } else {
+          // If no user data, just set isLoggedIn
+          dispatch(setUser({isLoggedIn: true}));
+          console.log('No user data, but set isLoggedIn=true');
+        }
 
         // Log the login event for analytics
         handleLoginEvent({
@@ -227,14 +295,10 @@ const LoginScreen = () => {
         // Track registration/login with Facebook SDK
         facebookEvents.logUserRegistration('google');
 
-        // Show success message
-        showToaster({
-          type: 'success',
-          text1: 'Success',
-          text2: 'Login successful',
-        });
+        // Use the new navigation function as the final step
+        navigateToApp();
       } catch (error) {
-        // Silent error handling
+        console.error('Error during login success handling:', error);
       } finally {
         // Clear loading states
         setIsGoogleSignInProgress(false);
@@ -252,12 +316,97 @@ const LoginScreen = () => {
     },
   });
 
+  const {mutate: appleLoginApi} = useMutation(data => authAppleLogin(data), {
+    onSuccess: res => {
+      try {
+        console.log('Apple login API successful, processing response');
+
+        // Extract token information
+        const accessToken = res.data?.tokens?.access?.token;
+        const refreshToken = res.data?.tokens?.refresh?.token;
+
+        // Set auth token for API calls
+        if (fetcher && fetcher.setAuthToken && accessToken) {
+          // Pass tokens in the correct format expected by Redux
+          fetcher.setAuthToken({
+            access: accessToken,
+            refresh: refreshToken,
+          });
+          console.log('Auth token set in axios instances');
+        }
+
+        // Add token to axios interceptor
+        addAuthInterceptor(accessToken);
+
+        // Save token in Redux
+        if (accessToken && refreshToken) {
+          dispatch(
+            updateToken({
+              accessToken: accessToken,
+              refreshToken: refreshToken,
+            }),
+          );
+          console.log('Tokens saved in Redux');
+        }
+
+        // Store user data in Redux - this contains isLoggedIn flag
+        if (res.data?.user) {
+          dispatch(setUser({...res.data.user, isLoggedIn: true}));
+          console.log('User data saved in Redux with isLoggedIn=true');
+        } else {
+          // If no user data, just set isLoggedIn
+          dispatch(setUser({isLoggedIn: true}));
+          console.log('No user data, but set isLoggedIn=true');
+        }
+
+        // Log the login event for analytics
+        handleLoginEvent({
+          ...defaultEventData,
+          loginSource: loginSource.APPLE,
+        });
+
+        // Track registration/login with Facebook SDK
+        facebookEvents.logUserRegistration('apple');
+
+        // Use the navigation function as the final step
+        navigateToApp();
+      } catch (error) {
+        console.error('Error during Apple login success handling:', error);
+      } finally {
+        // Clear loading states
+        setIsAppleSignInProgress(false);
+        setIsLoading(false);
+      }
+    },
+    onError: err => {
+      setIsAppleSignInProgress(false);
+      setIsLoading(false);
+      showToaster({
+        type: 'error',
+        text1: 'Error',
+        text2: err.response?.data?.message || 'Login failed',
+      });
+    },
+  });
+
   const handleGoogleLogin = async () => {
     if (isGoogleSignInProgress) {
       return;
     }
 
     try {
+      // Track the button click in analytics
+      analyticsUtils.trackButtonClick('google_login', {
+        screen: 'login',
+        platform: Platform.OS,
+      });
+
+      // Track Facebook event
+      facebookEvents.logCustomEvent('login_button_click', {
+        method: 'google',
+        platform: Platform.OS,
+      });
+
       setIsGoogleSignInProgress(true);
       setIsLoading(true);
 
@@ -265,7 +414,7 @@ const LoginScreen = () => {
       if (Platform.OS === 'ios') {
         GoogleSignin.configure({
           iosClientId:
-            '920222123505-loe3r1nanmpv4lq7h9kvj5u5ojnaio75.apps.googleusercontent.com',
+            '22319693149-dnbne0s46dolsvnprlrcgafb10072ish.apps.googleusercontent.com',
           scopes: ['email', 'profile'],
           shouldFetchBasicProfile: true,
         });
@@ -371,82 +520,24 @@ const LoginScreen = () => {
     }
   };
 
-  const {mutate: appleLoginApi} = useMutation(data => authAppleLogin(data), {
-    onSuccess: res => {
-      try {
-        // Extract token information
-        const accessToken = res.data?.tokens?.access?.token;
-        const refreshToken = res.data?.tokens?.refresh?.token;
-
-        // Set auth token for API calls
-        if (fetcher && fetcher.setAuthToken) {
-          fetcher.setAuthToken(accessToken);
-        }
-
-        // Add token to axios interceptor
-        addAuthInterceptor(accessToken);
-
-        // Store user data in Redux
-        if (res.data?.user) {
-          dispatch(setUser(res.data.user));
-        }
-
-        // Save token in Redux
-        if (accessToken && refreshToken) {
-          dispatch(
-            updateToken({
-              accessToken,
-              refreshToken,
-            }),
-          );
-        }
-
-        // Mark user as logged in
-        dispatch(setLoggedIn(true));
-
-        // Set token check complete flag
-        dispatch(setTokenChecked(true));
-
-        // Log the login event for analytics
-        handleLoginEvent({
-          ...defaultEventData,
-          loginSource: loginSource.APPLE,
-        });
-
-        // Track registration/login with Facebook SDK
-        facebookEvents.logUserRegistration('apple');
-
-        // Show success message
-        showToaster({
-          type: 'success',
-          text1: 'Success',
-          text2: 'Login successful',
-        });
-      } catch (error) {
-        // Silent error handling
-      } finally {
-        // Clear loading states
-        setIsAppleSignInProgress(false);
-        setIsLoading(false);
-      }
-    },
-    onError: err => {
-      setIsAppleSignInProgress(false);
-      setIsLoading(false);
-      showToaster({
-        type: 'error',
-        text1: 'Error',
-        text2: err.response?.data?.message || 'Login failed',
-      });
-    },
-  });
-
   const handleAppleLogin = async () => {
     if (isAppleSignInProgress) {
       return;
     }
 
     try {
+      // Track the button click in analytics
+      analyticsUtils.trackButtonClick('apple_login', {
+        screen: 'login',
+        platform: Platform.OS,
+      });
+
+      // Track Facebook event
+      facebookEvents.logCustomEvent('login_button_click', {
+        method: 'apple',
+        platform: Platform.OS,
+      });
+
       // Set in-progress state
       setIsAppleSignInProgress(true);
       setIsLoading(true);
