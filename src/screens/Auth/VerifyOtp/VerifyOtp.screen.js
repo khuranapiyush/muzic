@@ -37,6 +37,16 @@ const VerifyOtpScreen = ({route}) => {
       source: 'signup',
       phone_country_code: countryCode,
     });
+
+    // Track OTP verification screen shown with Facebook Events
+    try {
+      facebookEvents.logCustomEvent('otp_verification_shown', {
+        source: 'signup',
+        phone_country_code: countryCode,
+      });
+    } catch (error) {
+      // Silent error handling
+    }
   }, [countryCode]);
 
   const {mutate: loginMobileApi} = useMutation(data => authLoginSignup(data), {
@@ -66,6 +76,23 @@ const VerifyOtpScreen = ({route}) => {
       analyticsUtils.trackOtpVerificationSuccess({
         method: 'sms',
         phone_country_code: countryCode,
+      });
+
+      // Track OTP verification success with Facebook Events
+      try {
+        facebookEvents.logCustomEvent('otp_verification_success', {
+          method: 'sms',
+          phone_country_code: countryCode,
+        });
+      } catch (error) {
+        // Silent error handling
+      }
+
+      // Track registration/login with analytics
+      analyticsUtils.trackCustomEvent('user_registration', {
+        method: 'phone',
+        phone_country_code: countryCode,
+        timestamp: new Date().toISOString(),
       });
 
       // Track registration/login with Facebook SDK

@@ -25,6 +25,7 @@ import {getAuthToken} from '../../utils/authUtils';
 import CView from '../../components/common/core/View';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import analyticsUtils from '../../utils/analytics';
+import facebookEvents from '../../utils/facebookEvents';
 
 const VoiceRecordScreen = ({navigation}) => {
   const {API_BASE_URL} = config;
@@ -263,6 +264,16 @@ const VoiceRecordScreen = ({navigation}) => {
       source: 'ai_cover',
       screen: 'voice_record_screen',
     });
+
+    // Track add new recording with Facebook Events
+    try {
+      facebookEvents.logCustomEvent('add_new_recording', {
+        source: 'ai_cover',
+        screen: 'voice_record_screen',
+      });
+    } catch (error) {
+      // Silent error handling
+    }
 
     // Initialize the recorder once when component mounts
     const initializeRecorder = async () => {
@@ -663,6 +674,17 @@ const VoiceRecordScreen = ({navigation}) => {
         screen: 'voice_record_screen',
         microphone_access: permissionsGranted,
       });
+
+      // Track recording start with Facebook Events
+      try {
+        facebookEvents.logCustomEvent('start_recording', {
+          recording_type: 'vocal',
+          screen: 'voice_record_screen',
+          microphone_access: permissionsGranted,
+        });
+      } catch (error) {
+        // Silent error handling
+      }
 
       // Always check permissions at the start of the recording process
       if (Platform.OS === 'ios') {

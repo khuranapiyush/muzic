@@ -19,6 +19,7 @@ import useCredits from '../../hooks/useCredits';
 import {selectCreditsPerSong} from '../../stores/selector';
 import * as RNLocalize from 'react-native-localize';
 import facebookEvents from '../../utils/facebookEvents';
+import analyticsUtils from '../../utils/analyticsUtils';
 
 const API_URL = config.API_BASE_URL;
 
@@ -166,6 +167,15 @@ const processPurchase = async (purchase, token) => {
         const amount = getAmountFromProductId(purchase.productId);
         if (resultData.status === 'SUCCESS' && amount) {
           try {
+            // Track purchase with analytics
+            analyticsUtils.trackCustomEvent('purchase_completed', {
+              product_id: purchase.productId,
+              amount: amount,
+              currency: 'USD',
+              platform: 'ios',
+              timestamp: new Date().toISOString(),
+            });
+
             facebookEvents.logPurchase(
               amount,
               'USD', // Or get currency from resultData
@@ -232,6 +242,15 @@ const processPurchase = async (purchase, token) => {
         try {
           const amount = getAmountFromProductId(purchase.productId);
           if (amount) {
+            // Track purchase with analytics
+            analyticsUtils.trackCustomEvent('purchase_completed', {
+              product_id: purchase.productId,
+              amount: amount,
+              currency: 'USD',
+              platform: 'android',
+              timestamp: new Date().toISOString(),
+            });
+
             facebookEvents.logPurchase(
               amount,
               'USD', // Or get currency from resultData
