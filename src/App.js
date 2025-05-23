@@ -101,7 +101,7 @@ const AppContent = () => {
       // Initialize Facebook SDK
       try {
         facebookEvents.initializeFacebookSDK();
-        facebookEvents.logAppOpen();
+        // facebookEvents.logAppOpen();
       } catch (fbError) {
         // Silent error handling
       }

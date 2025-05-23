@@ -1,5 +1,9 @@
 import {Platform} from 'react-native';
-import analytics from '@react-native-firebase/analytics';
+import {
+  getAnalytics,
+  logEvent,
+  setAnalyticsCollectionEnabled,
+} from '@react-native-firebase/analytics';
 
 // Flag for debugging analytics - set to true to see log messages
 const DEBUG_ANALYTICS = __DEV__;
@@ -7,8 +11,9 @@ const DEBUG_ANALYTICS = __DEV__;
 // Helper function to enable analytics collection
 export const initializeAnalytics = async () => {
   try {
-    // Enable analytics collection
-    await analytics().setAnalyticsCollectionEnabled(true);
+    // Enable analytics collection using modular SDK
+    const analytics = getAnalytics();
+    await setAnalyticsCollectionEnabled(analytics, true);
 
     if (DEBUG_ANALYTICS) {
       console.log('Firebase Analytics initialized successfully');
@@ -30,11 +35,13 @@ const logAnalyticsEvent = (eventName, params) => {
       platform: Platform.OS,
     };
 
-    // Use Firebase Analytics
+    // Use Firebase Analytics with modular SDK
     if (DEBUG_ANALYTICS) {
       console.log(`📊 ANALYTICS EVENT: ${eventName}`, analyticsParams);
     }
-    return analytics().logEvent(eventName, analyticsParams);
+
+    const analytics = getAnalytics();
+    return logEvent(analytics, eventName, analyticsParams);
   } catch (error) {
     // Silent fail for analytics errors, never block app functionality
     console.log(`Failed to log event ${eventName}:`, error);
