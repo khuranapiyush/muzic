@@ -19,7 +19,7 @@ import useCredits from '../../hooks/useCredits';
 import {selectCreditsPerSong} from '../../stores/selector';
 import * as RNLocalize from 'react-native-localize';
 import facebookEvents from '../../utils/facebookEvents';
-import analyticsUtils from '../../utils/analyticsUtils';
+import analyticsUtils from '../../utils/analytics';
 
 const API_URL = config.API_BASE_URL;
 
