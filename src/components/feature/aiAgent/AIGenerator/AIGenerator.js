@@ -36,6 +36,7 @@ import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
+import facebookEvents from '../../../../utils/facebookEvents';
 
 const AIGenerator = ({pageHeading}) => {
   const dispatch = useDispatch();
@@ -155,7 +156,7 @@ const AIGenerator = ({pageHeading}) => {
             method: 'ai_generator',
             song_id: data._id || 'unknown',
             prompt: data.prompt,
-            screen: 'dashboard',
+            screen: 'ai_generator',
             word_count: data.prompt.split(' ').length,
             title: data.title || 'Untitled',
             singer: data.singer || 'Unknown',
@@ -163,6 +164,24 @@ const AIGenerator = ({pageHeading}) => {
             voice: data.voice || 'Not specified',
             timestamp: Date.now(),
           });
+
+          // Track song creation with Facebook Events
+          try {
+            facebookEvents.logCustomEvent('song_created', {
+              method: 'ai_generator',
+              song_id: data._id || 'unknown',
+              screen: 'ai_generator',
+              prompt: data.prompt,
+              word_count: data.prompt.split(' ').length,
+              title: data.title || 'Untitled',
+              singer: data.singer || 'Unknown',
+              genre: data.genre || 'Not specified',
+              voice: data.voice || 'Not specified',
+              timestamp: Date.now(),
+            });
+          } catch (error) {
+            // Silent error handling
+          }
         } else {
           setErrorMessage(`Error: ${data.message || 'Unknown error'}`);
           showToaster({

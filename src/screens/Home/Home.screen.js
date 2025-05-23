@@ -21,6 +21,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import useMusicPlayer from '../../hooks/useMusicPlayer';
 import appImages from '../../resource/images';
 import facebookEvents from '../../utils/facebookEvents';
+import analyticsUtils from '../../utils/analytics';
 
 // Add helper function to clean song titles
 const cleanSongTitle = title => {
@@ -202,6 +203,14 @@ export default function HomeScreen() {
   // Handle song press
   const handleSongPress = useCallback(
     song => {
+      // Track song play event with analytics
+      analyticsUtils.trackCustomEvent('song_played', {
+        song_id: song.audioUrl,
+        song_title: song.title || 'Unknown Song',
+        source: 'home_screen',
+        timestamp: new Date().toISOString(),
+      });
+
       // Track song play event with Facebook SDK
       facebookEvents.logSongPlay(
         song.audioUrl, // Using audioUrl as the song ID

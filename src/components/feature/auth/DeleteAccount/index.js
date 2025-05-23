@@ -16,6 +16,7 @@ import CView from '../../../common/core/View';
 import getStyles from './style';
 import LinearGradient from 'react-native-linear-gradient';
 import analyticsUtils from '../../../../utils/analytics';
+import facebookEvents from '../../../../utils/facebookEvents';
 
 const DeleteAccount = ({
   isVisible,
@@ -62,6 +63,15 @@ const DeleteAccount = ({
           method: 'user_initiated',
           timestamp: Date.now(),
         });
+
+        // Track account deletion with Facebook Events
+        try {
+          facebookEvents.logCustomEvent('user_account_deleted', {
+            method: 'user_initiated',
+          });
+        } catch (error) {
+          // Silent error handling
+        }
 
         // Delay logout to allow modal to close and toast to show
         setTimeout(() => {

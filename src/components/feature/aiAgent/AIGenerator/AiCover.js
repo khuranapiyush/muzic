@@ -37,6 +37,7 @@ import {
 import appImages from '../../../../resource/images';
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
+import facebookEvents from '../../../../utils/facebookEvents';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
@@ -271,6 +272,20 @@ const CoverCreationScreen = () => {
               voice_id: requestData.voiceModelId,
               timestamp: Date.now(),
             });
+
+            // Track song creation with Facebook Events
+            try {
+              facebookEvents.logCustomEvent('song_created', {
+                method: 'ai_cover',
+                song_id: response.data._id || 'unknown',
+                screen: 'ai_cover',
+                title: songTitle || 'My Cover',
+                artist: artistName || 'AI Cover',
+                voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
+              });
+            } catch (error) {
+              // Silent error handling
+            }
 
             // Make sure to refresh credits after successful generation
             setTimeout(() => {

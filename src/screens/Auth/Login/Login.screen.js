@@ -183,6 +183,15 @@ const LoginScreen = () => {
       country_code: `+${phoneCountryCode.callingCode[0]}`,
     });
 
+    // Track mobile number entry with Facebook Events
+    try {
+      facebookEvents.logCustomEvent('mobile_number_entry', {
+        country_code: `+${phoneCountryCode.callingCode[0]}`,
+      });
+    } catch (error) {
+      // Silent error handling
+    }
+
     const data = {
       phoneNumber: mobile,
       phoneCountryCode: `+${phoneCountryCode.callingCode[0]}`,
@@ -292,6 +301,13 @@ const LoginScreen = () => {
           loginSource: loginSource.GOOGLE,
         });
 
+        // Track registration/login with analytics
+        analyticsUtils.trackCustomEvent('user_registration', {
+          method: 'google',
+          platform: Platform.OS,
+          timestamp: new Date().toISOString(),
+        });
+
         // Track registration/login with Facebook SDK
         facebookEvents.logUserRegistration('google');
 
@@ -363,6 +379,13 @@ const LoginScreen = () => {
         handleLoginEvent({
           ...defaultEventData,
           loginSource: loginSource.APPLE,
+        });
+
+        // Track registration/login with analytics
+        analyticsUtils.trackCustomEvent('user_registration', {
+          method: 'apple',
+          platform: Platform.OS,
+          timestamp: new Date().toISOString(),
         });
 
         // Track registration/login with Facebook SDK

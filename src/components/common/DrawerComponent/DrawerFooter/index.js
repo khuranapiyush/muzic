@@ -8,6 +8,7 @@ import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {useNavigation} from '@react-navigation/native';
 import useModal from '../../../../hooks/useModal';
 import analyticsUtils from '../../../../utils/analytics';
+import facebookEvents from '../../../../utils/facebookEvents';
 
 const DrawerFooter = () => {
   const dispatch = useDispatch();
@@ -20,6 +21,15 @@ const DrawerFooter = () => {
       method: 'drawer_menu',
       timestamp: Date.now(),
     });
+
+    // Track logout with Facebook Events
+    try {
+      facebookEvents.logCustomEvent('user_logout', {
+        method: 'drawer_menu',
+      });
+    } catch (error) {
+      // Silent error handling
+    }
 
     setTimeout(() => {
       dispatch(resetUser());
