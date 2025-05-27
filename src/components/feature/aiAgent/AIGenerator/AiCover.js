@@ -64,6 +64,8 @@ const CoverCreationScreen = () => {
 
   // Add state for modal visibility
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
+    useState(false);
 
   // Get user ID from Redux store
   const {userId} = useSelector(state => state.user);
@@ -73,12 +75,7 @@ const CoverCreationScreen = () => {
     useMusicPlayer('AICoverScreen');
 
   // Add credits hook
-  const {
-    credits,
-    decrementUserCredits,
-    handleCreditRequiredAction,
-    refreshCredits,
-  } = useCredits();
+  const {credits, handleCreditRequiredAction, refreshCredits} = useCredits();
 
   // Get the numeric value of credits
   const creditsValue = getCreditsValue(credits);
@@ -155,9 +152,9 @@ const CoverCreationScreen = () => {
   };
 
   const createVoiceConversion = async () => {
-    // Credit check - navigate to subscription if credits are insufficient
+    // Credit check - show modal instead of alert
     if (creditsValue <= 0) {
-      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+      setShowInsufficientCreditsModal(true);
       return;
     }
 
@@ -853,11 +850,7 @@ const CoverCreationScreen = () => {
                 (isLoading || (!selectedVoiceId && !selectedRecordingFile)) &&
                   styles.disabledButtonText,
               ]}>
-              {isLoading
-                ? 'Creating...'
-                : creditsValue <= 0
-                ? 'Insufficient Credits'
-                : 'Create Cover'}
+              {isLoading ? 'Creating...' : 'Create Cover'}
             </CText>
           </LinearGradient>
         </TouchableOpacity>
@@ -895,6 +888,46 @@ const CoverCreationScreen = () => {
                 end={{x: 1, y: 1}}
                 style={styles.gradient}>
                 <CText style={styles.bottomSheetButtonText}>Got it</CText>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Insufficient Credits Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showInsufficientCreditsModal}
+        onRequestClose={() => setShowInsufficientCreditsModal(false)}
+        onBackdropPress={() => setShowInsufficientCreditsModal(false)}
+        onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
+        swipeDirection={['down']}
+        propagateSwipe
+        animationIn="slideInUp"
+        animationOut="slideOutDown"
+        backdropOpacity={0.5}
+        avoidKeyboard={true}>
+        <View style={styles.bottomSheetContainer}>
+          <View style={styles.bottomSheetContent}>
+            <CText size="largeBold" style={styles.bottomSheetTitle}>
+              Insufficient Credits
+            </CText>
+            <CText style={styles.bottomSheetText}>
+              Please buy some credits to generate cover
+            </CText>
+            <TouchableOpacity
+              style={styles.bottomSheetButton}
+              onPress={() => {
+                setShowInsufficientCreditsModal(false);
+                navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+              }}>
+              <LinearGradient
+                colors={['#F4A460', '#DEB887']}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.gradient}>
+                <CText style={styles.bottomSheetButtonText}>Buy Credits</CText>
               </LinearGradient>
             </TouchableOpacity>
           </View>

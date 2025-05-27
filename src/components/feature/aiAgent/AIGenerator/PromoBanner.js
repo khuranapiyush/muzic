@@ -20,15 +20,16 @@ import {useSelector} from 'react-redux';
 import {getAuthToken} from '../../../../utils/authUtils';
 import * as RNLocalize from 'react-native-localize';
 
-// Helper function to get user's country code
+// Enhanced function to get user's country code from device locale settings
 const getUserCountryCode = async () => {
   try {
-    // Use react-native-localize to get country code reliably
-    const countryFromLib = RNLocalize.getCountry();
-    console.log(
-      'Detected country code from react-native-localize:',
-      countryFromLib,
-    );
+    // Method 1: Use react-native-localize to get country code reliably
+    let countryFromLib;
+    try {
+      countryFromLib = RNLocalize.getCountry();
+    } catch (localizeError) {
+      // Silent fallback
+    }
 
     // Validate country code (should be 2 uppercase letters)
     if (
@@ -39,40 +40,123 @@ const getUserCountryCode = async () => {
       return countryFromLib;
     }
 
-    // Fallback to get country code from locale if direct method fails
-    const locales = RNLocalize.getLocales();
-    if (locales && locales.length > 0 && locales[0].countryCode) {
-      console.log(
-        'Using country code from device locale:',
-        locales[0].countryCode,
-      );
-      return locales[0].countryCode;
+    // Method 2: Get comprehensive locale information
+    let locales;
+    try {
+      locales = RNLocalize.getLocales();
+    } catch (localesError) {
+      // Silent fallback
     }
 
-    // Legacy fallback approach
+    if (locales && locales.length > 0) {
+      const primaryLocale = locales[0];
+      if (
+        primaryLocale.countryCode &&
+        /^[A-Z]{2}$/.test(primaryLocale.countryCode)
+      ) {
+        return primaryLocale.countryCode;
+      }
+    }
+
+    // Method 3: Get timezone-based country detection
+    let timeZone;
+    try {
+      timeZone = RNLocalize.getTimeZone();
+    } catch (timezoneError) {
+      // Silent fallback
+    }
+
+    // Method 4: Get currency information
+    let currencies;
+    try {
+      currencies = RNLocalize.getCurrencies();
+    } catch (currencyError) {
+      // Silent fallback
+    }
+
+    // Method 5: Platform-specific fallbacks with enhanced safety
     let deviceLocale;
+    let deviceRegion;
 
     if (Platform.OS === 'ios') {
-      const settings = NativeModules.SettingsManager?.settings;
-      if (settings) {
-        const appleLanguages = settings.AppleLanguages;
-        if (Array.isArray(appleLanguages) && appleLanguages.length > 0) {
-          deviceLocale = appleLanguages[0]; // e.g., "en-IN"
-        } else if (settings.AppleLocale) {
-          deviceLocale = settings.AppleLocale; // older iOS versions
+      try {
+        // Safe iOS NativeModules access
+        const settingsManager = NativeModules.SettingsManager;
+        const settings = settingsManager?.settings;
+
+        if (settings) {
+          // Check for region setting first (iOS specific)
+          if (settings.AppleICUForceDefaultCountryCode) {
+            deviceRegion = settings.AppleICUForceDefaultCountryCode;
+          }
+
+          // Check for country code in other iOS settings
+          if (settings.AppleICUCountryCode) {
+            deviceRegion = deviceRegion || settings.AppleICUCountryCode;
+          }
+
+          // Check language settings
+          const appleLanguages = settings.AppleLanguages;
+          if (Array.isArray(appleLanguages) && appleLanguages.length > 0) {
+            deviceLocale = appleLanguages[0]; // e.g., "en-IN"
+          } else if (settings.AppleLocale) {
+            deviceLocale = settings.AppleLocale; // older iOS versions
+          }
         }
+
+        // Additional iOS fallback using NSLocale if available
+        try {
+          const nsLocale = NativeModules.NSLocale;
+          if (nsLocale && nsLocale.getCurrentCountryCode) {
+            const iosCountryCode = await nsLocale.getCurrentCountryCode();
+            if (iosCountryCode) {
+              deviceRegion = deviceRegion || iosCountryCode;
+            }
+          }
+        } catch (nsLocaleError) {
+          // Silent fallback
+        }
+      } catch (iosError) {
+        // Silent fallback
       }
     } else if (Platform.OS === 'android') {
-      deviceLocale = NativeModules.I18nManager?.localeIdentifier || 'en_US';
+      try {
+        // Safe Android NativeModules access
+        const i18nManager = NativeModules.I18nManager;
+        if (i18nManager) {
+          deviceLocale = i18nManager.localeIdentifier || 'en_US';
+        }
+
+        // Try to get Android system locale
+        try {
+          const systemLocale = NativeModules.AndroidLocale;
+          if (systemLocale && systemLocale.getCountryCode) {
+            const androidCountryCode = await systemLocale.getCountryCode();
+            if (androidCountryCode) {
+              deviceRegion = deviceRegion || androidCountryCode;
+            }
+          }
+        } catch (androidLocaleError) {
+          // Silent fallback
+        }
+      } catch (androidError) {
+        // Silent fallback
+      }
     }
 
-    console.log('Device locale from legacy method:', deviceLocale);
+    // Process region first if available (more specific than locale)
+    if (deviceRegion && /^[A-Z]{2}$/.test(deviceRegion.toUpperCase())) {
+      const regionCode = deviceRegion.toUpperCase();
+      return regionCode;
+    }
 
+    // Process locale as fallback
     let fallbackCountryCode = 'US'; // Default fallback
 
     if (deviceLocale) {
-      // Extract from locale format like "en_US" or "en-US"
+      // Extract from locale format like "en_US", "en-US", or "en_IN"
       const parts = deviceLocale.split(/[_-]/);
+
       if (parts.length > 1) {
         const lastPart = parts[parts.length - 1].toUpperCase();
         // Verify it's a valid country code (2 uppercase letters)
@@ -82,42 +166,121 @@ const getUserCountryCode = async () => {
       }
     }
 
-    console.log('Detected country code for IAP:', fallbackCountryCode);
+    // Method 6: Enhanced timezone-to-country mapping
+    if (timeZone && fallbackCountryCode === 'US') {
+      const timezoneCountryMap = {
+        // Asia
+        'Asia/Kolkata': 'IN',
+        'Asia/Mumbai': 'IN',
+        'Asia/Delhi': 'IN',
+        'Asia/Calcutta': 'IN',
+        'Asia/Tokyo': 'JP',
+        'Asia/Shanghai': 'CN',
+        'Asia/Seoul': 'KR',
+        'Asia/Singapore': 'SG',
+        'Asia/Hong_Kong': 'HK',
+        'Asia/Bangkok': 'TH',
+        'Asia/Manila': 'PH',
+        // Europe
+        'Europe/London': 'GB',
+        'Europe/Paris': 'FR',
+        'Europe/Berlin': 'DE',
+        'Europe/Rome': 'IT',
+        'Europe/Madrid': 'ES',
+        'Europe/Amsterdam': 'NL',
+        'Europe/Stockholm': 'SE',
+        'Europe/Oslo': 'NO',
+        'Europe/Copenhagen': 'DK',
+        'Europe/Helsinki': 'FI',
+        'Europe/Dublin': 'IE',
+        'Europe/Zurich': 'CH',
+        'Europe/Vienna': 'AT',
+        'Europe/Brussels': 'BE',
+        'Europe/Prague': 'CZ',
+        'Europe/Warsaw': 'PL',
+        'Europe/Moscow': 'RU',
+        // Americas
+        'America/New_York': 'US',
+        'America/Los_Angeles': 'US',
+        'America/Chicago': 'US',
+        'America/Denver': 'US',
+        'America/Phoenix': 'US',
+        'America/Toronto': 'CA',
+        'America/Vancouver': 'CA',
+        'America/Mexico_City': 'MX',
+        'America/Sao_Paulo': 'BR',
+        'America/Buenos_Aires': 'AR',
+        'America/Lima': 'PE',
+        'America/Bogota': 'CO',
+        'America/Santiago': 'CL',
+        // Oceania
+        'Australia/Sydney': 'AU',
+        'Australia/Melbourne': 'AU',
+        'Australia/Perth': 'AU',
+        'Pacific/Auckland': 'NZ',
+        // Africa
+        'Africa/Cairo': 'EG',
+        'Africa/Lagos': 'NG',
+        'Africa/Johannesburg': 'ZA',
+        'Africa/Casablanca': 'MA',
+        // Middle East
+        'Asia/Dubai': 'AE',
+        'Asia/Riyadh': 'SA',
+        'Asia/Tehran': 'IR',
+        'Asia/Jerusalem': 'IL',
+      };
+
+      if (timezoneCountryMap[timeZone]) {
+        return timezoneCountryMap[timeZone];
+      }
+    }
+
+    // Method 7: Currency-based country detection as final fallback
+    if (currencies && currencies.length > 0 && fallbackCountryCode === 'US') {
+      const currencyCountryMap = {
+        INR: 'IN',
+        USD: 'US',
+        EUR: 'DE', // Default to Germany for EUR
+        GBP: 'GB',
+        JPY: 'JP',
+        CAD: 'CA',
+        AUD: 'AU',
+        SGD: 'SG',
+        HKD: 'HK',
+        CNY: 'CN',
+        KRW: 'KR',
+        THB: 'TH',
+        MXN: 'MX',
+        BRL: 'BR',
+        RUB: 'RU',
+        CHF: 'CH',
+        SEK: 'SE',
+        NOK: 'NO',
+        DKK: 'DK',
+        PLN: 'PL',
+        CZK: 'CZ',
+        HUF: 'HU',
+        RON: 'RO',
+        BGN: 'BG',
+        HRK: 'HR',
+        TRY: 'TR',
+        ZAR: 'ZA',
+        EGP: 'EG',
+        AED: 'AE',
+        SAR: 'SA',
+        ILS: 'IL',
+      };
+
+      const primaryCurrency = currencies[0];
+      if (primaryCurrency && currencyCountryMap[primaryCurrency]) {
+        return currencyCountryMap[primaryCurrency];
+      }
+    }
+
     return fallbackCountryCode;
   } catch (error) {
-    console.warn('Error getting country code, using default:', error);
     return 'US'; // Default to US if we can't determine
   }
-};
-
-// Format price with currency symbol
-const formatPriceWithSymbol = (priceObj, isDiscounted = false) => {
-  if (!priceObj || !priceObj.amount || !priceObj.currency) {
-    return '';
-  }
-
-  const amount = isDiscounted ? priceObj.amount : priceObj.originalAmount;
-  const currency = priceObj.currency;
-
-  // Map currency codes to symbols
-  const symbols = {
-    USD: '$',
-    EUR: '€',
-    GBP: '£',
-    INR: '₹',
-    JPY: '¥',
-    AUD: 'A$',
-    CAD: 'C$',
-    THB: '฿',
-    KRW: '₩',
-    RUB: '₽',
-    TRY: '₺',
-    BRL: 'R$',
-    CNY: '¥',
-  };
-
-  const symbol = symbols[currency] || currency;
-  return `${symbol}${amount}`;
 };
 
 // Component that displays product data from API
@@ -133,7 +296,7 @@ const PromoModal = ({visible, onClose}) => {
       try {
         setLoading(true);
 
-        // Get user's country code
+        // Get user's country code with enhanced detection
         const countryCode = await getUserCountryCode();
         setUserCountry(countryCode);
 
@@ -157,7 +320,6 @@ const PromoModal = ({visible, onClose}) => {
         );
 
         if (!response.ok) {
-          const errorText = await response.text();
           setLoading(false);
           return;
         }
@@ -166,7 +328,8 @@ const PromoModal = ({visible, onClose}) => {
 
         if (result.success && result.data && result.data.length > 0) {
           // Use the first product from the data array
-          setProductData(result.data[result.data.length - 1]);
+          const selectedProduct = result.data[result.data.length - 1];
+          setProductData(selectedProduct);
         }
       } catch (error) {
         return;
@@ -189,22 +352,40 @@ const PromoModal = ({visible, onClose}) => {
     // Try to get price for user's country
     if (productData.prices && productData.prices[userCountry]) {
       const discountedPrice = productData.prices[userCountry];
-      const originalPrice = productData.prices[userCountry].originalAmount;
+      const originalPrice = productData.prices[userCountry];
+
+      // Format prices using the same approach as subscription screen
+      const formattedDiscountedPrice = discountedPrice
+        ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
+        : 'Not available';
+
+      const formattedOriginalPrice = originalPrice?.originalAmount
+        ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
+        : formattedDiscountedPrice;
 
       return {
-        originalPrice: originalPrice,
-        discountedPrice: discountedPrice,
+        originalPriceFormatted: formattedOriginalPrice,
+        discountedPriceFormatted: formattedDiscountedPrice,
         discount: productData.discountPercentage,
       };
     }
 
     // Fall back to default price
-    const discountedPrice = productData.prices[userCountry];
-    const originalPrice = productData.prices[userCountry].originalAmount;
+    const discountedPrice =
+      productData.prices?.[userCountry] || productData?.defaultPrice;
+    const originalPrice = discountedPrice;
+
+    const formattedDiscountedPrice = discountedPrice
+      ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
+      : 'Not available';
+
+    const formattedOriginalPrice = originalPrice?.originalAmount
+      ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
+      : formattedDiscountedPrice;
 
     return {
-      originalPrice: originalPrice,
-      discountedPrice: discountedPrice,
+      originalPriceFormatted: formattedOriginalPrice,
+      discountedPriceFormatted: formattedDiscountedPrice,
       discount: productData.discountPercentage,
     };
   };
@@ -268,7 +449,12 @@ const PromoModal = ({visible, onClose}) => {
                     {(() => {
                       const priceData = getProductPrice();
                       const hasDiscount = !!(
-                        priceData?.discount && priceData?.discount > 0
+                        priceData?.discount &&
+                        priceData?.discount > 0 &&
+                        priceData?.originalPriceFormatted &&
+                        priceData?.discountedPriceFormatted &&
+                        priceData?.originalPriceFormatted !==
+                          priceData?.discountedPriceFormatted
                       );
 
                       return (
@@ -281,20 +467,15 @@ const PromoModal = ({visible, onClose}) => {
                                 </Text>
                               </View>
                               <Text style={styles.originalPrice}>
-                                {formatPriceWithSymbol(
-                                  priceData?.discountedPrice,
-                                )}
+                                {priceData?.originalPriceFormatted}
                               </Text>
                             </View>
                           )}
                           <View style={styles.currentPriceContainer}>
                             <Text style={styles.priceText}>
-                              {formatPriceWithSymbol(
-                                priceData?.discountedPrice,
-                                hasDiscount,
-                              )}
+                              {priceData?.discountedPriceFormatted}
                             </Text>
-                            <Text style={styles.perMonthText}> per month</Text>
+                            {/* <Text style={styles.perMonthText}> per month</Text> */}
                           </View>
                         </>
                       );
