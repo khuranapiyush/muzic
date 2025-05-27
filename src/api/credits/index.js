@@ -1,4 +1,3 @@
-import config from 'react-native-config';
 import {makeAuthenticatedRequest} from '../../utils/authUtils';
 import fetcher from '../../dataProvider';
 
@@ -10,7 +9,7 @@ export const fetchUserCredits = async () => {
   try {
     // Use the makeAuthenticatedRequest wrapper to handle token validation and refresh
     return await makeAuthenticatedRequest(async () => {
-      const response = await fetcher.get(`${config.API_BASE_URL}/v1/credits`);
+      const response = await fetcher.get('/v1/credits', {}, 'default');
       return response.data;
     });
   } catch (error) {

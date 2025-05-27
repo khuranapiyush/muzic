@@ -58,6 +58,8 @@ const AIGenerator = ({pageHeading}) => {
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedVoice, setSelectedVoice] = useState(null);
   const [resetSelections, setResetSelections] = useState(false);
+  const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
+    useState(false);
 
   const {control, getValues, reset} = useForm({
     criteriaMode: 'all',
@@ -255,8 +257,8 @@ const AIGenerator = ({pageHeading}) => {
 
     // Check if user has sufficient credits
     if (creditsValue <= 0) {
-      // Navigate to subscription screen
-      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+      // Show insufficient credits modal instead of alert
+      setShowInsufficientCreditsModal(true);
       return;
     }
 
@@ -413,7 +415,7 @@ const AIGenerator = ({pageHeading}) => {
                     styles.createButtonText,
                     !prompt && styles.disabledButtonText,
                   ]}>
-                  {creditsValue <= 0 ? 'Insufficient Credits' : 'Create Song'}
+                  Create Song
                 </CText>
               </LinearGradient>
             </TouchableOpacity>
@@ -455,6 +457,48 @@ const AIGenerator = ({pageHeading}) => {
                   end={{x: 1, y: 1}}
                   style={styles.gradient}>
                   <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Insufficient Credits Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showInsufficientCreditsModal}
+          onRequestClose={() => setShowInsufficientCreditsModal(false)}
+          onBackdropPress={() => setShowInsufficientCreditsModal(false)}
+          onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
+          swipeDirection={['down']}
+          propagateSwipe
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.5}
+          avoidKeyboard={true}>
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetContent}>
+              <CText size="largeBold" style={styles.bottomSheetTitle}>
+                Insufficient Credits
+              </CText>
+              <CText style={styles.bottomSheetText}>
+                Please buy some credits to generate song
+              </CText>
+              <TouchableOpacity
+                style={styles.bottomSheetButton}
+                onPress={() => {
+                  setShowInsufficientCreditsModal(false);
+                  navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                }}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={styles.bottomSheetButtonText}>
+                    Buy Credits
+                  </CText>
                 </LinearGradient>
               </TouchableOpacity>
             </View>

@@ -5,6 +5,7 @@ import {
   rawInstance,
   refreshInstance,
   strapiInstance,
+  default as defaultInstance,
 } from './axios';
 import {
   isTokenExpired,
@@ -58,6 +59,8 @@ const fetchAxiosInstanceType = type => {
       return rawInstance;
     case 'strapi':
       return strapiInstance;
+    case 'default':
+      return defaultInstance;
     default:
       return fanTvInstance;
   }
@@ -271,93 +274,103 @@ const fetcher = {
 };
 
 export const addAuthInterceptor = async () => {
-  const authInterceptorId = fanTvInstance.interceptors.request.use(
-    async req => {
-      const shouldAddAuthHeaders =
-        (req.url.includes('v1/') ||
-          req.url.includes('v2/') ||
-          req.url.includes('v3/') ||
-          req.url.includes(
-            'events.artistfirst.in/dev/rest-proxy/topics/video-event',
-          )) &&
-        !req.url.includes('login') &&
-        !req.url.includes('/api') &&
-        !req.url.includes('verify-email') &&
-        !req.url.includes('refresh-tokens');
+  // Define the interceptor function to reuse for multiple instances
+  const authInterceptorFunction = async req => {
+    const shouldAddAuthHeaders =
+      (req.url.includes('v1/') ||
+        req.url.includes('v2/') ||
+        req.url.includes('v3/') ||
+        req.url.includes(
+          'events.artistfirst.in/dev/rest-proxy/topics/video-event',
+        )) &&
+      !req.url.includes('login') &&
+      !req.url.includes('/api') &&
+      !req.url.includes('verify-email') &&
+      !req.url.includes('refresh-tokens');
 
-      if (shouldAddAuthHeaders) {
-        console.log(`Adding auth headers to request: ${req.url}`);
+    if (shouldAddAuthHeaders) {
+      console.log(`Adding auth headers to request: ${req.url}`);
 
-        try {
-          // Use our token utility directly instead of trying to get from multiple places
-          const state = store.getState();
-          const userIsLoggedIn = state?.user?.isLoggedIn;
-          const authIsLoggedIn = state?.auth?.isLoggedIn;
+      try {
+        // Use our token utility directly instead of trying to get from multiple places
+        const state = store.getState();
+        const userIsLoggedIn = state?.user?.isLoggedIn;
+        const authIsLoggedIn = state?.auth?.isLoggedIn;
 
-          // Only proceed if user is logged in according to either state
-          if (userIsLoggedIn || authIsLoggedIn) {
-            // Get current token and validate
-            let accessToken = state?.auth?.accessToken;
-            const refreshToken = state?.auth?.refreshToken;
+        // Only proceed if user is logged in according to either state
+        if (userIsLoggedIn || authIsLoggedIn) {
+          // Get current token and validate
+          let accessToken = state?.auth?.accessToken;
+          const refreshToken = state?.auth?.refreshToken;
 
-            // If we have a refresh token and access token is expired/missing, try to refresh
-            if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
-              try {
-                console.log(
-                  'Interceptor: Token expired or missing, refreshing...',
-                );
-                // This will update Redux store with new tokens
-                accessToken = await refreshAccessToken();
-                console.log('Interceptor: Token refreshed successfully');
-              } catch (error) {
-                console.error('Interceptor: Failed to refresh token:', error);
-              }
+          // If we have a refresh token and access token is expired/missing, try to refresh
+          if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
+            try {
+              console.log(
+                'Interceptor: Token expired or missing, refreshing...',
+              );
+              // This will update Redux store with new tokens
+              accessToken = await refreshAccessToken();
+              console.log('Interceptor: Token refreshed successfully');
+            } catch (error) {
+              console.error('Interceptor: Failed to refresh token:', error);
             }
-
-            // Set the Authorization header if we have a valid token
-            if (accessToken) {
-              // Handle accessToken as object with access property
-              const tokenValue =
-                typeof accessToken === 'object' && accessToken.access
-                  ? accessToken.access
-                  : accessToken;
-
-              req.headers.Authorization = `Bearer ${tokenValue}`;
-              console.log('Interceptor: Auth header set successfully');
-            } else {
-              console.warn('Interceptor: No valid token available for request');
-            }
-          } else {
-            console.log(
-              'Interceptor: User not logged in, skipping auth header',
-            );
           }
-        } catch (error) {
-          console.error('Interceptor: Error setting auth header:', error);
+
+          // Set the Authorization header if we have a valid token
+          if (accessToken) {
+            // Handle accessToken as object with access property
+            const tokenValue =
+              typeof accessToken === 'object' && accessToken.access
+                ? accessToken.access
+                : accessToken;
+
+            req.headers.Authorization = `Bearer ${tokenValue}`;
+            console.log('Interceptor: Auth header set successfully');
+          } else {
+            console.warn('Interceptor: No valid token available for request');
+          }
+        } else {
+          console.log('Interceptor: User not logged in, skipping auth header');
         }
+      } catch (error) {
+        console.error('Interceptor: Error setting auth header:', error);
       }
+    }
 
-      console.log('🚀 ~ addAuthInterceptor ~ req:', req.url);
+    console.log('🚀 ~ addAuthInterceptor ~ req:', req.url);
 
-      // Add platform headers
-      req.headers.platform = Platform.OS;
-      req.headers['os-type'] = Platform.OS;
-      return req;
-    },
+    // Add platform headers
+    req.headers.platform = Platform.OS;
+    req.headers['os-type'] = Platform.OS;
+    return req;
+  };
+
+  // Apply the interceptor to both fanTvInstance and rawInstance
+  const fanTvInterceptorId = fanTvInstance.interceptors.request.use(
+    authInterceptorFunction,
+  );
+  const rawInterceptorId = rawInstance.interceptors.request.use(
+    authInterceptorFunction,
+  );
+  const defaultInterceptorId = defaultInstance.interceptors.request.use(
+    authInterceptorFunction,
   );
 
   return () => {
-    fanTvInstance.interceptors.request.eject(authInterceptorId);
+    fanTvInstance.interceptors.request.eject(fanTvInterceptorId);
+    rawInstance.interceptors.request.eject(rawInterceptorId);
+    defaultInstance.interceptors.request.eject(defaultInterceptorId);
   };
 };
 
-const processQueue = (error, token = null) => {
+const processQueue = (error, token = null, axiosInstance = fanTvInstance) => {
   failedQueue.forEach(prom => {
     if (error) {
       prom.reject(error);
     } else {
       prom.originalRequest.headers['Authorization'] = `Bearer ${token}`;
-      prom.resolve(fanTvInstance(prom.originalRequest));
+      prom.resolve(axiosInstance(prom.originalRequest));
     }
   });
 
@@ -365,86 +378,104 @@ const processQueue = (error, token = null) => {
 };
 
 export const setupResponseInterceptor = async store => {
-  const responseInterceptorId = fanTvInstance.interceptors.response.use(
-    response => {
-      return response;
-    },
-    error => {
-      const originalRequest = error.config;
+  // Define the response interceptor function to reuse for multiple instances
+  const responseInterceptorFunction = (response, axiosInstance) => {
+    return response;
+  };
 
-      if (error.response && error.response.status === 401) {
-        const state = store.getState();
+  const responseErrorHandler = (error, axiosInstance) => {
+    const originalRequest = error.config;
 
-        const refreshToken = state?.auth?.refreshToken;
+    if (error.response && error.response.status === 401) {
+      const state = store.getState();
 
-        if (!refreshToken) {
-          return Promise.reject(error);
-        }
+      const refreshToken = state?.auth?.refreshToken;
 
-        if (!isRefreshing) {
-          isRefreshing = true;
-          originalRequest._retry = true;
+      if (!refreshToken) {
+        return Promise.reject(error);
+      }
 
+      if (!isRefreshing) {
+        isRefreshing = true;
+        originalRequest._retry = true;
+
+        failedQueue.push({
+          resolve: res => res,
+          reject: err => err,
+          originalRequest,
+        });
+
+        return new Promise((resolve, reject) => {
+          refreshInstance
+            .post(`${config.API_BASE_URL}/v1/auth/refresh-tokens`, {
+              refreshToken,
+            })
+            .then(async res => {
+              const access = res.data.access?.token;
+              const refresh = res.data.refresh?.token;
+              store.dispatch(updateToken({access, refresh}));
+
+              processQueue(null, access, axiosInstance);
+              resolve(axiosInstance(originalRequest));
+            })
+            .catch(refreshError => {
+              console.error('Token refresh error:', refreshError);
+
+              if (
+                refreshError.response &&
+                (refreshError.response.status === 401 ||
+                  refreshError.response.status === 403)
+              ) {
+                console.log(
+                  'Refresh token is invalid or expired. Logging out.',
+                );
+                store.dispatch(updateToken({access: '', refresh: ''}));
+              } else {
+                console.log(
+                  'Token refresh failed due to network or server error.',
+                );
+              }
+
+              processQueue(refreshError, null, axiosInstance);
+              reject(refreshError);
+            })
+            .finally(() => {
+              isRefreshing = false;
+            });
+        });
+      } else {
+        return new Promise((resolve, reject) => {
           failedQueue.push({
-            resolve: res => res,
-            reject: err => err,
+            resolve,
+            reject,
             originalRequest,
           });
-
-          return new Promise((resolve, reject) => {
-            refreshInstance
-              .post(`${config.API_BASE_URL}/v1/auth/refresh-tokens`, {
-                refreshToken,
-              })
-              .then(async res => {
-                const access = res.data.access?.token;
-                const refresh = res.data.refresh?.token;
-                store.dispatch(updateToken({access, refresh}));
-
-                processQueue(null, access);
-                resolve(fanTvInstance(originalRequest));
-              })
-              .catch(refreshError => {
-                console.error('Token refresh error:', refreshError);
-
-                if (
-                  refreshError.response &&
-                  (refreshError.response.status === 401 ||
-                    refreshError.response.status === 403)
-                ) {
-                  console.log(
-                    'Refresh token is invalid or expired. Logging out.',
-                  );
-                  store.dispatch(updateToken({access: '', refresh: ''}));
-                } else {
-                  console.log(
-                    'Token refresh failed due to network or server error.',
-                  );
-                }
-
-                processQueue(refreshError, null);
-                reject(refreshError);
-              })
-              .finally(() => {
-                isRefreshing = false;
-              });
-          });
-        } else {
-          return new Promise((resolve, reject) => {
-            failedQueue.push({
-              resolve,
-              reject,
-              originalRequest,
-            });
-          });
-        }
+        });
       }
-      return Promise.reject(error);
-    },
+    }
+    return Promise.reject(error);
+  };
+
+  // Apply the response interceptor to both fanTvInstance and rawInstance
+  const fanTvInterceptorId = fanTvInstance.interceptors.response.use(
+    response => responseInterceptorFunction(response, fanTvInstance),
+    error => responseErrorHandler(error, fanTvInstance),
+  );
+
+  const rawInterceptorId = rawInstance.interceptors.response.use(
+    response => responseInterceptorFunction(response, rawInstance),
+    error => responseErrorHandler(error, rawInstance),
+  );
+
+  const defaultInterceptorId = defaultInstance.interceptors.response.use(
+    response => responseInterceptorFunction(response, defaultInstance),
+    error => responseErrorHandler(error, defaultInstance),
   );
 
   return () => {
-    fanTvInstance.interceptors.response.eject(responseInterceptorId);
+    fanTvInstance.interceptors.response.eject(fanTvInterceptorId);
+    rawInstance.interceptors.response.eject(rawInterceptorId);
+    defaultInstance.interceptors.response.eject(defaultInterceptorId);
   };
 };
 

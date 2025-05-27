@@ -685,8 +685,6 @@ const LibraryScreen = () => {
             <ActivityIndicator size="large" color="#F4A460" />
             <Text style={styles.loadingText}>Loading your library...</Text>
           </View>
-        ) : audioList.length === 0 ? (
-          <EmptyLibrary />
         ) : (
           <FlatList
             data={audioList}
