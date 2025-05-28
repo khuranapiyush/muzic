@@ -156,3 +156,6 @@ Locate the APK: The generated APK file will be located in android/app/build/outp
 Navigate to the Android Directory: Open your terminal and navigate to the android directory within your React Native project: cd android. 
 Run the Bundle Release Command: Execute the following command to build the AAB: .\gradlew bundleRelease. 
 Locate the AAB: The generated AAB file will be located in android/app/build/outputs/bundle/release/app-release.aab.
+
+
+Always make sure that the cred for the android and ios for firebase are added in the gcp and then added to the firebase not the other way around. And also remember to add the SHA1 Certificate

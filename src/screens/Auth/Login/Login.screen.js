@@ -15,7 +15,7 @@ import {
   authAppleLogin,
 } from '../../../api/auth';
 import fetcher, {addAuthInterceptor} from '../../../dataProvider';
-import {useNavigation, CommonActions} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 import useToaster from '../../../hooks/useToaster';
 import ROUTE_NAME from '../../../navigator/config/routeName';
 import Login from '../../../components/feature/auth/Login';
@@ -55,20 +55,22 @@ const LoginScreen = () => {
 
         const androidConfig = {
           webClientId:
-            '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
+            '22319693149-8u0i7andagg60qu75c98bim53kpv3gkd.apps.googleusercontent.com',
           offlineAccess: true,
           forceCodeForRefreshToken: true,
           scopes: ['email', 'profile'],
         };
 
-        // Configure based on platform
+        // Configure based on platform - do this only once
         if (Platform.OS === 'ios') {
           GoogleSignin.configure(iosConfig);
         } else {
           GoogleSignin.configure(androidConfig);
         }
+
+        console.log('Google Sign-In configured for platform:', Platform.OS);
       } catch (error) {
-        // Silent error handling
+        console.error('Google Sign-In configuration error:', error);
       }
     };
 
@@ -433,30 +435,6 @@ const LoginScreen = () => {
       setIsGoogleSignInProgress(true);
       setIsLoading(true);
 
-      // Platform-specific configuration
-      if (Platform.OS === 'ios') {
-        GoogleSignin.configure({
-          iosClientId:
-            '22319693149-dnbne0s46dolsvnprlrcgafb10072ish.apps.googleusercontent.com',
-          scopes: ['email', 'profile'],
-          shouldFetchBasicProfile: true,
-        });
-      } else {
-        GoogleSignin.configure({
-          webClientId:
-            '920222123505-65nrsldp05gghkqhgkp1arm5su8op64j.apps.googleusercontent.com',
-          offlineAccess: true,
-          forceCodeForRefreshToken: true,
-          scopes: [
-            'email',
-            'profile',
-            'openid',
-            'https://www.googleapis.com/auth/userinfo.profile',
-            'https://www.googleapis.com/auth/userinfo.email',
-          ],
-        });
-      }
-
       // First try to check if signed in
       try {
         if (typeof GoogleSignin.isSignedIn === 'function') {
@@ -532,7 +510,13 @@ const LoginScreen = () => {
           text2: 'Please update Google Play Services',
         });
       } else if (error.code === statusCodes.DEVELOPER_ERROR) {
-        // Silent handling for developer errors
+        // Show developer error for debugging
+        console.error('Google Sign-In Developer Error:', error);
+        showToaster({
+          type: 'error',
+          text1: 'Configuration Error',
+          text2: 'Google Sign-In configuration issue. Please contact support.',
+        });
       } else {
         showToaster({
           type: 'error',
