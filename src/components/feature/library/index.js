@@ -21,7 +21,6 @@ import {getAuthToken} from '../../../utils/authUtils';
 import useMusicPlayer from '../../../hooks/useMusicPlayer';
 import {useNavigation} from '@react-navigation/native';
 import {useSelector, useDispatch} from 'react-redux';
-import useToaster from '../../../hooks/useToaster';
 import LinearGradient from 'react-native-linear-gradient';
 import appImages from '../../../resource/images';
 import RNFS from 'react-native-fs';
