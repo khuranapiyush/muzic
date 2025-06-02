@@ -60,6 +60,7 @@ const AIGenerator = ({pageHeading}) => {
   const [resetSelections, setResetSelections] = useState(false);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
 
   const {control, getValues, reset} = useForm({
     criteriaMode: 'all',
@@ -246,13 +247,28 @@ const AIGenerator = ({pageHeading}) => {
     const promptText = formValues.promptText;
 
     if (!promptText || promptText.trim() === '') {
-      setErrorMessage('Please enter a description for your song');
-      showToaster({
-        type: 'error',
-        text1: 'Empty Prompt',
-        text2: 'Please enter a description for your song',
-      });
+      setShowValidationModal(true);
       return;
+    }
+
+    // Track create song button click
+    analyticsUtils.trackCustomEvent('create_song_button_click', {
+      screen: 'ai_generator',
+      prompt_length: promptText.trim().length,
+      genre: selectedGenre || 'not_selected',
+      voice: selectedVoice || 'not_selected',
+      timestamp: Date.now(),
+    });
+
+    // Track with Facebook Events
+    try {
+      facebookEvents.logCustomEvent('create_song_button_click', {
+        screen: 'ai_generator',
+        genre: selectedGenre || 'not_selected',
+        voice: selectedVoice || 'not_selected',
+      });
+    } catch (error) {
+      // Silent error handling
     }
 
     // Check if user has sufficient credits
@@ -403,20 +419,13 @@ const AIGenerator = ({pageHeading}) => {
             <TouchableOpacity
               style={styles.createButton}
               activeOpacity={0.8}
-              onPress={handleSubmit}
-              disabled={!prompt}>
+              onPress={handleSubmit}>
               <LinearGradient
                 colors={['#F4A460', '#DEB887']}
                 start={{x: 0, y: 0}}
                 end={{x: 1, y: 1}}
                 style={styles.gradient}>
-                <CText
-                  style={[
-                    styles.createButtonText,
-                    !prompt && styles.disabledButtonText,
-                  ]}>
-                  Create Song
-                </CText>
+                <CText style={[styles.createButtonText]}>Create Song</CText>
               </LinearGradient>
             </TouchableOpacity>
           </CView>
@@ -503,6 +512,42 @@ const AIGenerator = ({pageHeading}) => {
               </TouchableOpacity>
             </View>
           </View>
+        </Modal>
+
+        {/* Validation Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showValidationModal}
+          onRequestClose={() => setShowValidationModal(false)}
+          onBackdropPress={() => setShowValidationModal(false)}
+          onBackButtonPress={() => setShowValidationModal(false)}>
+          <TouchableWithoutFeedback
+            onPress={() => setShowValidationModal(false)}>
+            <View style={styles.bottomSheetContainer}>
+              <TouchableWithoutFeedback>
+                <View style={styles.bottomSheetContent}>
+                  <CText size="largeBold" style={styles.bottomSheetTitle}>
+                    Missing Prompt
+                  </CText>
+                  <CText style={styles.bottomSheetText}>
+                    Please add a prompt for song creation
+                  </CText>
+                  <TouchableOpacity
+                    style={styles.bottomSheetButton}
+                    onPress={() => setShowValidationModal(false)}>
+                    <LinearGradient
+                      colors={['#F4A460', '#DEB887']}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                      style={styles.gradient}>
+                      <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
         </Modal>
       </SafeAreaView>
     </TouchableWithoutFeedback>

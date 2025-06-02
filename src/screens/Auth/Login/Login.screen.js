@@ -326,6 +326,7 @@ const LoginScreen = () => {
     onError: err => {
       setIsGoogleSignInProgress(false);
       setIsLoading(false);
+      console.log('Google login error:', err, err.response?.data?.message);
       showToaster({
         type: 'error',
         text1: 'Error',
@@ -518,6 +519,7 @@ const LoginScreen = () => {
           text2: 'Google Sign-In configuration issue. Please contact support.',
         });
       } else {
+        console.log('Google login error:', error);
         showToaster({
           type: 'error',
           text1: 'Sign In Failed',

@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "22319693149-5meck6rblcomts9ju55anp7ittcc5cfb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.muzic",
+            "certificate_hash": "b5600886afec3d99de9d0df3162e0569ff5c236e"
+          }
+        },
+        {
           "client_id": "22319693149-5otn6h6mt1vdnpasrdqtqli2kpu106f7.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
@@ -22,7 +30,7 @@
           }
         },
         {
-          "client_id": "22319693149-k0spl59mpkuhqvmpbeme93g74aju70vn.apps.googleusercontent.com",
+          "client_id": "22319693149-q8fq9vm0qu4uaifhrg87v260j6grup04.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.muzic",

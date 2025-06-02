@@ -208,6 +208,26 @@ const VoiceRecordScreen = ({navigation}) => {
           apiResponse: uploadResponse,
         });
 
+        // Track vocal recording event
+        analyticsUtils.trackCustomEvent('vocal_recorded', {
+          screen: 'voice_record_screen',
+          duration_ms: durationMs,
+          file_size: fileStats.size,
+          recording_id: uploadResponse?._id || 'unknown',
+          timestamp: Date.now(),
+        });
+
+        // Track with Facebook Events
+        try {
+          facebookEvents.logCustomEvent('vocal_recorded', {
+            screen: 'voice_record_screen',
+            duration_ms: durationMs,
+            recording_id: uploadResponse?._id || 'unknown',
+          });
+        } catch (error) {
+          // Silent error handling
+        }
+
         Alert.alert('Success', 'Voice recording uploaded successfully');
 
         // Optional: Navigate back after successful upload

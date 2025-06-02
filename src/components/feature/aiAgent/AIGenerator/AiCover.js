@@ -18,6 +18,7 @@ import {
   ToastAndroid,
   Platform,
   FlatList,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
@@ -109,6 +110,10 @@ const CoverCreationScreen = () => {
   // Add this to check global player visibility
   const {showGlobalPlayer} = useSelector(state => state.player);
 
+  // Add new state for validation modal
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
+
   // Basic network check function (simplified)
   const checkNetworkConnectivity = useCallback(async () => {
     try {
@@ -168,19 +173,15 @@ const CoverCreationScreen = () => {
       return;
     }
 
-    if (!selectedVoiceId && !selectedRecordingFile) {
-      Alert.alert('Error', 'Please select a voice first');
-      return;
-    }
-
     if (!link) {
-      Alert.alert('Error', 'Please provide a YouTube/Spotify link');
+      setValidationMessage('Please enter a valid YouTube or Spotify URL');
+      setShowValidationModal(true);
       return;
     }
 
-    // Validate the URL format
-    if (!validateMediaURL(link)) {
-      Alert.alert('Error', 'Please enter a valid YouTube or Spotify URL');
+    if (!selectedVoiceId && !selectedRecordingFile) {
+      setValidationMessage('Please select a voice first');
+      setShowValidationModal(true);
       return;
     }
 
@@ -835,9 +836,6 @@ const CoverCreationScreen = () => {
         ]}>
         <TouchableOpacity
           style={styles.createButton}
-          disabled={
-            (!selectedVoiceId && !selectedRecordingFile) || !link || isLoading
-          }
           onPress={createVoiceConversion}>
           <LinearGradient
             colors={['#F4A460', '#DEB887']}
@@ -847,8 +845,7 @@ const CoverCreationScreen = () => {
             <CText
               style={[
                 styles.createButtonText,
-                (isLoading || (!selectedVoiceId && !selectedRecordingFile)) &&
-                  styles.disabledButtonText,
+                isLoading && styles.disabledButtonText,
               ]}>
               {isLoading ? 'Creating...' : 'Create Cover'}
             </CText>
@@ -932,6 +929,45 @@ const CoverCreationScreen = () => {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
+      {/* Validation Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={showValidationModal}
+        onRequestClose={() => setShowValidationModal(false)}
+        onBackdropPress={() => setShowValidationModal(false)}
+        onBackButtonPress={() => setShowValidationModal(false)}>
+        <TouchableWithoutFeedback onPress={() => setShowValidationModal(false)}>
+          <View style={styles.bottomSheetContainer}>
+            <TouchableWithoutFeedback>
+              <View style={styles.bottomSheetContent}>
+                <CText size="largeBold" style={styles.bottomSheetTitle}>
+                  {!link
+                    ? 'Missing Link'
+                    : !selectedVoiceId && !selectedRecordingFile
+                    ? 'Missing Voice'
+                    : ''}
+                </CText>
+                <CText style={styles.bottomSheetText}>
+                  {validationMessage}
+                </CText>
+                <TouchableOpacity
+                  style={styles.bottomSheetButton}
+                  onPress={() => setShowValidationModal(false)}>
+                  <LinearGradient
+                    colors={['#F4A460', '#DEB887']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={styles.gradient}>
+                    <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </SafeAreaView>
   );

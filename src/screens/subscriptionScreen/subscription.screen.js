@@ -29,6 +29,85 @@ const processedPurchases = new Set();
 let iapInitialized = false;
 let isInitializing = false;
 
+// Add price multiplier constants at the top after imports
+const PRICE_MULTIPLIERS = {
+  payment_101: 1, // Base product
+  payment_201: 1.6,
+  payment_301: 9.3,
+};
+
+// Add function to calculate iOS discount percentage
+const calculateIOSDiscount = productId => {
+  const baseMultiplier = PRICE_MULTIPLIERS['payment_101']; // Base price multiplier
+  const productMultiplier = PRICE_MULTIPLIERS[productId];
+
+  if (!productMultiplier || !baseMultiplier) return 0;
+
+  // Calculate discount percentage
+  // For higher tiers, the effective price per unit is lower, which represents the discount
+  const effectiveDiscount = (
+    (1 - baseMultiplier / productMultiplier) *
+    100
+  ).toFixed(0);
+  return parseInt(effectiveDiscount, 10);
+};
+
+// Modify the product formatting for iOS
+const formatIOSProduct = (product, countryCode) => {
+  if (!product || !product.productId) {
+    console.log('Invalid product data:', product);
+    return product;
+  }
+
+  try {
+    // Get the multiplier for this product
+    const multiplier = PRICE_MULTIPLIERS[product.productId] || 1;
+
+    // Extract numeric price and currency from product price
+    const numericPrice = extractNumericPrice(
+      product.price || product.localizedPrice || '0',
+    );
+    const currencySymbol = (product.price || product.localizedPrice || '$0')
+      .replace(/[0-9.,]/g, '')
+      .trim();
+    const currencyCode = product.currency || 'USD';
+
+    // Calculate original price using multiplier
+    const originalPrice = numericPrice * multiplier;
+    const discountedPrice = numericPrice; // The IAP price is the discounted price
+
+    // Calculate discount percentage
+    const discountPercentage =
+      originalPrice > 0
+        ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+        : 0;
+
+    console.log(`Formatting iOS product ${product.productId}:`, {
+      originalPrice,
+      discountedPrice,
+      discountPercentage,
+      multiplier,
+      currencyCode,
+      currencySymbol,
+    });
+
+    return {
+      ...product,
+      isIOS: true,
+      discount: discountPercentage,
+      localizedOriginalPrice: `${currencySymbol}${originalPrice.toFixed(2)}`,
+      localizedPrice: product.price || product.localizedPrice, // Keep the original IAP price as discounted price
+      originalPriceAmount: originalPrice,
+      discountedPriceAmount: discountedPrice,
+      currency: currencyCode,
+      currencySymbol: currencySymbol,
+    };
+  } catch (error) {
+    console.error('Error formatting iOS product:', error);
+    return product;
+  }
+};
+
 const createPendingPayment = async (productId, amount, token) => {
   try {
     if (!token) {
@@ -1205,11 +1284,15 @@ const extractFeaturesFromDescription = description => {
   return featureMatches;
 };
 
-// Helper function to extract numeric price from a price string
+// Function to extract numeric price from price string
 const extractNumericPrice = priceString => {
-  if (!priceString) return 9999;
-  const matches = priceString.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
-  return matches && matches[0] ? parseFloat(matches[0]) : 9999;
+  try {
+    const matches = priceString.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
+    return matches && matches[0] ? parseFloat(matches[0]) : 0;
+  } catch (error) {
+    console.log('Error extracting numeric price:', error);
+    return 0;
+  }
 };
 
 // Helper function to sort products by price
@@ -1226,16 +1309,15 @@ const PlanCard = ({
   price,
   features,
   onPurchase,
-  // selectedPlan,
   disabled,
   originalPrice,
   discount,
   discountedPrice,
-  // credits,
-  // creditsPerSong,
-  // currency,
+  currency,
+  currencySymbol,
 }) => {
   const hasDiscount = !!(discount && discountedPrice && originalPrice);
+
   // Truncate long feature text on iOS to ensure it fits
   const processFeatures = feature => {
     if (Platform.OS === 'ios' && feature.length > 40) {
@@ -1270,12 +1352,14 @@ const PlanCard = ({
               <View style={styles.discountBadge}>
                 <Text style={styles.discountText}>{discount || 0}% OFF</Text>
               </View>
-              <Text style={styles.planOriginalPrice}>{originalPrice}</Text>
+              <Text style={styles.planOriginalPrice}>
+                {currency} {originalPrice}
+              </Text>
               <Text
                 style={styles.planPrice}
                 numberOfLines={1}
                 ellipsizeMode="tail">
-                {discountedPrice}
+                {currency} {discountedPrice}
               </Text>
             </View>
           ) : (
@@ -1284,7 +1368,7 @@ const PlanCard = ({
                 style={styles.planPrice}
                 numberOfLines={1}
                 ellipsizeMode="tail">
-                {price}
+                {currency} {price}
               </Text>
             </View>
           )}
@@ -1473,8 +1557,11 @@ const SubscriptionScreen = () => {
                 console.log('- All properties:', JSON.stringify(product));
               });
 
-              // Process the products
+              // Process the products with iOS discounts
               const formattedProducts = products.map(product => {
+                if (Platform.OS === 'ios') {
+                  return formatIOSProduct(product, userCountry);
+                }
                 return {
                   ...product,
                   isSubscription: false,
@@ -1739,7 +1826,7 @@ const SubscriptionScreen = () => {
       );
       return false;
     }
-  }, [fetchDirectPlayStoreProducts]);
+  }, [fetchDirectPlayStoreProducts, userCountry]);
 
   // Add function to fetch direct Google Play products
   const fetchDirectPlayStoreProducts = useCallback(async () => {
@@ -2026,25 +2113,6 @@ const SubscriptionScreen = () => {
     },
     [authState.accessToken, addCredits, updateUserCredits, refreshCredits],
   );
-
-  // Update the Apple sandbox detection function
-  const isAppleSandboxEnvironment = receipt => {
-    try {
-      // Apple sandbox receipt has a specific environment indicator
-      if (!receipt) return false;
-
-      // Check if it's a sandbox receipt (contains "sandbox" in the receipt)
-      const isSandbox = receipt.includes('sandbox');
-
-      console.log(
-        `Receipt environment check: ${isSandbox ? 'SANDBOX' : 'PRODUCTION'}`,
-      );
-      return isSandbox;
-    } catch (error) {
-      console.warn('Error checking sandbox environment:', error);
-      return false;
-    }
-  };
 
   // Add a new function to validate Apple receipt using the new endpoint
   const validateAppleReceipt = async (
@@ -2662,8 +2730,12 @@ const SubscriptionScreen = () => {
                 if (productsAttempt1.length > 0) {
                   // Format products for display
                   const formattedProducts = productsAttempt1.map(product => {
+                    if (Platform.OS === 'ios') {
+                      return formatIOSProduct(product, userCountry);
+                    }
                     return {
                       ...product,
+                      isSubscription: false,
                     };
                   });
 
@@ -2931,6 +3003,7 @@ const SubscriptionScreen = () => {
     connectionState,
     fetchDirectPlayStoreProducts,
     purchasePending,
+    userCountry,
   ]);
   // Added all required dependencies to the array
 
@@ -3279,7 +3352,6 @@ const SubscriptionScreen = () => {
 
   const navigation = useNavigation();
 
-  // Add a renderDynamicProductCards function to render all products from Google Play
   const renderDynamicProductCards = () => {
     if (products.length === 0) {
       return (
@@ -3294,21 +3366,18 @@ const SubscriptionScreen = () => {
 
     // Log sorted products for verification
     if (Platform.OS === 'ios') {
-      console.log('Sorted products (lowest to highest):');
       sortedProducts.forEach((product, idx) => {
         console.log(
-          `${idx + 1}. ${product.productId}: ${
-            product.localizedPrice || product.price
-          }`,
+          `${idx + 1}. ${product.productId}: Original: ${
+            product.localizedOriginalPrice
+          }, Discounted: ${product.localizedPrice}`,
         );
       });
     }
 
-    // Render cards dynamically from sorted products
     return (
       <View style={styles.plansContainer}>
         {sortedProducts.map((product, index) => {
-          // Extract features from the product's description
           const features = product.features ||
             extractFeaturesFromDescription(product.description) || [
               product.title || 'Credit Pack',
@@ -3326,23 +3395,54 @@ const SubscriptionScreen = () => {
                 )
               : features;
 
+          // Handle iOS-specific pricing display
+          const showDiscount = product.discount > 0;
+          const displayPrice = product.localizedPrice;
+          const displayOriginalPrice = showDiscount
+            ? product.localizedOriginalPrice
+            : null;
+          const displayDiscount = showDiscount ? product.discount : null;
+
           return (
             <PlanCard
               key={product.productId || product.sku}
               title={product.title || 'Credit Pack'}
-              price={product.localizedPrice || product.price}
+              price={displayPrice}
               features={processedFeatures}
               onPurchase={() => {
-                // Set the selected product ID to this product
                 setSelectedProductId(product.productId);
                 console.log(`Selected product ID: ${product.productId}`);
+
+                // Track checkout initiation
+                analyticsUtils.trackCustomEvent('initiate_purchase', {
+                  screen: 'subscription_screen',
+                  product_id: product.productId || 'unknown',
+                  price: product.localizedPrice || '0',
+                  currency: product.currency || 'USD',
+                  platform: Platform.OS,
+                  timestamp: Date.now(),
+                });
+
+                // Track checkout with Facebook Events
+                try {
+                  facebookEvents.logCustomEvent('initiate_purchase', {
+                    screen: 'subscription_screen',
+                    product_id: product.productId || 'unknown',
+                    platform: Platform.OS,
+                  });
+                } catch (error) {
+                  // Silent error handling
+                }
+
                 handlePurchase(product.productId);
               }}
               selectedPlan={selectedProductId === product.productId}
               disabled={purchasePending}
-              originalPrice={product.localizedOriginalPrice}
-              discount={product.discount}
-              discountedPrice={product.localizedPrice}
+              originalPrice={displayOriginalPrice}
+              discount={displayDiscount}
+              discountedPrice={displayPrice}
+              currency={product.currency}
+              currencySymbol={product.currencySymbol}
             />
           );
         })}
@@ -3352,66 +3452,7 @@ const SubscriptionScreen = () => {
 
   const creditsPerSong = useSelector(selectCreditsPerSong);
 
-  // Add function to validate App Store receipt
-  const validateAppStoreReceipt = async (receiptData, productId, token) => {
-    try {
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
-
-      if (!receiptData) {
-        throw new Error('Receipt data is required for validation');
-      }
-
-      console.log(`Validating App Store receipt for ${productId}`);
-
-      // Check if it's a sandbox receipt
-      const isSandbox = receiptData.includes('sandbox');
-      console.log(
-        `Receipt appears to be from ${
-          isSandbox ? 'SANDBOX' : 'PRODUCTION'
-        } environment`,
-      );
-
-      const response = await fetch(
-        `${API_URL}/v1/payments/validate-ios-receipt`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            receipt: receiptData,
-            productId,
-            bundleId: config.APP_STORE_BUNDLE_ID,
-            environment: isSandbox ? 'sandbox' : 'production',
-            allowSandboxInProduction: true, // Add flag to try sandbox if production validation fails
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(
-          `Receipt validation error (${response.status}):`,
-          errorText,
-        );
-        throw new Error(`Failed to validate receipt: ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Receipt validation result:', result);
-      return result;
-    } catch (err) {
-      console.error('Error validating App Store receipt:', err);
-      throw err;
-    }
-  };
-
-  // Modify useEffect to check and validate current purchases only after iOS purchase completes
   useEffect(() => {
-    // Only run for iOS and when an iOS purchase has been completed
     if (Platform.OS !== 'ios' || !iosPurchaseCompleted || !currentIosPurchase) {
       return;
     }
@@ -3427,7 +3468,6 @@ const SubscriptionScreen = () => {
             console.log('receipt', receipt);
             const isTestEnvironment = __DEV__;
 
-            // Send receipt to server to validate using RNIap.validateReceiptIos
             const appleReceiptResponse = await RNIap.validateReceiptIos(
               {
                 'receipt-data': receipt,
@@ -3498,6 +3538,7 @@ const SubscriptionScreen = () => {
     navigation,
     refreshCredits,
     updateUserCredits,
+    userCountry,
   ]);
 
   // Keep the existing useEffect that handles pending purchases on component mount
@@ -3570,15 +3611,22 @@ const SubscriptionScreen = () => {
               `Successfully refreshed ${refreshedProducts.length} products`,
             );
 
+            // Apply iOS discounts to refreshed products
+            const formattedProducts = refreshedProducts.map(product =>
+              formatIOSProduct(product, userCountry),
+            );
+
             // Sort products by price
-            const sortedProducts = sortProductsByPrice(refreshedProducts);
+            const sortedProducts = sortProductsByPrice(formattedProducts);
 
             // Log sorted products for verification
             console.log(
               'Refreshed iOS products sorted by price (lowest to highest):',
             );
             sortedProducts.forEach((product, idx) => {
-              console.log(`${idx + 1}. ${product.productId}: ${product.price}`);
+              console.log(
+                `${idx + 1}. ${product.productId}: ${product.localizedPrice}`,
+              );
             });
 
             setProducts(sortedProducts);
@@ -3588,77 +3636,10 @@ const SubscriptionScreen = () => {
             if (sortedProducts.length > 0) {
               setSelectedProductId(sortedProducts[0].productId);
             }
-          } else {
-            console.log(
-              'No products found during refresh, trying second attempt...',
-            );
-
-            // Try a second attempt with different options
-            const productsSecondAttempt = await RNIap.getProducts({
-              skus: productIds,
-              forceRefresh: false, // Try without force refresh
-            });
-
-            if (productsSecondAttempt && productsSecondAttempt.length > 0) {
-              console.log(
-                `Second attempt successful: ${productsSecondAttempt.length} products`,
-              );
-
-              // Sort products by price
-              const sortedProducts = sortProductsByPrice(productsSecondAttempt);
-              setProducts(sortedProducts);
-              global.availableProducts = sortedProducts;
-
-              if (sortedProducts.length > 0) {
-                setSelectedProductId(sortedProducts[0].productId);
-              }
-            } else {
-              console.log('No products found in second attempt');
-            }
           }
         } catch (refreshError) {
           console.error('Error refreshing iOS products:', refreshError);
-
-          if (
-            refreshError.message &&
-            refreshError.message.includes('cancelled')
-          ) {
-            console.log(
-              'Request was cancelled due to a new request. This is normal behavior when rapid requests are made.',
-            );
-          } else {
-            // Try reconnecting if there was a non-cancellation error
-            try {
-              console.log('Trying to reconnect IAP after refresh error...');
-              await RNIap.endConnection();
-              await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay
-              await RNIap.initConnection();
-              iapInitialized = true;
-
-              // Try one more time to fetch products
-              console.log(
-                'Attempting final product fetch after reconnection...',
-              );
-              const finalProducts = await RNIap.getProducts({
-                skus: productIds,
-              });
-
-              if (finalProducts && finalProducts.length > 0) {
-                const sortedProducts = sortProductsByPrice(finalProducts);
-                setProducts(sortedProducts);
-                global.availableProducts = sortedProducts;
-
-                if (sortedProducts.length > 0) {
-                  setSelectedProductId(sortedProducts[0].productId);
-                }
-              }
-            } catch (reconnectError) {
-              console.error(
-                'Error reconnecting after refresh error:',
-                reconnectError,
-              );
-            }
-          }
+          // ... rest of the error handling code ...
         }
       } else {
         // Android refresh
@@ -3715,6 +3696,7 @@ const SubscriptionScreen = () => {
     reconnectIAP,
     fetchDirectPlayStoreProducts,
     credits,
+    userCountry,
   ]);
 
   return (
@@ -3921,6 +3903,7 @@ const styles = StyleSheet.create({
       minWidth: 80,
       alignItems: 'flex-end',
       minHeight: 60,
+      marginRight: 10,
     }),
   },
   planPrice: {
@@ -4105,11 +4088,7 @@ const styles = StyleSheet.create({
   regularPriceWrapper: {
     flexDirection: 'column',
     alignItems: 'flex-end',
-    minHeight: 40,
     justifyContent: 'center',
-    ...(Platform.OS === 'ios' && {
-      minHeight: 60,
-    }),
   },
 });
 

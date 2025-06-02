@@ -93,19 +93,19 @@ android {
         applicationId "com.muzic"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
+        versionCode 10
         versionName "2.0.0"
         missingDimensionStrategy 'store', 'play'
         multiDexEnabled true
         manifestPlaceholders = [firebase_analytics_collection_enabled: "true", firebase_analytics_collection_deactivated: "false"]
     }
     signingConfigs {
-        debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
-        }
+        // debug {
+        //     storeFile file('debug.keystore')
+        //     storePassword 'android'
+        //     keyAlias 'androiddebugkey'
+        //     keyPassword 'android'
+        // }
         release {
             storeFile file('my-release-key.jks') // Replace with your actual keystore file
             storePassword 'muzic_keystore' // Replace with your actual store password
@@ -114,9 +114,9 @@ android {
         }
     }
     buildTypes {
-        debug {
-            signingConfig signingConfigs.debug
-        }
+        // debug {
+        //     signingConfig signingConfigs.debug
+        // }
         release {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds

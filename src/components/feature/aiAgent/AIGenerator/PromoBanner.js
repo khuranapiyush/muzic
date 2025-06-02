@@ -19,6 +19,58 @@ import config from 'react-native-config';
 import {useSelector} from 'react-redux';
 import {getAuthToken} from '../../../../utils/authUtils';
 import * as RNLocalize from 'react-native-localize';
+import * as RNIap from 'react-native-iap';
+
+// Add price multiplier constants at the top after imports
+const PRICE_MULTIPLIERS = {
+  payment_101: 1, // Base product
+  payment_201: 1.6,
+  payment_301: 9.3,
+};
+
+// Function to calculate original and discounted prices for iOS
+const calculateIOSPricing = product => {
+  if (!product || !product.productId) return null;
+
+  const multiplier = PRICE_MULTIPLIERS[product.productId] || 1;
+
+  // Get numeric price from product
+  const getBasePrice = () => {
+    try {
+      const priceString = product.price || product.localizedPrice || '0';
+      const matches = priceString.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
+      return matches && matches[0] ? parseFloat(matches[0]) : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
+
+  const basePrice = getBasePrice();
+  const originalPrice = basePrice * multiplier;
+  const discountedPrice = basePrice;
+
+  // Calculate discount percentage
+  const discountPercentage =
+    originalPrice > 0
+      ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+      : 0;
+
+  // Get currency symbol and code from the product
+  const currencySymbol = (product.price || product.localizedPrice || '$0')
+    .replace(/[0-9.,]/g, '')
+    .trim();
+  const currencyCode = product.currency || 'USD';
+
+  return {
+    originalPrice,
+    discountedPrice,
+    discountPercentage,
+    currency: currencySymbol,
+    currencyCode: currencyCode,
+    formattedOriginalPrice: `${originalPrice.toFixed(2)}`,
+    formattedDiscountedPrice: `${discountedPrice.toFixed(2)}`,
+  };
+};
 
 // Enhanced function to get user's country code from device locale settings
 const getUserCountryCode = async () => {
@@ -300,41 +352,146 @@ const PromoModal = ({visible, onClose}) => {
         const countryCode = await getUserCountryCode();
         setUserCountry(countryCode);
 
-        // Get auth token
-        const token = await getAuthToken();
-        if (!token) {
-          setLoading(false);
-          return;
+        // iOS-specific product fetching using RNIap
+        if (Platform.OS === 'ios') {
+          try {
+            // Initialize RNIap connection if not already initialized
+            try {
+              await RNIap.initConnection();
+            } catch (initErr) {
+              // Silent catch - RNIap might already be initialized
+            }
+
+            // Define product IDs to fetch from App Store Connect
+            const productIds = ['payment_101', 'payment_201', 'payment_301'];
+
+            // Fetch products from App Store
+            const iosProducts = await RNIap.getProducts({
+              skus: productIds,
+              forceRefresh: true,
+            });
+
+            // Validate and filter products
+            const validProducts = iosProducts.filter(
+              product =>
+                product &&
+                product.productId &&
+                (product.price || product.localizedPrice),
+            );
+
+            if (validProducts.length === 0) {
+              setLoading(false);
+              return;
+            }
+
+            // Sort products by price (highest to lowest)
+            const sortedProducts = [...validProducts].sort((a, b) => {
+              const priceA = calculateIOSPricing(a)?.discountedPrice || 0;
+              const priceB = calculateIOSPricing(b)?.discountedPrice || 0;
+              return priceB - priceA;
+            });
+
+            const highestPricedProduct = sortedProducts[0];
+
+            if (!highestPricedProduct) {
+              setLoading(false);
+              return;
+            }
+
+            try {
+              const pricing = calculateIOSPricing(highestPricedProduct);
+
+              if (!pricing) {
+                setLoading(false);
+                return;
+              }
+
+              // Format the product data for iOS with pricing information
+              const formattedProduct = {
+                productId: highestPricedProduct.productId || '',
+                title: highestPricedProduct.title || 'Premium Pack',
+                description:
+                  highestPricedProduct.description ||
+                  'Premium features and credits',
+                price: pricing.formattedDiscountedPrice,
+                currency: pricing.currencyCode,
+                localizedPrice: pricing.formattedDiscountedPrice,
+                listings: {
+                  'en-US': {
+                    description:
+                      highestPricedProduct.description ||
+                      'Premium features and credits',
+                  },
+                },
+                prices: {
+                  [countryCode]: {
+                    currency: pricing.currencyCode,
+                    amount: pricing.formattedDiscountedPrice,
+                    originalAmount: pricing.formattedOriginalPrice,
+                  },
+                },
+                defaultPrice: {
+                  currency: pricing.currencyCode,
+                  amount: pricing.formattedDiscountedPrice,
+                },
+                discountPercentage: pricing.discountPercentage,
+                isIOS: true,
+                currencyCode: pricing.currencyCode,
+              };
+
+              setProductData(formattedProduct);
+              setLoading(false);
+              return;
+            } catch (formatError) {
+              setLoading(false);
+              return;
+            }
+          } catch (iosError) {
+            setLoading(false);
+            return;
+          }
         }
 
-        // Simple fetch from the API endpoint with authentication
-        const response = await fetch(
-          `${config.API_BASE_URL}/v1/payments/play-store-products`,
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+        // Only reach here for Android
+        try {
+          // Get auth token
+          const token = await getAuthToken();
+          if (!token) {
+            setLoading(false);
+            return;
+          }
+
+          // Simple fetch from the API endpoint with authentication
+          const response = await fetch(
+            `${config.API_BASE_URL}/v1/payments/play-store-products`,
+            {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
             },
-          },
-        );
+          );
 
-        if (!response.ok) {
-          setLoading(false);
+          if (!response.ok) {
+            setLoading(false);
+            return;
+          }
+
+          const result = await response.json();
+
+          if (result.success && result.data && result.data.length > 0) {
+            // Use the first product from the data array
+            const selectedProduct = result.data[result.data.length - 1];
+            setProductData(selectedProduct);
+          }
+        } catch (error) {
           return;
-        }
-
-        const result = await response.json();
-
-        if (result.success && result.data && result.data.length > 0) {
-          // Use the first product from the data array
-          const selectedProduct = result.data[result.data.length - 1];
-          setProductData(selectedProduct);
+        } finally {
+          setLoading(false);
         }
       } catch (error) {
         return;
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -343,51 +500,39 @@ const PromoModal = ({visible, onClose}) => {
     }
   }, [visible, authState.accessToken]);
 
-  // Get product price for user's country
+  // Modify getProductPrice to handle iOS discounts
   const getProductPrice = () => {
     if (!productData) {
       return null;
     }
 
-    // Try to get price for user's country
-    if (productData.prices && productData.prices[userCountry]) {
-      const discountedPrice = productData.prices[userCountry];
-      const originalPrice = productData.prices[userCountry];
-
-      // Format prices using the same approach as subscription screen
-      const formattedDiscountedPrice = discountedPrice
-        ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
-        : 'Not available';
-
-      const formattedOriginalPrice = originalPrice?.originalAmount
-        ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
-        : formattedDiscountedPrice;
+    // Special handling for iOS products
+    if (Platform.OS === 'ios') {
+      const price = productData.prices?.[userCountry];
+      if (!price) {
+        return null;
+      }
 
       return {
-        originalPriceFormatted: formattedOriginalPrice,
-        discountedPriceFormatted: formattedDiscountedPrice,
-        discount: productData.discountPercentage,
+        originalPriceFormatted: price.originalAmount,
+        discountedPriceFormatted: price.amount,
+        discount: productData.discountPercentage || 0,
+        currencyCode: productData.prices[userCountry]?.currency || 'USD',
       };
     }
 
-    // Fall back to default price
-    const discountedPrice =
-      productData.prices?.[userCountry] || productData?.defaultPrice;
-    const originalPrice = discountedPrice;
+    // Android logic
+    if (productData.prices && productData.prices[userCountry]) {
+      const price = productData.prices[userCountry];
+      return {
+        originalPriceFormatted: price.originalAmount,
+        discountedPriceFormatted: price.amount,
+        discount: productData.discountPercentage || 0,
+        currencyCode: price.currency || 'USD',
+      };
+    }
 
-    const formattedDiscountedPrice = discountedPrice
-      ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
-      : 'Not available';
-
-    const formattedOriginalPrice = originalPrice?.originalAmount
-      ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
-      : formattedDiscountedPrice;
-
-    return {
-      originalPriceFormatted: formattedOriginalPrice,
-      discountedPriceFormatted: formattedDiscountedPrice,
-      discount: productData.discountPercentage,
-    };
+    return null;
   };
 
   // Extract product description and convert to features
@@ -448,14 +593,17 @@ const PromoModal = ({visible, onClose}) => {
                   <View style={styles.priceContainer}>
                     {(() => {
                       const priceData = getProductPrice();
-                      const hasDiscount = !!(
-                        priceData?.discount &&
-                        priceData?.discount > 0 &&
-                        priceData?.originalPriceFormatted &&
-                        priceData?.discountedPriceFormatted &&
-                        priceData?.originalPriceFormatted !==
-                          priceData?.discountedPriceFormatted
-                      );
+                      const hasDiscount =
+                        Platform.OS === 'ios'
+                          ? priceData?.discount > 0
+                          : !!(
+                              priceData?.discount &&
+                              priceData?.discount > 0 &&
+                              priceData?.originalPriceFormatted &&
+                              priceData?.discountedPriceFormatted &&
+                              priceData?.originalPriceFormatted !==
+                                priceData?.discountedPriceFormatted
+                            );
 
                       return (
                         <>
@@ -467,15 +615,16 @@ const PromoModal = ({visible, onClose}) => {
                                 </Text>
                               </View>
                               <Text style={styles.originalPrice}>
+                                {priceData?.currencyCode}{' '}
                                 {priceData?.originalPriceFormatted}
                               </Text>
                             </View>
                           )}
                           <View style={styles.currentPriceContainer}>
                             <Text style={styles.priceText}>
+                              {priceData?.currencyCode}{' '}
                               {priceData?.discountedPriceFormatted}
                             </Text>
-                            {/* <Text style={styles.perMonthText}> per month</Text> */}
                           </View>
                         </>
                       );
@@ -596,33 +745,37 @@ const styles = StyleSheet.create({
   discountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 8,
+    width: '100%',
   },
   discountBadge: {
     backgroundColor: '#FF6B6B',
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 4,
     borderRadius: 4,
     marginRight: 8,
   },
   discountText: {
     color: 'white',
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   originalPrice: {
     color: '#9CA3AF',
-    fontSize: 16,
+    fontSize: 18,
     textDecorationLine: 'line-through',
+    marginLeft: 4,
   },
   currentPriceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 10,
   },
   priceText: {
     color: 'white',
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
     textAlign: 'center',
   },
