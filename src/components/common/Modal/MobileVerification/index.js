@@ -16,7 +16,7 @@ import useEvent from '../../../../hooks/useEvent';
 import useToaster from '../../../../hooks/useToaster';
 import {setUser, setUserData} from '../../../../stores/slices/user';
 import {screenHeight} from '../../../../utils/common';
-// import {setMoeUser} from '../../../../utils/moe';
+import MoEngageService from '../../../../services/moengageService';
 import VerifyOtp from '../../../feature/auth/verifyOtp';
 import MobileInputWithCountry from '../../../feature/verification/mobileVerify/mobileInputWithCountry';
 import Toaster from '../../Toaster';
@@ -71,7 +71,12 @@ const MobileVerification = ({
     onSuccess: res => {
       dispatch(setUser({isGuest: false, isLoggedIn: true, ...res.data}));
 
-      // setMoeUser(res.data?.user);
+      // Register user in MoEngage
+      try {
+        MoEngageService.registerUserFromLogin(res.data.user, 'email');
+      } catch (error) {
+        console.warn('MoEngage user registration failed:', error);
+      }
 
       handleLoginEvent(res?.data?.user, {
         ...defaultEventData,

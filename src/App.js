@@ -32,6 +32,7 @@ import analyticsUtils from './utils/analytics';
 import tagManagerUtils from './utils/tagManager';
 import facebookEvents from './utils/facebookEvents';
 import {initializeFirebase} from './utils/firebase';
+import MoEngageService from './services/moengageService';
 
 // Default credit settings in case API fails
 const DEFAULT_CREDIT_SETTINGS = {
@@ -134,6 +135,14 @@ const AppContent = () => {
         dispatch(setLoading(false));
       }
 
+      // Initialize MoEngage using service
+      try {
+        await MoEngageService.initialize();
+        console.log('✅ MoEngage initialized for production');
+      } catch (moeError) {
+        console.warn('MoEngage initialization failed:', moeError.message);
+      }
+
       // Hide splash screen after all initialization is complete
       hideSplash();
 
@@ -189,6 +198,18 @@ const AppContent = () => {
       subscription.remove();
     };
   }, [initializeApp, handleAppStateChange]);
+
+  useEffect(() => {
+    // Track app opened event using MoEngage service
+    try {
+      // This will be called after initialization, so service should be ready
+      setTimeout(() => {
+        MoEngageService.trackAppOpened('HomeScreen');
+      }, 2000); // Small delay to ensure initialization is complete
+    } catch (moeError) {
+      console.warn('MoEngage event tracking failed:', moeError.message);
+    }
+  }, []);
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 

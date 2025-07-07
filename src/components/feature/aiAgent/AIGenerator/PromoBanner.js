@@ -8,547 +8,164 @@ import {
   Modal,
   ImageBackground,
   Platform,
-  NativeModules,
   ActivityIndicator,
 } from 'react-native';
 import appImages from '../../../../resource/images';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
-import config from 'react-native-config';
-import {useSelector} from 'react-redux';
-import {getAuthToken} from '../../../../utils/authUtils';
-import * as RNLocalize from 'react-native-localize';
 import * as RNIap from 'react-native-iap';
+import {getPlatformProductIds} from '../../../../api/config';
 
-// Add price multiplier constants at the top after imports
 const PRICE_MULTIPLIERS = {
-  payment_101: 1, // Base product
-  payment_201: 1.6,
+  payment_101: 1.5,
+  payment_201: 1.9,
   payment_301: 9.3,
+
+  payment_100: 1.5,
+  payment_200: 1.9,
+  payment_300: 9.3,
 };
 
-// Function to calculate original and discounted prices for iOS
-const calculateIOSPricing = product => {
-  if (!product || !product.productId) return null;
+const calculatePricing = product => {
+  if (!product || !product.productId) {
+    return null;
+  }
 
   const multiplier = PRICE_MULTIPLIERS[product.productId] || 1;
 
-  // Get numeric price from product
-  const getBasePrice = () => {
-    try {
-      const priceString = product.price || product.localizedPrice || '0';
-      const matches = priceString.match(/([0-9]+([.][0-9]*)?|[.][0-9]+)/);
-      return matches && matches[0] ? parseFloat(matches[0]) : 0;
-    } catch (error) {
-      return 0;
-    }
-  };
+  const priceString = product.price || product.localizedPrice || '0';
 
-  const basePrice = getBasePrice();
-  const originalPrice = basePrice * multiplier;
-  const discountedPrice = basePrice;
+  const match = priceString.match(/([0-9]+([.,][0-9]+)?)/);
+  const basePrice = match ? parseFloat(match[1].replace(',', '.')) : 0;
 
-  // Calculate discount percentage
+  const originalPriceNumeric = basePrice * multiplier;
+
   const discountPercentage =
-    originalPrice > 0
-      ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
+    originalPriceNumeric > 0
+      ? Math.round(
+          ((originalPriceNumeric - basePrice) / originalPriceNumeric) * 100,
+        )
       : 0;
 
-  // Get currency symbol and code from the product
-  const currencySymbol = (product.price || product.localizedPrice || '$0')
-    .replace(/[0-9.,]/g, '')
-    .trim();
-  const currencyCode = product.currency || 'USD';
+  const localizedPrice = product.localizedPrice || `${basePrice.toFixed(2)}`;
+
+  let formattedOriginalPrice = `${originalPriceNumeric.toFixed(2)}`;
+  if (match) {
+    formattedOriginalPrice = localizedPrice.replace(
+      match[1],
+      originalPriceNumeric.toFixed(2),
+    );
+  }
 
   return {
-    originalPrice,
-    discountedPrice,
+    originalPriceNumeric,
+    discountedPriceNumeric: basePrice,
+    formattedOriginalPrice,
+    discountedPriceFormatted: localizedPrice,
     discountPercentage,
-    currency: currencySymbol,
-    currencyCode: currencyCode,
-    formattedOriginalPrice: `${originalPrice.toFixed(2)}`,
-    formattedDiscountedPrice: `${discountedPrice.toFixed(2)}`,
   };
 };
 
-// Enhanced function to get user's country code from device locale settings
-const getUserCountryCode = async () => {
-  try {
-    // Method 1: Use react-native-localize to get country code reliably
-    let countryFromLib;
-    try {
-      countryFromLib = RNLocalize.getCountry();
-    } catch (localizeError) {
-      // Silent fallback
-    }
-
-    // Validate country code (should be 2 uppercase letters)
-    if (
-      countryFromLib &&
-      countryFromLib.length === 2 &&
-      /^[A-Z]{2}$/.test(countryFromLib)
-    ) {
-      return countryFromLib;
-    }
-
-    // Method 2: Get comprehensive locale information
-    let locales;
-    try {
-      locales = RNLocalize.getLocales();
-    } catch (localesError) {
-      // Silent fallback
-    }
-
-    if (locales && locales.length > 0) {
-      const primaryLocale = locales[0];
-      if (
-        primaryLocale.countryCode &&
-        /^[A-Z]{2}$/.test(primaryLocale.countryCode)
-      ) {
-        return primaryLocale.countryCode;
-      }
-    }
-
-    // Method 3: Get timezone-based country detection
-    let timeZone;
-    try {
-      timeZone = RNLocalize.getTimeZone();
-    } catch (timezoneError) {
-      // Silent fallback
-    }
-
-    // Method 4: Get currency information
-    let currencies;
-    try {
-      currencies = RNLocalize.getCurrencies();
-    } catch (currencyError) {
-      // Silent fallback
-    }
-
-    // Method 5: Platform-specific fallbacks with enhanced safety
-    let deviceLocale;
-    let deviceRegion;
-
-    if (Platform.OS === 'ios') {
-      try {
-        // Safe iOS NativeModules access
-        const settingsManager = NativeModules.SettingsManager;
-        const settings = settingsManager?.settings;
-
-        if (settings) {
-          // Check for region setting first (iOS specific)
-          if (settings.AppleICUForceDefaultCountryCode) {
-            deviceRegion = settings.AppleICUForceDefaultCountryCode;
-          }
-
-          // Check for country code in other iOS settings
-          if (settings.AppleICUCountryCode) {
-            deviceRegion = deviceRegion || settings.AppleICUCountryCode;
-          }
-
-          // Check language settings
-          const appleLanguages = settings.AppleLanguages;
-          if (Array.isArray(appleLanguages) && appleLanguages.length > 0) {
-            deviceLocale = appleLanguages[0]; // e.g., "en-IN"
-          } else if (settings.AppleLocale) {
-            deviceLocale = settings.AppleLocale; // older iOS versions
-          }
-        }
-
-        // Additional iOS fallback using NSLocale if available
-        try {
-          const nsLocale = NativeModules.NSLocale;
-          if (nsLocale && nsLocale.getCurrentCountryCode) {
-            const iosCountryCode = await nsLocale.getCurrentCountryCode();
-            if (iosCountryCode) {
-              deviceRegion = deviceRegion || iosCountryCode;
-            }
-          }
-        } catch (nsLocaleError) {
-          // Silent fallback
-        }
-      } catch (iosError) {
-        // Silent fallback
-      }
-    } else if (Platform.OS === 'android') {
-      try {
-        // Safe Android NativeModules access
-        const i18nManager = NativeModules.I18nManager;
-        if (i18nManager) {
-          deviceLocale = i18nManager.localeIdentifier || 'en_US';
-        }
-
-        // Try to get Android system locale
-        try {
-          const systemLocale = NativeModules.AndroidLocale;
-          if (systemLocale && systemLocale.getCountryCode) {
-            const androidCountryCode = await systemLocale.getCountryCode();
-            if (androidCountryCode) {
-              deviceRegion = deviceRegion || androidCountryCode;
-            }
-          }
-        } catch (androidLocaleError) {
-          // Silent fallback
-        }
-      } catch (androidError) {
-        // Silent fallback
-      }
-    }
-
-    // Process region first if available (more specific than locale)
-    if (deviceRegion && /^[A-Z]{2}$/.test(deviceRegion.toUpperCase())) {
-      const regionCode = deviceRegion.toUpperCase();
-      return regionCode;
-    }
-
-    // Process locale as fallback
-    let fallbackCountryCode = 'US'; // Default fallback
-
-    if (deviceLocale) {
-      // Extract from locale format like "en_US", "en-US", or "en_IN"
-      const parts = deviceLocale.split(/[_-]/);
-
-      if (parts.length > 1) {
-        const lastPart = parts[parts.length - 1].toUpperCase();
-        // Verify it's a valid country code (2 uppercase letters)
-        if (/^[A-Z]{2}$/.test(lastPart)) {
-          fallbackCountryCode = lastPart;
-        }
-      }
-    }
-
-    // Method 6: Enhanced timezone-to-country mapping
-    if (timeZone && fallbackCountryCode === 'US') {
-      const timezoneCountryMap = {
-        // Asia
-        'Asia/Kolkata': 'IN',
-        'Asia/Mumbai': 'IN',
-        'Asia/Delhi': 'IN',
-        'Asia/Calcutta': 'IN',
-        'Asia/Tokyo': 'JP',
-        'Asia/Shanghai': 'CN',
-        'Asia/Seoul': 'KR',
-        'Asia/Singapore': 'SG',
-        'Asia/Hong_Kong': 'HK',
-        'Asia/Bangkok': 'TH',
-        'Asia/Manila': 'PH',
-        // Europe
-        'Europe/London': 'GB',
-        'Europe/Paris': 'FR',
-        'Europe/Berlin': 'DE',
-        'Europe/Rome': 'IT',
-        'Europe/Madrid': 'ES',
-        'Europe/Amsterdam': 'NL',
-        'Europe/Stockholm': 'SE',
-        'Europe/Oslo': 'NO',
-        'Europe/Copenhagen': 'DK',
-        'Europe/Helsinki': 'FI',
-        'Europe/Dublin': 'IE',
-        'Europe/Zurich': 'CH',
-        'Europe/Vienna': 'AT',
-        'Europe/Brussels': 'BE',
-        'Europe/Prague': 'CZ',
-        'Europe/Warsaw': 'PL',
-        'Europe/Moscow': 'RU',
-        // Americas
-        'America/New_York': 'US',
-        'America/Los_Angeles': 'US',
-        'America/Chicago': 'US',
-        'America/Denver': 'US',
-        'America/Phoenix': 'US',
-        'America/Toronto': 'CA',
-        'America/Vancouver': 'CA',
-        'America/Mexico_City': 'MX',
-        'America/Sao_Paulo': 'BR',
-        'America/Buenos_Aires': 'AR',
-        'America/Lima': 'PE',
-        'America/Bogota': 'CO',
-        'America/Santiago': 'CL',
-        // Oceania
-        'Australia/Sydney': 'AU',
-        'Australia/Melbourne': 'AU',
-        'Australia/Perth': 'AU',
-        'Pacific/Auckland': 'NZ',
-        // Africa
-        'Africa/Cairo': 'EG',
-        'Africa/Lagos': 'NG',
-        'Africa/Johannesburg': 'ZA',
-        'Africa/Casablanca': 'MA',
-        // Middle East
-        'Asia/Dubai': 'AE',
-        'Asia/Riyadh': 'SA',
-        'Asia/Tehran': 'IR',
-        'Asia/Jerusalem': 'IL',
-      };
-
-      if (timezoneCountryMap[timeZone]) {
-        return timezoneCountryMap[timeZone];
-      }
-    }
-
-    // Method 7: Currency-based country detection as final fallback
-    if (currencies && currencies.length > 0 && fallbackCountryCode === 'US') {
-      const currencyCountryMap = {
-        INR: 'IN',
-        USD: 'US',
-        EUR: 'DE', // Default to Germany for EUR
-        GBP: 'GB',
-        JPY: 'JP',
-        CAD: 'CA',
-        AUD: 'AU',
-        SGD: 'SG',
-        HKD: 'HK',
-        CNY: 'CN',
-        KRW: 'KR',
-        THB: 'TH',
-        MXN: 'MX',
-        BRL: 'BR',
-        RUB: 'RU',
-        CHF: 'CH',
-        SEK: 'SE',
-        NOK: 'NO',
-        DKK: 'DK',
-        PLN: 'PL',
-        CZK: 'CZ',
-        HUF: 'HU',
-        RON: 'RO',
-        BGN: 'BG',
-        HRK: 'HR',
-        TRY: 'TR',
-        ZAR: 'ZA',
-        EGP: 'EG',
-        AED: 'AE',
-        SAR: 'SA',
-        ILS: 'IL',
-      };
-
-      const primaryCurrency = currencies[0];
-      if (primaryCurrency && currencyCountryMap[primaryCurrency]) {
-        return currencyCountryMap[primaryCurrency];
-      }
-    }
-
-    return fallbackCountryCode;
-  } catch (error) {
-    return 'US'; // Default to US if we can't determine
-  }
-};
-
-// Component that displays product data from API
 const PromoModal = ({visible, onClose}) => {
   const navigation = useNavigation();
   const [loading, setLoading] = useState(true);
   const [productData, setProductData] = useState(null);
-  const [userCountry, setUserCountry] = useState('US');
-  const authState = useSelector(state => state.auth);
 
   useEffect(() => {
     const fetchProductDetails = async () => {
       try {
         setLoading(true);
 
-        // Get user's country code with enhanced detection
-        const countryCode = await getUserCountryCode();
-        setUserCountry(countryCode);
-
-        // iOS-specific product fetching using RNIap
-        if (Platform.OS === 'ios') {
-          try {
-            // Initialize RNIap connection if not already initialized
-            try {
-              await RNIap.initConnection();
-            } catch (initErr) {
-              // Silent catch - RNIap might already be initialized
-            }
-
-            // Define product IDs to fetch from App Store Connect
-            const productIds = ['payment_101', 'payment_201', 'payment_301'];
-
-            // Fetch products from App Store
-            const iosProducts = await RNIap.getProducts({
-              skus: productIds,
-              forceRefresh: true,
-            });
-
-            // Validate and filter products
-            const validProducts = iosProducts.filter(
-              product =>
-                product &&
-                product.productId &&
-                (product.price || product.localizedPrice),
-            );
-
-            if (validProducts.length === 0) {
-              setLoading(false);
-              return;
-            }
-
-            // Sort products by price (highest to lowest)
-            const sortedProducts = [...validProducts].sort((a, b) => {
-              const priceA = calculateIOSPricing(a)?.discountedPrice || 0;
-              const priceB = calculateIOSPricing(b)?.discountedPrice || 0;
-              return priceB - priceA;
-            });
-
-            const highestPricedProduct = sortedProducts[0];
-
-            if (!highestPricedProduct) {
-              setLoading(false);
-              return;
-            }
-
-            try {
-              const pricing = calculateIOSPricing(highestPricedProduct);
-
-              if (!pricing) {
-                setLoading(false);
-                return;
-              }
-
-              // Format the product data for iOS with pricing information
-              const formattedProduct = {
-                productId: highestPricedProduct.productId || '',
-                title: highestPricedProduct.title || 'Premium Pack',
-                description:
-                  highestPricedProduct.description ||
-                  'Premium features and credits',
-                price: pricing.formattedDiscountedPrice,
-                currency: pricing.currencyCode,
-                localizedPrice: pricing.formattedDiscountedPrice,
-                listings: {
-                  'en-US': {
-                    description:
-                      highestPricedProduct.description ||
-                      'Premium features and credits',
-                  },
-                },
-                prices: {
-                  [countryCode]: {
-                    currency: pricing.currencyCode,
-                    amount: pricing.formattedDiscountedPrice,
-                    originalAmount: pricing.formattedOriginalPrice,
-                  },
-                },
-                defaultPrice: {
-                  currency: pricing.currencyCode,
-                  amount: pricing.formattedDiscountedPrice,
-                },
-                discountPercentage: pricing.discountPercentage,
-                isIOS: true,
-                currencyCode: pricing.currencyCode,
-              };
-
-              setProductData(formattedProduct);
-              setLoading(false);
-              return;
-            } catch (formatError) {
-              setLoading(false);
-              return;
-            }
-          } catch (iosError) {
-            setLoading(false);
-            return;
-          }
-        }
-
-        // Only reach here for Android
         try {
-          // Get auth token
-          const token = await getAuthToken();
-          if (!token) {
-            setLoading(false);
-            return;
-          }
-
-          // Simple fetch from the API endpoint with authentication
-          const response = await fetch(
-            `${config.API_BASE_URL}/v1/payments/play-store-products`,
-            {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
-            },
-          );
-
-          if (!response.ok) {
-            setLoading(false);
-            return;
-          }
-
-          const result = await response.json();
-
-          if (result.success && result.data && result.data.length > 0) {
-            // Use the first product from the data array
-            const selectedProduct = result.data[result.data.length - 1];
-            setProductData(selectedProduct);
-          }
-        } catch (error) {
+          await RNIap.initConnection();
+        } catch (_) {
           return;
-        } finally {
-          setLoading(false);
         }
-      } catch (error) {
-        return;
+
+        // Fetch product IDs dynamically from backend
+        const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+        const productIds = await getPlatformProductIds(platform);
+
+        console.log(
+          `PromoBanner: Fetched ${productIds.length} product IDs for ${platform}:`,
+          productIds,
+        );
+
+        if (productIds.length === 0) {
+          console.warn('PromoBanner: No product IDs received from backend');
+          setLoading(false);
+          return;
+        }
+
+        const storeProducts = await RNIap.getProducts({
+          skus: productIds,
+          forceRefresh: true,
+        });
+
+        const validProducts = (storeProducts || []).filter(
+          p => p && p.productId && (p.price || p.localizedPrice),
+        );
+
+        if (validProducts.length === 0) {
+          console.warn('PromoBanner: No valid products found from store');
+          setLoading(false);
+          return;
+        }
+
+        console.log(
+          `PromoBanner: Found ${validProducts.length} valid products from store`,
+        );
+
+        const sortedByPrice = [...validProducts].sort((a, b) => {
+          const aPrice = calculatePricing(a)?.discountedPriceNumeric || 0;
+          const bPrice = calculatePricing(b)?.discountedPriceNumeric || 0;
+          return bPrice - aPrice;
+        });
+
+        setProductData(sortedByPrice[0]);
+        console.log(
+          'PromoBanner: Selected highest priced product:',
+          sortedByPrice[0]?.productId,
+        );
+      } catch (err) {
+        console.error('PromoBanner: Error fetching IAP products', err);
+      } finally {
+        setLoading(false);
       }
     };
 
     if (visible) {
       fetchProductDetails();
     }
-  }, [visible, authState.accessToken]);
+  }, [visible]);
 
-  // Modify getProductPrice to handle iOS discounts
   const getProductPrice = () => {
     if (!productData) {
       return null;
     }
 
-    // Special handling for iOS products
-    if (Platform.OS === 'ios') {
-      const price = productData.prices?.[userCountry];
-      if (!price) {
-        return null;
-      }
-
-      return {
-        originalPriceFormatted: price.originalAmount,
-        discountedPriceFormatted: price.amount,
-        discount: productData.discountPercentage || 0,
-        currencyCode: productData.prices[userCountry]?.currency || 'USD',
-      };
+    const pricing = calculatePricing(productData);
+    if (!pricing) {
+      return null;
     }
 
-    // Android logic
-    if (productData.prices && productData.prices[userCountry]) {
-      const price = productData.prices[userCountry];
-      return {
-        originalPriceFormatted: price.originalAmount,
-        discountedPriceFormatted: price.amount,
-        discount: productData.discountPercentage || 0,
-        currencyCode: price.currency || 'USD',
-      };
-    }
-
-    return null;
+    return {
+      originalPriceFormatted: pricing.formattedOriginalPrice,
+      discountedPriceFormatted: pricing.discountedPriceFormatted,
+      discount: pricing.discountPercentage,
+    };
   };
 
-  // Extract product description and convert to features
   const getProductFeatures = () => {
-    if (
-      !productData ||
-      !productData.listings ||
-      !productData.listings['en-US']
-    ) {
+    if (!productData) {
       return [];
     }
 
-    const description = productData.listings['en-US'].description;
-    if (!description) {
-      return [];
-    }
+    const description =
+      productData.description ||
+      productData.listings?.['en-US']?.description ||
+      '';
 
     return description.split('\n').filter(line => line.trim().length > 0);
   };
@@ -593,17 +210,14 @@ const PromoModal = ({visible, onClose}) => {
                   <View style={styles.priceContainer}>
                     {(() => {
                       const priceData = getProductPrice();
-                      const hasDiscount =
-                        Platform.OS === 'ios'
-                          ? priceData?.discount > 0
-                          : !!(
-                              priceData?.discount &&
-                              priceData?.discount > 0 &&
-                              priceData?.originalPriceFormatted &&
-                              priceData?.discountedPriceFormatted &&
-                              priceData?.originalPriceFormatted !==
-                                priceData?.discountedPriceFormatted
-                            );
+                      const hasDiscount = !!(
+                        priceData?.discount &&
+                        priceData?.discount > 0 &&
+                        priceData?.originalPriceFormatted &&
+                        priceData?.discountedPriceFormatted &&
+                        priceData?.originalPriceFormatted !==
+                          priceData?.discountedPriceFormatted
+                      );
 
                       return (
                         <>
@@ -615,14 +229,12 @@ const PromoModal = ({visible, onClose}) => {
                                 </Text>
                               </View>
                               <Text style={styles.originalPrice}>
-                                {priceData?.currencyCode}{' '}
                                 {priceData?.originalPriceFormatted}
                               </Text>
                             </View>
                           )}
                           <View style={styles.currentPriceContainer}>
                             <Text style={styles.priceText}>
-                              {priceData?.currencyCode}{' '}
                               {priceData?.discountedPriceFormatted}
                             </Text>
                           </View>
@@ -709,7 +321,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   gradientContent: {
-    width: '100%',
+    width: '90%',
     marginHorizontal: 10,
     alignItems: 'center',
     justifyContent: 'flex-end',

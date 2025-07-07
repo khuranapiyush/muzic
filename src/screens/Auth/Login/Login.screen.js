@@ -33,6 +33,7 @@ import {setTokenChecked} from '../../../stores/slices/app';
 import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
 import {store} from '../../../stores';
+import MoEngageService from '../../../services/moengageService';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -297,6 +298,13 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
+        // Register user in MoEngage
+        try {
+          MoEngageService.registerUserFromLogin(res.data.user, 'google');
+        } catch (error) {
+          console.warn('MoEngage user registration failed:', error);
+        }
+
         // Log the login event for analytics
         handleLoginEvent({
           ...defaultEventData,
@@ -376,6 +384,13 @@ const LoginScreen = () => {
           // If no user data, just set isLoggedIn
           dispatch(setUser({isLoggedIn: true}));
           console.log('No user data, but set isLoggedIn=true');
+        }
+
+        // Register user in MoEngage
+        try {
+          MoEngageService.registerUserFromLogin(res.data.user, 'apple');
+        } catch (error) {
+          console.warn('MoEngage user registration failed:', error);
         }
 
         // Log the login event for analytics

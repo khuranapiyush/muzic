@@ -37,6 +37,7 @@ import Toaster from '../../Toaster';
 import CView from '../../core/View';
 import getStyles from './style';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
+import MoEngageService from '../../../../services/moengageService';
 
 const getFormSchema = (authMode, formData = {}) => {
   switch (authMode) {
@@ -219,7 +220,12 @@ const AuthModal = ({
     onSuccess: res => {
       dispatch(setUser({isGuest: false, isLoggedIn: true, ...res.data}));
 
-      // setMoeUser(res.data?.user);
+      // Register user in MoEngage
+      try {
+        MoEngageService.registerUserFromLogin(res.data.user, 'google');
+      } catch (error) {
+        console.warn('MoEngage user registration failed:', error);
+      }
 
       handleLoginEvent(res?.data?.user, {
         ...defaultEventData,
@@ -253,7 +259,12 @@ const AuthModal = ({
     onSuccess: res => {
       dispatch(setUser({isGuest: false, isLoggedIn: true, ...res.data}));
 
-      // setMoeUser(res.data?.user);
+      // Register user in MoEngage
+      try {
+        MoEngageService.registerUserFromLogin(res.data.user, 'apple');
+      } catch (error) {
+        console.warn('MoEngage user registration failed:', error);
+      }
 
       handleLoginEvent(res?.data?.user, {
         ...defaultEventData,

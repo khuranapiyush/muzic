@@ -152,6 +152,9 @@ dependencies {
 
     implementation 'com.android.billingclient:billing:6.1.0' // Use the latest version
 
+    // MoEngage dependencies are now included with react-native-moengage package
+    // No manual dependencies needed from version 9.0.0+
+
     if (project.hasProperty('hermesEnabled') && hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {

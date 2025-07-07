@@ -20,6 +20,7 @@ import {selectCreditsPerSong} from '../../stores/selector';
 import * as RNLocalize from 'react-native-localize';
 import facebookEvents from '../../utils/facebookEvents';
 import analyticsUtils from '../../utils/analytics';
+import {getPlatformProductIds} from '../../api/config';
 
 const API_URL = config.API_BASE_URL;
 
@@ -31,9 +32,13 @@ let isInitializing = false;
 
 // Add price multiplier constants at the top after imports
 const PRICE_MULTIPLIERS = {
-  payment_101: 1, // Base product
-  payment_201: 1.6,
+  payment_101: 1.5,
+  payment_201: 1.9,
   payment_301: 9.3,
+
+  payment_100: 1.5,
+  payment_200: 1.9,
+  payment_300: 9.3,
 };
 
 // Add function to calculate iOS discount percentage
@@ -54,6 +59,7 @@ const calculateIOSDiscount = productId => {
 
 // Modify the product formatting for iOS
 const formatIOSProduct = (product, countryCode) => {
+  console.log(product, 'productANDROID');
   if (!product || !product.productId) {
     console.log('Invalid product data:', product);
     return product;
@@ -1174,80 +1180,108 @@ const getUserCountryCode = async () => {
   }
 };
 
-// New function to fetch products directly from Google Play API
-const fetchPlayStoreProducts = async (accessToken, regionCode) => {
+// Generic pricing helper (mirrors PromoBanner)
+const calculatePricing = product => {
+  if (!product || !product.productId) {
+    return null;
+  }
+
+  const multiplier = PRICE_MULTIPLIERS[product.productId] || 1;
+
+  const priceString = product.price || product.localizedPrice || '0';
+  const match = priceString.match(/([0-9]+([.,][0-9]+)?)/);
+  const basePrice = match ? parseFloat(match[1].replace(',', '.')) : 0;
+
+  const originalPriceNumeric = basePrice * multiplier;
+
+  const discountPercentage =
+    originalPriceNumeric > 0
+      ? Math.round(
+          ((originalPriceNumeric - basePrice) / originalPriceNumeric) * 100,
+        )
+      : 0;
+
+  const localizedPrice = product.localizedPrice || priceString;
+
+  // Build original price string following locale formatting
+  let formattedOriginalPrice = `${originalPriceNumeric.toFixed(2)}`;
+  if (match) {
+    formattedOriginalPrice = localizedPrice.replace(
+      match[1],
+      originalPriceNumeric.toFixed(2),
+    );
+  }
+
+  return {
+    originalPriceNumeric,
+    discountedPriceNumeric: basePrice,
+    formattedOriginalPrice,
+    discountedPriceFormatted: localizedPrice,
+    discountPercentage,
+  };
+};
+
+// Rewritten: fetch products directly from Google Play Store via RNIap
+// and build discount/original-price information locally (no backend call).
+const fetchPlayStoreProducts = async (
+  _unusedToken = '',
+  _regionCode = 'US',
+) => {
   try {
-    // Instead of directly calling Google Play API, use our backend endpoint
-    const endpoint = `${API_URL}/v1/payments/play-store-products`;
+    // Ensure connection exists
+    try {
+      await RNIap.initConnection();
+    } catch (_) {}
 
-    const response = await fetch(endpoint, {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Fetch product IDs dynamically from backend
+    const productIds = await getPlatformProductIds('android');
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`API error: ${response.status} - ${errorText}`);
-      throw new Error(`API error: ${response.status}`);
-    }
+    console.log(
+      `Subscription: Fetched ${productIds.length} Android product IDs:`,
+      productIds,
+    );
 
-    const result = await response.json();
-    console.log('API Response:', result);
-
-    // Check if response has the expected format
-    if (result.success && result.data && result.data.length > 0) {
-      // Process the data
-      const localizedProducts = result.data.map(product => {
-        // Extract data using the API response format
-        const title =
-          product.listings?.['en-US']?.title || product.productId || '';
-        const description = product.listings?.['en-US']?.description || '';
-
-        // Get price for user's country or default price
-        const discountedPrice =
-          product.prices?.[regionCode] || product?.defaultPrice;
-
-        const originalPrice =
-          product.prices?.[regionCode] || product?.defaultPrice;
-
-        // Extract features from description
-        const features = extractFeaturesFromDescription(description);
-
-        // Format the price for display using the same approach as PromoBanner
-        const formattedDiscountedPrice = discountedPrice
-          ? `${discountedPrice?.currency} ${discountedPrice?.amount}`
-          : 'Not available';
-
-        const formattedOriginalPrice = originalPrice?.originalAmount
-          ? `${originalPrice?.currency} ${originalPrice?.originalAmount}`
-          : formattedDiscountedPrice;
-
-        return {
-          productId: product.productId,
-          sku: product.productId,
-          title: title,
-          description: description,
-          features: features,
-          price: formattedDiscountedPrice,
-          localizedPrice: formattedDiscountedPrice,
-          countryPrices: product.prices || {},
-          credits: product?.credits,
-          discount: product?.discountPercentage,
-          localizedOriginalPrice: formattedOriginalPrice,
-        };
-      });
-
-      return localizedProducts;
-    } else {
-      console.log('No products found in API response');
+    if (productIds.length === 0) {
+      console.warn(
+        'Subscription: No Android product IDs received from backend',
+      );
       return [];
     }
+
+    const storeProducts = await RNIap.getProducts({skus: productIds});
+
+    const validProducts = (storeProducts || []).filter(
+      p => p && p.productId && (p.price || p.localizedPrice),
+    );
+
+    console.log(
+      `Subscription: Found ${validProducts.length} valid Android products from store`,
+    );
+
+    // Map products to UI-friendly shape with discount info
+    const mapped = validProducts.map(prod => {
+      const pricing = calculatePricing(prod) || {};
+
+      return {
+        productId: prod.productId,
+        sku: prod.productId,
+        title: prod.title || 'Credit Pack',
+        description: prod.description || '',
+        features: extractFeaturesFromDescription(prod.description) || [],
+        price: prod.localizedPrice,
+        localizedPrice: prod.localizedPrice,
+        localizedOriginalPrice: pricing.formattedOriginalPrice,
+        discount: pricing.discountPercentage,
+        currency: prod.currency,
+        countryPrices: {},
+        credits: getCreditsForProduct(prod.productId),
+      };
+    });
+
+    return mapped;
   } catch (error) {
-    console.error('Error fetching Play Store products:', error);
-    throw error;
+    console.error('Error fetching Play Store products via RNIap:', error);
+    return [];
   }
 };
 
@@ -1317,6 +1351,8 @@ const PlanCard = ({
   currencySymbol,
 }) => {
   const hasDiscount = !!(discount && discountedPrice && originalPrice);
+
+  console.log(discountedPrice, 'discountedPrice');
 
   // Truncate long feature text on iOS to ensure it fits
   const processFeatures = feature => {
@@ -1521,9 +1557,21 @@ const SubscriptionScreen = () => {
               'Fetching iOS products directly from App Store Connect only',
             );
 
-            // Define product IDs to fetch from App Store Connect
-            const productIds = ['payment_101', 'payment_201', 'payment_301'];
+            // Fetch product IDs dynamically from backend
+            const productIds = await getPlatformProductIds('ios');
             console.log('Requesting products with IDs:', productIds);
+
+            if (productIds.length === 0) {
+              console.warn(
+                'Subscription: No iOS product IDs received from backend',
+              );
+              Alert.alert(
+                'Configuration Error',
+                'No products configured for iOS. Please contact support.',
+              );
+              setLoading(false);
+              return;
+            }
 
             // Single call to fetch products - no separate calls for subscriptions and one-time purchases
             const products = await RNIap.getProducts({
@@ -1559,9 +1607,7 @@ const SubscriptionScreen = () => {
 
               // Process the products with iOS discounts
               const formattedProducts = products.map(product => {
-                if (Platform.OS === 'ios') {
-                  return formatIOSProduct(product, userCountry);
-                }
+                formatIOSProduct(product, userCountry);
                 return {
                   ...product,
                   isSubscription: false,
@@ -1692,8 +1738,25 @@ const SubscriptionScreen = () => {
         // Fetch all available products without hardcoding IDs
         try {
           console.log('Fetching available subscriptions2...');
+
+          // Fetch product IDs dynamically from backend
+          const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+          const dynamicProductIds = await getPlatformProductIds(platform);
+
+          console.log(
+            `Subscription: Fetched ${dynamicProductIds.length} ${platform} product IDs for RNIap fallback:`,
+            dynamicProductIds,
+          );
+
+          if (dynamicProductIds.length === 0) {
+            console.warn(
+              `Subscription: No ${platform} product IDs received from backend for RNIap fallback`,
+            );
+            throw new Error('No product IDs available');
+          }
+
           const oneTimeProducts = await RNIap.getProducts({
-            skus: ['payment_101', 'payment_201', 'payment_301'],
+            skus: dynamicProductIds,
           });
           console.log('Available subscriptions:', oneTimeProducts);
 
@@ -1734,40 +1797,53 @@ const SubscriptionScreen = () => {
             setLoading(false);
             return;
           } else {
-            // If all else fails, try with some specific product IDs as fallback
-            const specificAndroidProductIds = [
-              'payment_100',
-              'payment_200',
-              'payment_300',
-            ];
-            const specificIOSProductIds = [
-              'payment_101',
-              'payment_201',
-              'payment_301',
-            ];
-            console.log(
-              'Trying specific product IDs:',
-              Platform.OS === 'ios'
-                ? specificIOSProductIds
-                : specificAndroidProductIds,
-            );
+            // If all else fails, try with dynamic product IDs as fallback
+            console.log('Trying dynamic product IDs as fallback...');
 
-            const specificProducts = await RNIap.getProducts({
-              skus:
-                Platform.OS === 'ios'
-                  ? specificIOSProductIds
-                  : specificAndroidProductIds,
-            });
-            console.log('Specific products:', specificProducts);
+            try {
+              const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+              const fallbackProductIds = await getPlatformProductIds(platform);
 
-            // Store products globally for amount calculations
-            global.availableProducts = specificProducts;
+              console.log(
+                `Subscription: Using fallback ${platform} product IDs:`,
+                fallbackProductIds,
+              );
 
-            if (specificProducts.length > 0) {
-              setProducts(specificProducts);
-              setSelectedProductId(specificProducts[0].productId);
-            } else {
-              console.log('No products available from the store');
+              if (fallbackProductIds.length === 0) {
+                console.warn(
+                  `Subscription: No fallback ${platform} product IDs available`,
+                );
+                Alert.alert(
+                  'Configuration Error',
+                  'No products available from the store. Please check your configuration.',
+                );
+                setLoading(false);
+                return;
+              }
+
+              const specificProducts = await RNIap.getProducts({
+                skus: fallbackProductIds,
+              });
+              console.log('Fallback products:', specificProducts);
+
+              // Store products globally for amount calculations
+              global.availableProducts = specificProducts;
+
+              if (specificProducts.length > 0) {
+                setProducts(specificProducts);
+                setSelectedProductId(specificProducts[0].productId);
+              } else {
+                console.log('No products available from the store');
+                Alert.alert(
+                  'Error',
+                  'No products available from the store. Please check your configuration.',
+                );
+              }
+            } catch (fallbackError) {
+              console.error(
+                'Subscription: Error with fallback product fetch:',
+                fallbackError,
+              );
               Alert.alert(
                 'Error',
                 'No products available from the store. Please check your configuration.',
@@ -1777,36 +1853,48 @@ const SubscriptionScreen = () => {
         } catch (err) {
           console.error('Error fetching products from store:', err);
 
-          // Last resort fallback to hardcoded product IDs
-          const fallbackIOSProductIds = [
-            'payment_101',
-            'payment_201',
-            'payment_301',
-          ];
-          const fallbackAndroidProductIds = [
-            'payment_100',
-            'payment_200',
-            'payment_300',
-          ];
-          console.log(
-            'Using fallback product IDs:',
-            Platform.OS === 'ios'
-              ? fallbackIOSProductIds
-              : fallbackAndroidProductIds,
-          );
-
+          // Last resort fallback to dynamic product IDs from backend
           try {
+            const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+            const fallbackProductIds = await getPlatformProductIds(platform);
+
+            console.log(
+              `Subscription: Using last resort fallback ${platform} product IDs:`,
+              fallbackProductIds,
+            );
+
+            if (fallbackProductIds.length === 0) {
+              console.warn(
+                `Subscription: No last resort fallback ${platform} product IDs available`,
+              );
+              Alert.alert(
+                'Error',
+                `Failed to initialize in-app purchases: ${err.message}`,
+              );
+              setLoading(false);
+              return;
+            }
+
             const fallbackProducts = await RNIap.getProducts({
-              skus:
-                Platform.OS === 'ios'
-                  ? fallbackIOSProductIds
-                  : fallbackAndroidProductIds,
+              skus: fallbackProductIds,
             });
+
             if (fallbackProducts.length > 0) {
+              console.log(
+                `Subscription: Found ${fallbackProducts.length} fallback products`,
+              );
               setProducts(fallbackProducts);
               // Store products globally for amount calculations
               global.availableProducts = fallbackProducts;
               setSelectedProductId(fallbackProducts[0].productId);
+            } else {
+              console.warn(
+                'Subscription: No fallback products found from store',
+              );
+              Alert.alert(
+                'Error',
+                `Failed to initialize in-app purchases: ${err.message}`,
+              );
             }
           } catch (fallbackErr) {
             console.error('Error with fallback products:', fallbackErr);
@@ -1851,7 +1939,7 @@ const SubscriptionScreen = () => {
         return [];
       }
 
-      // Fetch products directly from Google Play
+      // Fetch products directly from Google Play (this function already uses dynamic product IDs)
       const playStoreProducts = await fetchPlayStoreProducts(
         accessToken,
         countryCode,
@@ -1859,6 +1947,7 @@ const SubscriptionScreen = () => {
 
       return playStoreProducts;
     } catch (error) {
+      console.error('Error in fetchDirectPlayStoreProducts:', error);
       return [];
     }
   }, [authState.accessToken]);
@@ -2647,8 +2736,20 @@ const SubscriptionScreen = () => {
         // Otherwise, try to fetch products again without full reinitialization
         try {
           if (Platform.OS === 'ios') {
-            const productIds = ['payment_101', 'payment_201', 'payment_301'];
-            console.log('Refreshing iOS products without reinitialization');
+            // Fetch product IDs dynamically from backend
+            const productIds = await getPlatformProductIds('ios');
+            console.log(
+              'Refreshing iOS products without reinitialization, product IDs:',
+              productIds,
+            );
+
+            if (productIds.length === 0) {
+              console.warn(
+                'Subscription: No iOS product IDs received from backend for refresh',
+              );
+              setLoading(false);
+              return;
+            }
 
             // Check connection status first
             if (connectionState !== 'connected') {
@@ -2715,8 +2816,25 @@ const SubscriptionScreen = () => {
 
         if (Platform.OS === 'ios') {
           try {
-            // Define the exact product IDs we want to fetch
-            const productIds = ['payment_101', 'payment_201', 'payment_301'];
+            // Fetch product IDs dynamically from backend
+            const productIds = await getPlatformProductIds('ios');
+
+            console.log(
+              `Subscription: Fetched ${productIds.length} iOS product IDs:`,
+              productIds,
+            );
+
+            if (productIds.length === 0) {
+              console.warn(
+                'Subscription: No iOS product IDs received from backend',
+              );
+              Alert.alert(
+                'Configuration Error',
+                'No products configured for iOS. Please contact support.',
+              );
+              setLoading(false);
+              return;
+            }
 
             // Enhanced error handling
             try {
@@ -2728,6 +2846,10 @@ const SubscriptionScreen = () => {
                 });
 
                 if (productsAttempt1.length > 0) {
+                  console.log(
+                    `Subscription: Found ${productsAttempt1.length} iOS products on first attempt`,
+                  );
+
                   // Format products for display
                   const formattedProducts = productsAttempt1.map(product => {
                     if (Platform.OS === 'ios') {
@@ -2749,6 +2871,10 @@ const SubscriptionScreen = () => {
                   return;
                 }
               } catch (attempt1Error) {
+                console.warn(
+                  'Subscription: First attempt to fetch iOS products failed:',
+                  attempt1Error,
+                );
                 // Continue to second attempt
               }
 
@@ -2759,6 +2885,10 @@ const SubscriptionScreen = () => {
                 });
 
                 if (productsAttempt2.length > 0) {
+                  console.log(
+                    `Subscription: Found ${productsAttempt2.length} iOS products on second attempt`,
+                  );
+
                   // Format products for display
                   const formattedProducts = productsAttempt2.map(product => {
                     return {
@@ -2776,6 +2906,10 @@ const SubscriptionScreen = () => {
                   return;
                 }
               } catch (attempt2Error) {
+                console.warn(
+                  'Subscription: Second attempt to fetch iOS products failed:',
+                  attempt2Error,
+                );
                 // Continue to alert
               }
 
@@ -2786,6 +2920,10 @@ const SubscriptionScreen = () => {
               setLoading(false);
               return;
             } catch (fetchError) {
+              console.error(
+                'Subscription: Error fetching iOS products:',
+                fetchError,
+              );
               Alert.alert(
                 'Error',
                 'Failed to fetch products. Please try again later.',
@@ -2794,6 +2932,7 @@ const SubscriptionScreen = () => {
               return;
             }
           } catch (iosError) {
+            console.error('Subscription: iOS initialization error:', iosError);
             Alert.alert(
               'Error',
               'Unable to connect to App Store. Please check your internet connection or product configuration in App Store Connect.',
@@ -2847,10 +2986,27 @@ const SubscriptionScreen = () => {
 
         try {
           console.log('Fetching available one-time products...');
-          const oneTimeProductIds =
-            Platform.OS === 'ios'
-              ? ['payment_101', 'payment_201', 'payment_301']
-              : ['payment_100', 'payment_200', 'payment_300'];
+
+          // Fetch product IDs dynamically from backend
+          const platform = Platform.OS === 'ios' ? 'ios' : 'android';
+          const oneTimeProductIds = await getPlatformProductIds(platform);
+
+          console.log(
+            `Subscription: Fetched ${oneTimeProductIds.length} ${platform} product IDs for one-time products:`,
+            oneTimeProductIds,
+          );
+
+          if (oneTimeProductIds.length === 0) {
+            console.warn(
+              `Subscription: No ${platform} product IDs received from backend for one-time products`,
+            );
+            Alert.alert(
+              'Configuration Error',
+              `No products configured for ${platform}. Please contact support.`,
+            );
+            setLoading(false);
+            return;
+          }
 
           const oneTimeProducts = await RNIap.getProducts({
             skus: oneTimeProductIds,
@@ -3212,24 +3368,33 @@ const SubscriptionScreen = () => {
 
                   // Validate connection by fetching products
                   try {
-                    const productIds = [
-                      'payment_101',
-                      'payment_201',
-                      'payment_301',
-                    ];
-                    const refreshedProducts = await RNIap.getProducts({
-                      skus: productIds,
-                      forceRefresh: true,
-                    });
+                    // Fetch product IDs dynamically from backend
+                    const productIds = await getPlatformProductIds('ios');
+
                     console.log(
-                      'Connection recovered successfully, products fetched:',
-                      refreshedProducts?.length || 0,
+                      'Connection recovery: Fetched product IDs:',
+                      productIds,
                     );
 
-                    // Update products if we got new ones
-                    if (refreshedProducts && refreshedProducts.length > 0) {
-                      setProducts(refreshedProducts);
-                      global.availableProducts = refreshedProducts;
+                    if (productIds.length > 0) {
+                      const refreshedProducts = await RNIap.getProducts({
+                        skus: productIds,
+                        forceRefresh: true,
+                      });
+                      console.log(
+                        'Connection recovered successfully, products fetched:',
+                        refreshedProducts?.length || 0,
+                      );
+
+                      // Update products if we got new ones
+                      if (refreshedProducts && refreshedProducts.length > 0) {
+                        setProducts(refreshedProducts);
+                        global.availableProducts = refreshedProducts;
+                      }
+                    } else {
+                      console.warn(
+                        'Connection recovery: No product IDs available',
+                      );
                     }
                   } catch (validationErr) {
                     console.log(
@@ -3378,6 +3543,21 @@ const SubscriptionScreen = () => {
     return (
       <View style={styles.plansContainer}>
         {sortedProducts.map((product, index) => {
+          // Derive pricing info if missing (important for Android)
+          const pricingFallback = calculatePricing(product) || {};
+
+          const discountValue =
+            product.discount !== undefined
+              ? product.discount
+              : pricingFallback.discountPercentage;
+
+          const originalPriceString =
+            product.localizedOriginalPrice ||
+            pricingFallback.formattedOriginalPrice;
+
+          const localizedPriceString =
+            product.localizedPrice || pricingFallback.discountedPriceFormatted;
+
           const features = product.features ||
             extractFeaturesFromDescription(product.description) || [
               product.title || 'Credit Pack',
@@ -3385,7 +3565,6 @@ const SubscriptionScreen = () => {
               'Never expires',
             ];
 
-          // Ensure feature text length doesn't exceed what can be displayed properly
           const processedFeatures =
             Platform.OS === 'ios'
               ? features.map(feature =>
@@ -3395,52 +3574,40 @@ const SubscriptionScreen = () => {
                 )
               : features;
 
-          // Handle iOS-specific pricing display
-          const showDiscount = product.discount > 0;
-          const displayPrice = product.localizedPrice;
-          const displayOriginalPrice = showDiscount
-            ? product.localizedOriginalPrice
-            : null;
-          const displayDiscount = showDiscount ? product.discount : null;
+          const showDiscount = discountValue > 0;
 
           return (
             <PlanCard
               key={product.productId || product.sku}
               title={product.title || 'Credit Pack'}
-              price={displayPrice}
+              price={localizedPriceString}
               features={processedFeatures}
               onPurchase={() => {
                 setSelectedProductId(product.productId);
-                console.log(`Selected product ID: ${product.productId}`);
-
-                // Track checkout initiation
                 analyticsUtils.trackCustomEvent('initiate_purchase', {
                   screen: 'subscription_screen',
                   product_id: product.productId || 'unknown',
-                  price: product.localizedPrice || '0',
+                  price: localizedPriceString || '0',
                   currency: product.currency || 'USD',
                   platform: Platform.OS,
                   timestamp: Date.now(),
                 });
 
-                // Track checkout with Facebook Events
                 try {
                   facebookEvents.logCustomEvent('initiate_purchase', {
                     screen: 'subscription_screen',
                     product_id: product.productId || 'unknown',
                     platform: Platform.OS,
                   });
-                } catch (error) {
-                  // Silent error handling
-                }
+                } catch (_) {}
 
                 handlePurchase(product.productId);
               }}
               selectedPlan={selectedProductId === product.productId}
               disabled={purchasePending}
-              originalPrice={displayOriginalPrice}
-              discount={displayDiscount}
-              discountedPrice={displayPrice}
+              originalPrice={originalPriceString}
+              discount={discountValue}
+              discountedPrice={localizedPriceString}
               currency={product.currency}
               currencySymbol={product.currencySymbol}
             />
@@ -3590,8 +3757,14 @@ const SubscriptionScreen = () => {
       // Refresh products
       console.log('Refreshing products...');
       if (Platform.OS === 'ios') {
-        const productIds = ['payment_101', 'payment_201', 'payment_301'];
+        // Fetch product IDs dynamically from backend
+        const productIds = await getPlatformProductIds('ios');
         console.log('Refreshing iOS products with IDs:', productIds);
+
+        if (productIds.length === 0) {
+          console.warn('Refresh: No iOS product IDs received from backend');
+          return;
+        }
 
         // Check connection status first
         if (connectionState !== 'connected') {

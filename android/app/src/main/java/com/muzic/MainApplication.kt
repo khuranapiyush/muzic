@@ -14,6 +14,7 @@ import com.facebook.soloader.SoLoader
 import com.google.firebase.FirebaseApp
 import com.google.firebase.analytics.FirebaseAnalytics
 
+
 class MainApplication : Application(), ReactApplication {
 
   override val reactNativeHost: ReactNativeHost =
@@ -72,5 +73,8 @@ class MainApplication : Application(), ReactApplication {
     } catch (e: Exception) {
       android.util.Log.e("FirebaseInit", "Error initializing Firebase: ${e.message}", e)
     }
+    
+    // MoEngage initialization is handled automatically by react-native-moengage package
+    // App ID is configured in AndroidManifest.xml
   }
 }
