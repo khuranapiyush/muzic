@@ -92,3 +92,28 @@
 
 # Add specific rule for the missing Google Protobuf class
 -dontwarn com.google.protobuf.java_com_google_android_gmscore_sdk_target_granule__proguard_group_gtm_N1281923064GeneratedExtensionRegistryLite$Loader
+
+# Glide library - required for MoEngage
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep public class * extends com.bumptech.glide.module.AppGlideModule
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
+    **[] $VALUES;
+    public *;
+}
+-keep class com.bumptech.glide.** { *; }
+-keep public class * extends com.bumptech.glide.load.resource.bitmap.BitmapTransformation
+-keep public class * extends com.bumptech.glide.load.Transformation
+-keep public class * extends com.bumptech.glide.load.ResourceDecoder
+-keep public class * extends com.bumptech.glide.load.ResourceEncoder
+-keep public class * extends com.bumptech.glide.load.model.ModelLoaderFactory
+-keep public class * extends com.bumptech.glide.load.data.DataFetcher
+-dontwarn com.bumptech.glide.**
+
+# MoEngage ProGuard rules
+-keep class com.moengage.** { *; }
+-keep interface com.moengage.** { *; }
+-dontwarn com.moengage.**
+
+# MoEngage HMS PushKit (optional - only if you support Huawei)
+-keep class com.huawei.hms.** { *; }
+-dontwarn com.huawei.hms.**
