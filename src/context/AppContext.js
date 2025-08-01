@@ -133,27 +133,27 @@ export const AppProvider = ({children}) => {
     }
   };
 
-  useQuery({
-    queryKey: ['appConfig'],
-    queryFn: fetchAppConfig,
-    enabled: permissionsLoaded, // Only fetch after permissions are loaded
-    onSuccess: res => {
-      const data = res.data.data;
-      if (data.latestVersion == APP_VERSION) {
-        dispatch(setFeatureEnable(false));
-      } else {
-        dispatch(setFeatureEnable(true));
-      }
-      dispatch(setAppData(data));
-    },
-    onError: error => {
-      console.log('Error fetching app config:', error);
-      // Even if app config fails, ensure we move forward with the app
-      if (!tokenChecked) {
-        dispatch(setTokenChecked(true));
-      }
-    },
-  });
+  // useQuery({
+  //   queryKey: ['appConfig'],
+  //   queryFn: fetchAppConfig,
+  //   enabled: permissionsLoaded, // Only fetch after permissions are loaded
+  //   onSuccess: res => {
+  //     const data = res.data.data;
+  //     if (data.latestVersion == APP_VERSION) {
+  //       dispatch(setFeatureEnable(false));
+  //     } else {
+  //       dispatch(setFeatureEnable(true));
+  //     }
+  //     dispatch(setAppData(data));
+  //   },
+  //   onError: error => {
+  //     console.log('Error fetching app config:', error);
+  //     // Even if app config fails, ensure we move forward with the app
+  //     if (!tokenChecked) {
+  //       dispatch(setTokenChecked(true));
+  //     }
+  //   },
+  // });
 
   useEffect(() => {
     dispatch(setSessionId(getUniqueId()));
