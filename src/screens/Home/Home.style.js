@@ -4,7 +4,7 @@ const getStyles = theme => {
   return StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: '#000',
+      backgroundColor: 'transparent',
     },
     header: {
       flexDirection: 'row',

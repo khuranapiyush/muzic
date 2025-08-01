@@ -15,7 +15,7 @@ const AppStackNavigator = () => {
     () => ({
       headerBackTitleVisible: false,
       headerStyle: {
-        backgroundColor: '#000',
+        backgroundColor: 'transparent',
         borderWidth: 0,
         borderBottomWidth: 0,
         shadowColor: 'transparent',

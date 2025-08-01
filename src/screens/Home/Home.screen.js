@@ -22,6 +22,7 @@ import useMusicPlayer from '../../hooks/useMusicPlayer';
 import appImages from '../../resource/images';
 import facebookEvents from '../../utils/facebookEvents';
 import analyticsUtils from '../../utils/analytics';
+import GradientBackground from '../../components/common/GradientBackground';
 
 // Add helper function to clean song titles
 const cleanSongTitle = title => {
@@ -241,30 +242,32 @@ export default function HomeScreen() {
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#F4A460']}
-            tintColor="#F4A460"
-            title="Refreshing..."
-            titleColor="#F4A460"
-          />
-        }>
-        {sections.map((section, index) => (
-          <SongSection
-            key={index}
-            title={section.title}
-            data={section.data}
-            onSongPress={song => handleSongPress(song)}
-            currentSongId={currentSong?.audioUrl}
-            isListLoading={isListLoading}
-          />
-        ))}
-      </ScrollView>
+    <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
+      <GradientBackground>
+        <ScrollView
+          style={[styles.content, {backgroundColor: 'transparent'}]}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#F4A460']}
+              tintColor="#F4A460"
+              title="Refreshing..."
+              titleColor="#F4A460"
+            />
+          }>
+          {sections.map((section, index) => (
+            <SongSection
+              key={index}
+              title={section.title}
+              data={section.data}
+              onSongPress={song => handleSongPress(song)}
+              currentSongId={currentSong?.audioUrl}
+              isListLoading={isListLoading}
+            />
+          ))}
+        </ScrollView>
+      </GradientBackground>
     </SafeAreaView>
   );
 }

@@ -34,6 +34,7 @@ const getStyles = theme => {
     scrollContainer: {
       flex: 1,
       width: '100%',
+      backgroundColor: 'transparent',
     },
     scrollContentContainer: {
       flexGrow: 1,

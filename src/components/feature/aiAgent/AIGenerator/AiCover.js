@@ -21,6 +21,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import GradientBackground from '../../../common/GradientBackground';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import fetcher from '../../../../dataProvider';
 import CText from '../../../common/core/Text';
@@ -504,14 +505,6 @@ const CoverCreationScreen = () => {
     isRefreshing,
   ]);
 
-  // Initial data load - only once on mount
-  useEffect(() => {
-    getVoiceSamples(1, false);
-    if (userId && !recordingsLoaded) {
-      fetchUserRecordings();
-    }
-  }, [userId, fetchUserRecordings, getVoiceSamples, recordingsLoaded]);
-
   // Modify getVoiceSamples to only fetch initial data
   const getVoiceSamples = useCallback(
     async (pageNum = 1, shouldAppend = false) => {
@@ -548,6 +541,14 @@ const CoverCreationScreen = () => {
     },
     [API_TOKEN, PAGE_SIZE],
   );
+
+  // Initial data load - only once on mount
+  useEffect(() => {
+    getVoiceSamples(1, false);
+    if (userId && !recordingsLoaded) {
+      fetchUserRecordings();
+    }
+  }, [userId, fetchUserRecordings, getVoiceSamples, recordingsLoaded]);
 
   // Handler for playing voice samples with improved logging
   const handlePlaySample = sample => {
@@ -760,215 +761,220 @@ const CoverCreationScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {/* Credits Display */}
-        <View style={styles.headerSection}>
-          <View style={styles.titleContainer}>
-            <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
-          </View>
-
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              placeholder="Paste Youtube/Spotify Link"
-              placeholderTextColor="#666"
-              value={link}
-              onChangeText={setLink}
-            />
-            <TouchableOpacity
-              style={styles.pasteButton}
-              onPress={handlePaste}
-              activeOpacity={0.8}>
-              <Text style={styles.pasteButtonText}>✨ Paste</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.creditsContainer}>
-            <Text style={styles.creditsText}>
-              Songs Left: {Math.floor(creditsValue / creditsPerSong)}
-            </Text>
-          </View>
-        </View>
-
-        {/* Vocals Section */}
-        <View style={styles.listContainer}>
-          {sampleVoice.length === 0 && !isLoadingMore ? (
-            <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color="#F4A460" />
-              <Text style={styles.loadingText}>Loading voices...</Text>
+    <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
+      <GradientBackground>
+        <View style={[styles.content, {backgroundColor: 'transparent'}]}>
+          {/* Credits Display */}
+          <View style={styles.headerSection}>
+            <View style={styles.titleContainer}>
+              <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
             </View>
-          ) : (
-            <FlatList
-              data={sampleVoice}
-              ListHeaderComponent={MyVocalsSection}
-              ListFooterComponent={ListFooter}
-              renderItem={({item}) => <VocalCard recording={item} />}
-              keyExtractor={item => item.id.toString()}
-              numColumns={3}
-              contentContainerStyle={styles.vocalsContainerGrid}
-              showsVerticalScrollIndicator={true}
-              columnWrapperStyle={styles.row}
-              refreshControl={
-                <RefreshControl
-                  refreshing={isRefreshing}
-                  onRefresh={handleRefresh}
-                  colors={['#F4A460']}
-                  tintColor="#F4A460"
-                  title="Pull to refresh"
-                  titleColor="#F4A460"
-                />
-              }
-              scrollEnabled={true}
-              initialNumToRender={9}
-              maxToRenderPerBatch={6}
-              windowSize={10}
-              removeClippedSubviews={false}
-            />
-          )}
-        </View>
-      </View>
 
-      {/* Button container - adjust position based on global player visibility */}
-      <View
-        style={[
-          styles.buttonContainer,
-          showGlobalPlayer && {bottom: 90}, // Move button up when player is visible
-        ]}>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={createVoiceConversion}>
-          <LinearGradient
-            colors={['#F4A460', '#DEB887']}
-            start={{x: 0, y: 0}}
-            end={{x: 1, y: 1}}
-            style={styles.gradient}>
-            <CText
-              style={[
-                styles.createButtonText,
-                isLoading && styles.disabledButtonText,
-              ]}>
-              {isLoading ? 'Creating...' : 'Create Cover'}
-            </CText>
-          </LinearGradient>
-        </TouchableOpacity>
-      </View>
-
-      {/* Bottom Sheet Notification Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showBottomSheet}
-        onRequestClose={() => setShowBottomSheet(false)}
-        onBackdropPress={() => setShowBottomSheet(false)}
-        onBackButtonPress={() => setShowBottomSheet(false)}
-        swipeDirection={['down']}
-        propagateSwipe
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        backdropOpacity={0.5}
-        avoidKeyboard={true}>
-        <View style={styles.bottomSheetContainer}>
-          <View style={styles.bottomSheetContent}>
-            <CText size="largeBold" style={styles.bottomSheetTitle}>
-              Cover Generation Started
-            </CText>
-            <CText style={styles.bottomSheetText}>
-              Your cover will be generated in 10-15 mins. Come back and check in
-              the library.
-            </CText>
-            <TouchableOpacity
-              style={styles.bottomSheetButton}
-              onPress={() => setShowBottomSheet(false)}>
-              <LinearGradient
-                colors={['#F4A460', '#DEB887']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.gradient}>
-                <CText style={styles.bottomSheetButtonText}>Got it</CText>
-              </LinearGradient>
-            </TouchableOpacity>
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Paste Youtube/Spotify Link"
+                placeholderTextColor="#666"
+                value={link}
+                onChangeText={setLink}
+              />
+              <TouchableOpacity
+                style={styles.pasteButton}
+                onPress={handlePaste}
+                activeOpacity={0.8}>
+                <Text style={styles.pasteButtonText}>✨ Paste</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.creditsContainer}>
+              <Text style={styles.creditsText}>
+                Songs Left: {Math.floor(creditsValue / creditsPerSong)}
+              </Text>
+            </View>
           </View>
-        </View>
-      </Modal>
 
-      {/* Insufficient Credits Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showInsufficientCreditsModal}
-        onRequestClose={() => setShowInsufficientCreditsModal(false)}
-        onBackdropPress={() => setShowInsufficientCreditsModal(false)}
-        onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
-        swipeDirection={['down']}
-        propagateSwipe
-        animationIn="slideInUp"
-        animationOut="slideOutDown"
-        backdropOpacity={0.5}
-        avoidKeyboard={true}>
-        <View style={styles.bottomSheetContainer}>
-          <View style={styles.bottomSheetContent}>
-            <CText size="largeBold" style={styles.bottomSheetTitle}>
-              Insufficient Credits
-            </CText>
-            <CText style={styles.bottomSheetText}>
-              Please buy some credits to generate cover
-            </CText>
-            <TouchableOpacity
-              style={styles.bottomSheetButton}
-              onPress={() => {
-                setShowInsufficientCreditsModal(false);
-                navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-              }}>
-              <LinearGradient
-                colors={['#F4A460', '#DEB887']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.gradient}>
-                <CText style={styles.bottomSheetButtonText}>Buy Credits</CText>
-              </LinearGradient>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Validation Modal */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={showValidationModal}
-        onRequestClose={() => setShowValidationModal(false)}
-        onBackdropPress={() => setShowValidationModal(false)}
-        onBackButtonPress={() => setShowValidationModal(false)}>
-        <TouchableWithoutFeedback onPress={() => setShowValidationModal(false)}>
-          <View style={styles.bottomSheetContainer}>
-            <TouchableWithoutFeedback>
-              <View style={styles.bottomSheetContent}>
-                <CText size="largeBold" style={styles.bottomSheetTitle}>
-                  {!link
-                    ? 'Missing Link'
-                    : !selectedVoiceId && !selectedRecordingFile
-                    ? 'Missing Voice'
-                    : ''}
-                </CText>
-                <CText style={styles.bottomSheetText}>
-                  {validationMessage}
-                </CText>
-                <TouchableOpacity
-                  style={styles.bottomSheetButton}
-                  onPress={() => setShowValidationModal(false)}>
-                  <LinearGradient
-                    colors={['#F4A460', '#DEB887']}
-                    start={{x: 0, y: 0}}
-                    end={{x: 1, y: 1}}
-                    style={styles.gradient}>
-                    <CText style={styles.bottomSheetButtonText}>Got it</CText>
-                  </LinearGradient>
-                </TouchableOpacity>
+          {/* Vocals Section */}
+          <View style={styles.listContainer}>
+            {sampleVoice.length === 0 && !isLoadingMore ? (
+              <View style={styles.loaderContainer}>
+                <ActivityIndicator size="large" color="#F4A460" />
+                <Text style={styles.loadingText}>Loading voices...</Text>
               </View>
-            </TouchableWithoutFeedback>
+            ) : (
+              <FlatList
+                data={sampleVoice}
+                ListHeaderComponent={MyVocalsSection}
+                ListFooterComponent={ListFooter}
+                renderItem={({item}) => <VocalCard recording={item} />}
+                keyExtractor={item => item.id.toString()}
+                numColumns={3}
+                contentContainerStyle={styles.vocalsContainerGrid}
+                showsVerticalScrollIndicator={true}
+                columnWrapperStyle={styles.row}
+                refreshControl={
+                  <RefreshControl
+                    refreshing={isRefreshing}
+                    onRefresh={handleRefresh}
+                    colors={['#F4A460']}
+                    tintColor="#F4A460"
+                    title="Pull to refresh"
+                    titleColor="#F4A460"
+                  />
+                }
+                scrollEnabled={true}
+                initialNumToRender={9}
+                maxToRenderPerBatch={6}
+                windowSize={10}
+                removeClippedSubviews={false}
+              />
+            )}
           </View>
-        </TouchableWithoutFeedback>
-      </Modal>
+        </View>
+
+        {/* Button container - adjust position based on global player visibility */}
+        <View
+          style={[
+            styles.buttonContainer,
+            showGlobalPlayer && {bottom: 90}, // Move button up when player is visible
+          ]}>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={createVoiceConversion}>
+            <LinearGradient
+              colors={['#F4A460', '#DEB887']}
+              start={{x: 0, y: 0}}
+              end={{x: 1, y: 1}}
+              style={styles.gradient}>
+              <CText
+                style={[
+                  styles.createButtonText,
+                  isLoading && styles.disabledButtonText,
+                ]}>
+                {isLoading ? 'Creating...' : 'Create Cover'}
+              </CText>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* Bottom Sheet Notification Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showBottomSheet}
+          onRequestClose={() => setShowBottomSheet(false)}
+          onBackdropPress={() => setShowBottomSheet(false)}
+          onBackButtonPress={() => setShowBottomSheet(false)}
+          swipeDirection={['down']}
+          propagateSwipe
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.5}
+          avoidKeyboard={true}>
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetContent}>
+              <CText size="largeBold" style={styles.bottomSheetTitle}>
+                Cover Generation Started
+              </CText>
+              <CText style={styles.bottomSheetText}>
+                Your cover will be generated in 10-15 mins. Come back and check
+                in the library.
+              </CText>
+              <TouchableOpacity
+                style={styles.bottomSheetButton}
+                onPress={() => setShowBottomSheet(false)}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Insufficient Credits Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showInsufficientCreditsModal}
+          onRequestClose={() => setShowInsufficientCreditsModal(false)}
+          onBackdropPress={() => setShowInsufficientCreditsModal(false)}
+          onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
+          swipeDirection={['down']}
+          propagateSwipe
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.5}
+          avoidKeyboard={true}>
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetContent}>
+              <CText size="largeBold" style={styles.bottomSheetTitle}>
+                Insufficient Credits
+              </CText>
+              <CText style={styles.bottomSheetText}>
+                Please buy some credits to generate cover
+              </CText>
+              <TouchableOpacity
+                style={styles.bottomSheetButton}
+                onPress={() => {
+                  setShowInsufficientCreditsModal(false);
+                  navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                }}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={styles.bottomSheetButtonText}>
+                    Buy Credits
+                  </CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Validation Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showValidationModal}
+          onRequestClose={() => setShowValidationModal(false)}
+          onBackdropPress={() => setShowValidationModal(false)}
+          onBackButtonPress={() => setShowValidationModal(false)}>
+          <TouchableWithoutFeedback
+            onPress={() => setShowValidationModal(false)}>
+            <View style={styles.bottomSheetContainer}>
+              <TouchableWithoutFeedback>
+                <View style={styles.bottomSheetContent}>
+                  <CText size="largeBold" style={styles.bottomSheetTitle}>
+                    {!link
+                      ? 'Missing Link'
+                      : !selectedVoiceId && !selectedRecordingFile
+                      ? 'Missing Voice'
+                      : ''}
+                  </CText>
+                  <CText style={styles.bottomSheetText}>
+                    {validationMessage}
+                  </CText>
+                  <TouchableOpacity
+                    style={styles.bottomSheetButton}
+                    onPress={() => setShowValidationModal(false)}>
+                    <LinearGradient
+                      colors={['#F4A460', '#DEB887']}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                      style={styles.gradient}>
+                      <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </GradientBackground>
     </SafeAreaView>
   );
 };
@@ -976,7 +982,7 @@ const CoverCreationScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,

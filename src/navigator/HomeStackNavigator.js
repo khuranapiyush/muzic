@@ -12,6 +12,7 @@ import {useSelector} from 'react-redux';
 import CustomHeader from '../components/common/Header';
 import appImages from '../resource/images';
 import CView from '../components/common/core/View';
+import GradientBackground from '../components/common/GradientBackground';
 
 // Import screens directly instead of using lazy loading
 import Home from '../screens/Home/Home.screen';
@@ -84,7 +85,7 @@ const HomeStackNavigator = () => {
         paddingBottom: 30,
         marginBottom: Platform.OS === 'ios' ? 30 : 20,
         paddingTop: 20,
-        backgroundColor: '#000',
+        backgroundColor: 'transparent',
         borderTopWidth: 1,
         borderColor: '#FFB680',
         elevation: 0,

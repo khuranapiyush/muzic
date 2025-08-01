@@ -29,6 +29,7 @@ import {
   setGeneratingSong,
   setGeneratingSongId,
 } from '../../../stores/slices/player';
+import GradientBackground from '../../common/GradientBackground';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -669,47 +670,49 @@ const LibraryScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {isGeneratingSong && (
-          <View style={styles.generatingContainer}>
-            <ActivityIndicator color="#F4A460" size="small" />
-            <Text style={styles.generatingText}>
-              Generating your song... Please wait
-            </Text>
-          </View>
-        )}
-        {isListLoading && audioList.length === 0 ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#F4A460" />
-            <Text style={styles.loadingText}>Loading your library...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={audioList}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            ListHeaderComponent={ListHeaderComponent}
-            ListEmptyComponent={ListEmptyComponent}
-            contentContainerStyle={{paddingBottom: 80}}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#F4A460']}
-                tintColor="#F4A460"
-              />
-            }
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            removeClippedSubviews={true}
-            getItemLayout={getItemLayout}
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+    <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
+      <GradientBackground>
+        <View style={[styles.content, {backgroundColor: 'transparent'}]}>
+          {isGeneratingSong && (
+            <View style={styles.generatingContainer}>
+              <ActivityIndicator color="#F4A460" size="small" />
+              <Text style={styles.generatingText}>
+                Generating your song... Please wait
+              </Text>
+            </View>
+          )}
+          {isListLoading && audioList.length === 0 ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#F4A460" />
+              <Text style={styles.loadingText}>Loading your library...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={audioList}
+              renderItem={renderItem}
+              keyExtractor={keyExtractor}
+              ListHeaderComponent={ListHeaderComponent}
+              ListEmptyComponent={ListEmptyComponent}
+              contentContainerStyle={{paddingBottom: 80}}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#F4A460']}
+                  tintColor="#F4A460"
+                />
+              }
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
+              getItemLayout={getItemLayout}
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
+      </GradientBackground>
     </SafeAreaView>
   );
 };
@@ -717,7 +720,7 @@ const LibraryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent',
     paddingTop: 15,
     marginHorizontal: 10,
   },

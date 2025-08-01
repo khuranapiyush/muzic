@@ -13,7 +13,7 @@ const AuthStackNavigator = () => {
       screenOptions={{
         headerShown: false,
         headerBackTitleVisible: false,
-        contentStyle: {backgroundColor: '#000'},
+        contentStyle: {backgroundColor: 'transparent'},
       }}>
       <Stack.Screen name={ROUTE_NAME.Login} component={LoginScreen} />
       <Stack.Screen name={ROUTE_NAME.VerifyOtp} component={VerifyOtpScreen} />

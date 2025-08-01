@@ -27,6 +27,7 @@ import {useSelector, useDispatch} from 'react-redux';
 import fetcher from '../../../../dataProvider';
 import {useTheme} from '@react-navigation/native';
 import {getAuthToken} from '../../../../utils/authUtils';
+import GradientBackground from '../../../common/GradientBackground';
 import useCredits from '../../../../hooks/useCredits';
 import {
   setGeneratingSong,
@@ -367,188 +368,193 @@ const AIGenerator = ({pageHeading}) => {
 
   return (
     <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-      <SafeAreaView style={{...styles.flatList, backgroundColor: '#000'}}>
-        <CView style={styles.flatList}>
-          <ScrollView
-            style={styles.scrollContainer}
-            contentContainerStyle={styles.scrollContentContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled">
-            <CView style={styles.wrapper}>
-              <CText size="largeBold" style={styles.promptHeading}>
-                Write your Prompt
-              </CText>
-              <TextInputFC
-                control={control}
-                name={'promptText'}
-                autoComplete={'off'}
-                autoCorrect={false}
-                placeholder={getRenderDetail(pageHeading).placeholderText}
-                multiline={true}
-                numberOfLines={5}
-                placeholderTextColor={Colors[mode].textLightGray}
-                customStyles={styles.inputContainerStyles}
-                style={{
-                  color: Colors[mode].textLightGray,
-                  textAlignVertical: 'top',
-                }}
-                onChangeText={handleInputChange}
-              />
-              <View style={styles.creditsContainer}>
-                <CText style={styles.creditsText}>
-                  Songs Left: {Math.floor(creditsValue / creditsPerSong)}
+      <SafeAreaView
+        style={{...styles.flatList, backgroundColor: 'transparent'}}>
+        <GradientBackground>
+          <CView style={[styles.flatList, {backgroundColor: 'transparent'}]}>
+            <ScrollView
+              style={styles.scrollContainer}
+              contentContainerStyle={styles.scrollContentContainer}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled">
+              <CView style={styles.wrapper}>
+                <CText size="largeBold" style={styles.promptHeading}>
+                  Write your Prompt
                 </CText>
-              </View>
-              {errorMessage ? (
-                <CText style={styles.errorText}>{errorMessage}</CText>
-              ) : null}
-            </CView>
-            <GenreSelectionScreen
-              onGenreSelect={handleGenreSelect}
-              onVoiceSelect={handleVoiceSelect}
-              resetSelections={resetSelections}
-            />
-            {/* Add padding at the bottom to ensure content isn't hidden behind the button */}
-            <View style={styles.scrollBottomPadding} />
-          </ScrollView>
-          <CView
-            style={[
-              styles.buttonContainer,
-              showGlobalPlayer && {bottom: 90}, // Adjust bottom margin when player is visible
-            ]}>
-            <TouchableOpacity
-              style={styles.createButton}
-              activeOpacity={0.8}
-              onPress={handleSubmit}>
-              <LinearGradient
-                colors={['#F4A460', '#DEB887']}
-                start={{x: 0, y: 0}}
-                end={{x: 1, y: 1}}
-                style={styles.gradient}>
-                <CText style={[styles.createButtonText]}>Create Song</CText>
-              </LinearGradient>
-            </TouchableOpacity>
-          </CView>
-        </CView>
-        {authState.isLoggedIn && (
-          <PromoModal visible={modalVisible} onClose={handleCloseModal} />
-        )}
-
-        {/* Bottom Sheet Notification */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showBottomSheet}
-          onRequestClose={() => setShowBottomSheet(false)}
-          onBackdropPress={() => setShowBottomSheet(false)}
-          onBackButtonPress={() => setShowBottomSheet(false)}
-          swipeDirection={['down']}
-          propagateSwipe
-          animationIn="slideInUp"
-          animationOut="slideOutDown"
-          backdropOpacity={0.5}
-          avoidKeyboard={true}>
-          <View style={styles.bottomSheetContainer}>
-            <View style={styles.bottomSheetContent}>
-              <CText size="largeBold" style={styles.bottomSheetTitle}>
-                Song Generation Started
-              </CText>
-              <CText style={styles.bottomSheetText}>
-                Your song will be generated in 10 mins. Come back and check in
-                the library.
-              </CText>
-              <TouchableOpacity
-                style={styles.bottomSheetButton}
-                onPress={() => setShowBottomSheet(false)}>
-                <LinearGradient
-                  colors={['#F4A460', '#DEB887']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.gradient}>
-                  <CText style={styles.bottomSheetButtonText}>Got it</CText>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Insufficient Credits Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showInsufficientCreditsModal}
-          onRequestClose={() => setShowInsufficientCreditsModal(false)}
-          onBackdropPress={() => setShowInsufficientCreditsModal(false)}
-          onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
-          swipeDirection={['down']}
-          propagateSwipe
-          animationIn="slideInUp"
-          animationOut="slideOutDown"
-          backdropOpacity={0.5}
-          avoidKeyboard={true}>
-          <View style={styles.bottomSheetContainer}>
-            <View style={styles.bottomSheetContent}>
-              <CText size="largeBold" style={styles.bottomSheetTitle}>
-                Insufficient Credits
-              </CText>
-              <CText style={styles.bottomSheetText}>
-                Please buy some credits to generate song
-              </CText>
-              <TouchableOpacity
-                style={styles.bottomSheetButton}
-                onPress={() => {
-                  setShowInsufficientCreditsModal(false);
-                  navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-                }}>
-                <LinearGradient
-                  colors={['#F4A460', '#DEB887']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.gradient}>
-                  <CText style={styles.bottomSheetButtonText}>
-                    Buy Credits
+                <TextInputFC
+                  control={control}
+                  name={'promptText'}
+                  autoComplete={'off'}
+                  autoCorrect={false}
+                  placeholder={getRenderDetail(pageHeading).placeholderText}
+                  multiline={true}
+                  numberOfLines={5}
+                  placeholderTextColor={Colors[mode].textLightGray}
+                  customStyles={styles.inputContainerStyles}
+                  style={{
+                    color: Colors[mode].textLightGray,
+                    textAlignVertical: 'top',
+                  }}
+                  onChangeText={handleInputChange}
+                />
+                <View style={styles.creditsContainer}>
+                  <CText style={styles.creditsText}>
+                    Songs Left: {Math.floor(creditsValue / creditsPerSong)}
                   </CText>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Validation Modal */}
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showValidationModal}
-          onRequestClose={() => setShowValidationModal(false)}
-          onBackdropPress={() => setShowValidationModal(false)}
-          onBackButtonPress={() => setShowValidationModal(false)}>
-          <TouchableWithoutFeedback
-            onPress={() => setShowValidationModal(false)}>
-            <View style={styles.bottomSheetContainer}>
-              <TouchableWithoutFeedback>
-                <View style={styles.bottomSheetContent}>
-                  <CText size="largeBold" style={styles.bottomSheetTitle}>
-                    Missing Prompt
-                  </CText>
-                  <CText style={styles.bottomSheetText}>
-                    Please add a prompt for song creation
-                  </CText>
-                  <TouchableOpacity
-                    style={styles.bottomSheetButton}
-                    onPress={() => setShowValidationModal(false)}>
-                    <LinearGradient
-                      colors={['#F4A460', '#DEB887']}
-                      start={{x: 0, y: 0}}
-                      end={{x: 1, y: 1}}
-                      style={styles.gradient}>
-                      <CText style={styles.bottomSheetButtonText}>Got it</CText>
-                    </LinearGradient>
-                  </TouchableOpacity>
                 </View>
-              </TouchableWithoutFeedback>
+                {errorMessage ? (
+                  <CText style={styles.errorText}>{errorMessage}</CText>
+                ) : null}
+              </CView>
+              <GenreSelectionScreen
+                onGenreSelect={handleGenreSelect}
+                onVoiceSelect={handleVoiceSelect}
+                resetSelections={resetSelections}
+              />
+              {/* Add padding at the bottom to ensure content isn't hidden behind the button */}
+              <View style={styles.scrollBottomPadding} />
+            </ScrollView>
+            <CView
+              style={[
+                styles.buttonContainer,
+                showGlobalPlayer && {bottom: 90}, // Adjust bottom margin when player is visible
+              ]}>
+              <TouchableOpacity
+                style={styles.createButton}
+                activeOpacity={0.8}
+                onPress={handleSubmit}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={[styles.createButtonText]}>Create Song</CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </CView>
+          </CView>
+          {authState.isLoggedIn && (
+            <PromoModal visible={modalVisible} onClose={handleCloseModal} />
+          )}
+
+          {/* Bottom Sheet Notification */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showBottomSheet}
+            onRequestClose={() => setShowBottomSheet(false)}
+            onBackdropPress={() => setShowBottomSheet(false)}
+            onBackButtonPress={() => setShowBottomSheet(false)}
+            swipeDirection={['down']}
+            propagateSwipe
+            animationIn="slideInUp"
+            animationOut="slideOutDown"
+            backdropOpacity={0.5}
+            avoidKeyboard={true}>
+            <View style={styles.bottomSheetContainer}>
+              <View style={styles.bottomSheetContent}>
+                <CText size="largeBold" style={styles.bottomSheetTitle}>
+                  Song Generation Started
+                </CText>
+                <CText style={styles.bottomSheetText}>
+                  Your song will be generated in 10 mins. Come back and check in
+                  the library.
+                </CText>
+                <TouchableOpacity
+                  style={styles.bottomSheetButton}
+                  onPress={() => setShowBottomSheet(false)}>
+                  <LinearGradient
+                    colors={['#F4A460', '#DEB887']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={styles.gradient}>
+                    <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
             </View>
-          </TouchableWithoutFeedback>
-        </Modal>
+          </Modal>
+
+          {/* Insufficient Credits Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showInsufficientCreditsModal}
+            onRequestClose={() => setShowInsufficientCreditsModal(false)}
+            onBackdropPress={() => setShowInsufficientCreditsModal(false)}
+            onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
+            swipeDirection={['down']}
+            propagateSwipe
+            animationIn="slideInUp"
+            animationOut="slideOutDown"
+            backdropOpacity={0.5}
+            avoidKeyboard={true}>
+            <View style={styles.bottomSheetContainer}>
+              <View style={styles.bottomSheetContent}>
+                <CText size="largeBold" style={styles.bottomSheetTitle}>
+                  Insufficient Credits
+                </CText>
+                <CText style={styles.bottomSheetText}>
+                  Please buy some credits to generate song
+                </CText>
+                <TouchableOpacity
+                  style={styles.bottomSheetButton}
+                  onPress={() => {
+                    setShowInsufficientCreditsModal(false);
+                    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                  }}>
+                  <LinearGradient
+                    colors={['#F4A460', '#DEB887']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={styles.gradient}>
+                    <CText style={styles.bottomSheetButtonText}>
+                      Buy Credits
+                    </CText>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Validation Modal */}
+          <Modal
+            animationType="slide"
+            transparent={true}
+            visible={showValidationModal}
+            onRequestClose={() => setShowValidationModal(false)}
+            onBackdropPress={() => setShowValidationModal(false)}
+            onBackButtonPress={() => setShowValidationModal(false)}>
+            <TouchableWithoutFeedback
+              onPress={() => setShowValidationModal(false)}>
+              <View style={styles.bottomSheetContainer}>
+                <TouchableWithoutFeedback>
+                  <View style={styles.bottomSheetContent}>
+                    <CText size="largeBold" style={styles.bottomSheetTitle}>
+                      Missing Prompt
+                    </CText>
+                    <CText style={styles.bottomSheetText}>
+                      Please add a prompt for song creation
+                    </CText>
+                    <TouchableOpacity
+                      style={styles.bottomSheetButton}
+                      onPress={() => setShowValidationModal(false)}>
+                      <LinearGradient
+                        colors={['#F4A460', '#DEB887']}
+                        start={{x: 0, y: 0}}
+                        end={{x: 1, y: 1}}
+                        style={styles.gradient}>
+                        <CText style={styles.bottomSheetButtonText}>
+                          Got it
+                        </CText>
+                      </LinearGradient>
+                    </TouchableOpacity>
+                  </View>
+                </TouchableWithoutFeedback>
+              </View>
+            </TouchableWithoutFeedback>
+          </Modal>
+        </GradientBackground>
       </SafeAreaView>
     </TouchableWithoutFeedback>
   );

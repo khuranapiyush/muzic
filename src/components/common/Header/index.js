@@ -11,14 +11,14 @@ const CustomHeader = props => {
     theme: {mode},
   } = useContext(ThemeContext);
   return (
-    <SafeAreaView>
+    <SafeAreaView style={{backgroundColor: 'transparent'}}>
       <CView
         row
         style={{
           justifyContent: 'space-between',
           alignItems: 'center',
           paddingHorizontal: 15,
-          backgroundColor: '#000',
+          backgroundColor: 'transparent',
           marginTop: 15,
         }}>
         <HeaderLeft mode={mode} />
