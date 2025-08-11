@@ -78,6 +78,12 @@ export const playSong = (songData, source, songList = null) => {
     songListLength: songList?.length || 0,
   });
 
+  // Add validation for required fields
+  if (!songData || !songData.uri) {
+    console.error('Invalid song data provided to playSong:', songData);
+    return;
+  }
+
   const normalizedSong = normalizeSongData(songData);
   console.log('Normalized song:', {
     id: normalizedSong.id,

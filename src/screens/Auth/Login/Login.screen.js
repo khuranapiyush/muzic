@@ -1,19 +1,8 @@
 import React, {useState, useEffect} from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  View,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import {useForm} from 'react-hook-form';
+import {StyleSheet, View, KeyboardAvoidingView, Platform} from 'react-native';
 import {useMutation} from '@tanstack/react-query';
 import {useDispatch} from 'react-redux';
-import {
-  authGoogleLogin,
-  authLoginSignup,
-  authAppleLogin,
-} from '../../../api/auth';
+import {authGoogleLogin, authAppleLogin} from '../../../api/auth';
 import fetcher, {addAuthInterceptor} from '../../../dataProvider';
 import {useNavigation} from '@react-navigation/native';
 import useToaster from '../../../hooks/useToaster';
@@ -122,86 +111,10 @@ const LoginScreen = () => {
     checkAppleSignInAvailability();
   }, []);
 
-  const {
-    control,
-    formState: {isValid, errors},
-    getValues,
-    watch,
-  } = useForm({
-    criteriaMode: 'all',
-    mode: 'all',
-    defaultValues: {
-      mobile: '',
-      phoneCountryCode: {
-        name: 'India',
-        cca2: 'IN',
-        callingCode: ['91'],
-      },
-      terms: true,
-      isReferralCode: false,
-      referralCode: '',
-    },
-  });
-
-  const {mutate: loginMobileApi} = useMutation(data => authLoginSignup(data), {
-    onSuccess: () => {
-      navigation.navigate(ROUTE_NAME.VerifyOtp, {
-        phone: watch('mobile'),
-        countryCode: `+${watch('phoneCountryCode').callingCode[0]}`,
-        referralCode: watch('isReferralCode') ? watch('referralCode') : null,
-      });
-    },
-    onError: err => {
-      showToaster({
-        type: 'error',
-        text1: 'Error',
-        text2: err.response.data.message,
-      });
-    },
-    onSettled: () => {
-      setIsLoading(false);
-    },
-  });
-
-  const handleLogin = () => {
-    setIsLoading(true);
-
-    // Track the button click in analytics
-    analyticsUtils.trackButtonClick('phone_login', {
-      screen: 'login',
-      platform: Platform.OS,
-    });
-
-    // Track Facebook event
-    facebookEvents.logCustomEvent('login_button_click', {
-      method: 'phone',
-      platform: Platform.OS,
-    });
-
-    const {mobile, phoneCountryCode, referralCode, isReferralCode} =
-      getValues();
-
-    // Track mobile number entry event
-    analyticsUtils.trackMobileNumberEntry({
-      country_code: `+${phoneCountryCode.callingCode[0]}`,
-    });
-
-    // Track mobile number entry with Facebook Events
-    try {
-      facebookEvents.logCustomEvent('mobile_number_entry', {
-        country_code: `+${phoneCountryCode.callingCode[0]}`,
-      });
-    } catch (error) {
-      // Silent error handling
-    }
-
-    const data = {
-      phoneNumber: mobile,
-      phoneCountryCode: `+${phoneCountryCode.callingCode[0]}`,
-      ...(isReferralCode && {referralCode}),
-    };
-
-    loginMobileApi(data);
+  const handlePhoneLogin = () => {
+    console.log('Phone login button pressed');
+    // Navigate to phone input screen
+    navigation.navigate(ROUTE_NAME.PhoneInput);
   };
 
   const dispatch = useDispatch();
@@ -661,15 +574,8 @@ const LoginScreen = () => {
       }
 
       // Get the credentials
-      const {
-        user,
-        email,
-        nonce,
-        identityToken,
-        fullName,
-        authorizationCode,
-        realUserStatus,
-      } = appleAuthRequestResponse;
+      const {user, email, nonce, identityToken, fullName} =
+        appleAuthRequestResponse;
 
       // Ensure identityToken is available
       if (!identityToken) {
@@ -709,43 +615,37 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidView}>
-        <View style={styles.content}>
-          <Login
-            handleLogin={handleLogin}
-            nextStep={() => {}}
-            control={control}
-            isValid={isValid}
-            isLoading={
-              isLoading || isGoogleSignInProgress || isAppleSignInProgress
-            }
-            handleModeChange={() => {}}
-            errors={errors}
-            handleGoogleLogin={handleGoogleLogin}
-            handleAppleLogin={handleAppleLogin}
-            appleSignInAvailable={
-              Platform.OS === 'ios' &&
-              parseInt(Platform.Version, 10) >= 13 &&
-              appleAuth &&
-              appleAuth.isSupported
-            }
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardAvoidView}>
+      <View style={styles.content}>
+        <Login
+          handlePhoneLogin={handlePhoneLogin}
+          isLoading={
+            isLoading || isGoogleSignInProgress || isAppleSignInProgress
+          }
+          handleGoogleLogin={handleGoogleLogin}
+          handleAppleLogin={handleAppleLogin}
+          appleSignInAvailable={
+            Platform.OS === 'ios' &&
+            parseInt(Platform.Version, 10) >= 13 &&
+            appleAuth &&
+            appleAuth.isSupported
+          }
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // Background is now handled by the Login component
+    backgroundColor: 'transparent',
   },
   keyboardAvoidView: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,

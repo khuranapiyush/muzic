@@ -14,11 +14,11 @@ const GradientBackground = ({
     '#000000',
     '#101010',
     '#FF7E85',
-    '#C66B75',
+    '#FD753F',
     '#101010',
     '#000000',
   ];
-  const defaultLocations = locations || [0, 0.2, 0.6, 0.5, 0.8, 0.9, 1];
+  const defaultLocations = locations || [0, 0.2, 0.4, 0.55, 0.75, 1];
   const defaultStart = start || {x: 0, y: 1};
   const defaultEnd = end || {x: 1, y: 0};
 
@@ -41,7 +41,7 @@ const styles = StyleSheet.create({
     height: '100%',
     width: '100%',
     position: 'absolute',
-    top: 0,
+    top: -300,
     left: 0,
     right: 0,
     bottom: 0,

@@ -49,7 +49,6 @@ export const fetchProductConfig = async () => {
 export const getPlatformProductIds = async (platform = 'ios') => {
   try {
     const config = await fetchProductConfig();
-    console.log(config, 'config');
     return config[platform] || [];
   } catch (error) {
     console.error('Error getting platform product IDs:', error);
@@ -70,7 +69,6 @@ export const getPlatformProductIds = async (platform = 'ios') => {
 export const getDefaultProductId = async (platform = 'ios') => {
   try {
     const config = await fetchProductConfig();
-    console.log(config, 'config for default product');
     return (
       config.defaultPlan?.[platform] ||
       (platform === 'ios' ? 'payment_101' : 'payment_100')

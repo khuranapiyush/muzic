@@ -267,16 +267,14 @@ const LibraryScreen = () => {
   //   }
   // }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
 
-  // Fetch library data every 15 seconds while a song is generating
   useEffect(() => {
     let intervalId = null;
 
     if (isGeneratingSong && isLibraryScreen.current) {
-      // Poll for updates while song is generating and we're on the library screen
       intervalId = setInterval(() => {
         console.log('Polling for library updates...');
         fetchAudioList();
-      }, 15000); // Check every 15 seconds
+      }, 10000);
     }
 
     return () => {
@@ -289,7 +287,6 @@ const LibraryScreen = () => {
   // Memoize the song press handler
   const handleSongPress = useCallback(
     (audioUrl, title, duration, imageUrl) => {
-      // Verify audioUrl is valid before attempting to play
       if (!audioUrl) {
         console.error('Cannot play song with empty audio URL:', title);
         return;
@@ -600,14 +597,17 @@ const LibraryScreen = () => {
               <Text style={styles.songGenres}>{formatTime(item.duration)}</Text>
             </View>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              {isCurrentlyPlaying && (
-                <View style={styles.playingIndicator}>
-                  <Image
-                    source={appImages.playerPauseIcon}
-                    style={[styles.playingIcon, {width: 20, height: 20}]}
-                  />
-                </View>
-              )}
+              <View style={styles.playIconContainer}>
+                <Image
+                  source={
+                    isCurrentlyPlaying
+                      ? appImages.playerPauseIcon
+                      : appImages.playerPlayIcon
+                  }
+                  style={styles.playIcon}
+                  resizeMode="contain"
+                />
+              </View>
               <TouchableOpacity
                 style={[styles.menuButton, {padding: 6}]}
                 onPress={() => handleDownload(item)}>
@@ -639,7 +639,11 @@ const LibraryScreen = () => {
 
   // Memoize the list header
   const ListHeaderComponent = useMemo(
-    () => <Text style={styles.heading}>Library</Text>,
+    () => (
+      <View style={{marginLeft: 10}}>
+        <Text style={styles.heading}>Library</Text>
+      </View>
+    ),
     [],
   );
 
@@ -648,7 +652,6 @@ const LibraryScreen = () => {
 
   // Create a generation indicator component
   const GenerationIndicator = () => {
-    // Only show if a song is actively being generated AND we have a generatingSongId
     if (!isGeneratingSong || !generatingSongId) return null;
 
     return (
@@ -672,7 +675,14 @@ const LibraryScreen = () => {
   return (
     <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
       <GradientBackground>
-        <View style={[styles.content, {backgroundColor: 'transparent'}]}>
+        <View
+          style={[
+            styles.content,
+            {
+              backgroundColor: 'transparent',
+              paddingTop: Platform.OS === 'ios' ? 50 : 60,
+            },
+          ]}>
           {isGeneratingSong && (
             <View style={styles.generatingContainer}>
               <ActivityIndicator color="#F4A460" size="small" />
@@ -693,7 +703,7 @@ const LibraryScreen = () => {
               keyExtractor={keyExtractor}
               ListHeaderComponent={ListHeaderComponent}
               ListEmptyComponent={ListEmptyComponent}
-              contentContainerStyle={{paddingBottom: 80}}
+              contentContainerStyle={{paddingBottom: 80, paddingTop: 40}}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -721,8 +731,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingTop: 15,
-    marginHorizontal: 10,
   },
   list: {
     flex: 1,
@@ -755,13 +763,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   heading: {
-    fontSize: 24,
     fontWeight: '700',
-    color: '#FDF5E6',
-    fontFamily: 'Bricolage Grotesque',
     letterSpacing: -0.8,
     textTransform: 'capitalize',
     marginBottom: 16,
+    color: '#F2F2F2',
+    fontFamily: 'Inter',
+    fontSize: 16,
+    lineHeight: 24,
   },
   cardsContainer: {
     flexDirection: 'row',
@@ -802,8 +811,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderRadius: 12,
-    backgroundColor: '#1F1F1F', // Solid background color
     height: 70,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    backgroundColor: '#1E1E1E',
   },
   playingSongItem: {
     backgroundColor: '#3C3129', // Darker background for playing items
@@ -984,6 +995,27 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '500',
     marginLeft: 12,
+  },
+  playIconContainer: {
+    width: 25,
+    height: 25,
+    borderRadius: 20,
+    backgroundColor: 'rgba(244, 164, 96, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  playIcon: {
+    width: 12,
+    height: 12,
+    tintColor: '#FFFFFF',
   },
 });
 

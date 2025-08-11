@@ -69,18 +69,19 @@ export const AppProvider = ({children}) => {
 
           // Tokens present, validate them
           try {
-            // Validate token logic goes here
-            const validationResult = true; // Placeholder, replace with actual validation
+            // Validate tokens and refresh if needed
+            const validationResult = await checkAndRefreshTokens();
 
             if (validationResult) {
-              // Token valid, set user state
+              // Token valid or successfully refreshed, set user state
               dispatch(setUser({isLoggedIn: true}));
             } else {
-              // Token invalid, set to logged out
+              // Token validation/refresh failed, set to logged out
               dispatch(setUser({isLoggedIn: false}));
             }
           } catch (error) {
             // Token validation failed, set to logged out
+            console.error('Token validation error:', error);
             dispatch(setUser({isLoggedIn: false}));
           } finally {
             // Always mark token check as complete

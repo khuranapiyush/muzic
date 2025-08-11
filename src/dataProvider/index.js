@@ -11,6 +11,7 @@ import {
   isTokenExpired,
   refreshAccessToken,
   checkAndRefreshTokens,
+  logoutUser,
 } from '../utils/authUtils';
 import {store} from '../stores';
 import config from 'react-native-config';
@@ -41,11 +42,22 @@ const ensureValidToken = async url => {
     const state = store.getState();
     const accessToken = state?.auth?.accessToken;
     const refreshToken = state?.auth?.refreshToken;
+    const isLoggedIn = state?.auth?.isLoggedIn || state?.user?.isLoggedIn;
+
+    // Only proceed if user is logged in and we have tokens
+    if (!isLoggedIn) {
+      return;
+    }
 
     // If we have a refresh token and the access token is expired, refresh it
     if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
       console.log(`Token validation before API call to ${url}`);
-      await checkAndRefreshTokens();
+      const tokenRefreshResult = await checkAndRefreshTokens();
+
+      if (!tokenRefreshResult) {
+        console.log('Token refresh failed, user may be logged out');
+        // Don't throw error here, let the request proceed and handle 401 in response interceptor
+      }
     }
   } catch (error) {
     console.error('Error ensuring valid token:', error);
@@ -314,6 +326,18 @@ export const addAuthInterceptor = async () => {
               console.log('Interceptor: Token refreshed successfully');
             } catch (error) {
               console.error('Interceptor: Failed to refresh token:', error);
+              // If refresh fails with 401/403, user will be logged out in refreshAccessToken
+              // For other errors, we continue and let the request fail normally
+              if (
+                error.response &&
+                (error.response.status === 401 || error.response.status === 403)
+              ) {
+                // Token refresh failed due to invalid refresh token
+                console.log(
+                  'Interceptor: Refresh token invalid, skipping auth header',
+                );
+                return req; // Continue without auth header
+              }
             }
           }
 
@@ -427,9 +451,9 @@ export const setupResponseInterceptor = async store => {
                   refreshError.response.status === 403)
               ) {
                 console.log(
-                  'Refresh token is invalid or expired. Logging out.',
+                  'Refresh token is invalid or expired. Logging out user.',
                 );
-                store.dispatch(updateToken({access: '', refresh: ''}));
+                logoutUser().catch(err => console.error('Logout error:', err));
               } else {
                 console.log(
                   'Token refresh failed due to network or server error.',

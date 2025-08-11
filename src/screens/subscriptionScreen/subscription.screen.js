@@ -41,15 +41,12 @@ const PRICE_MULTIPLIERS = {
   payment_300: 9.3,
 };
 
-// Add function to calculate iOS discount percentage
 const calculateIOSDiscount = productId => {
   const baseMultiplier = PRICE_MULTIPLIERS['payment_101']; // Base price multiplier
   const productMultiplier = PRICE_MULTIPLIERS[productId];
 
   if (!productMultiplier || !baseMultiplier) return 0;
 
-  // Calculate discount percentage
-  // For higher tiers, the effective price per unit is lower, which represents the discount
   const effectiveDiscount = (
     (1 - baseMultiplier / productMultiplier) *
     100
@@ -59,17 +56,14 @@ const calculateIOSDiscount = productId => {
 
 // Modify the product formatting for iOS
 const formatIOSProduct = (product, countryCode) => {
-  console.log(product, 'productANDROID');
   if (!product || !product.productId) {
     console.log('Invalid product data:', product);
     return product;
   }
 
   try {
-    // Get the multiplier for this product
     const multiplier = PRICE_MULTIPLIERS[product.productId] || 1;
 
-    // Extract numeric price and currency from product price
     const numericPrice = extractNumericPrice(
       product.price || product.localizedPrice || '0',
     );
@@ -87,15 +81,6 @@ const formatIOSProduct = (product, countryCode) => {
       originalPrice > 0
         ? Math.round(((originalPrice - discountedPrice) / originalPrice) * 100)
         : 0;
-
-    console.log(`Formatting iOS product ${product.productId}:`, {
-      originalPrice,
-      discountedPrice,
-      discountPercentage,
-      multiplier,
-      currencyCode,
-      currencySymbol,
-    });
 
     return {
       ...product,
@@ -1352,8 +1337,6 @@ const PlanCard = ({
 }) => {
   const hasDiscount = !!(discount && discountedPrice && originalPrice);
 
-  console.log(discountedPrice, 'discountedPrice');
-
   // Truncate long feature text on iOS to ensure it fits
   const processFeatures = feature => {
     if (Platform.OS === 'ios' && feature.length > 40) {
@@ -1430,7 +1413,7 @@ const PlanCard = ({
         onPress={onPurchase}
         disabled={disabled}>
         <LinearGradient
-          colors={['#F4A460', '#DEB887']}
+          colors={['rgba(255, 255, 255, 0.20)', 'rgba(255, 255, 255, 0.40)']}
           start={{x: 0, y: 0}}
           end={{x: 1, y: 1}}
           style={styles.gradient}>
@@ -1454,7 +1437,7 @@ const SubscriptionScreen = () => {
   const [purchasePending, setPurchasePending] = useState(false);
   const [userCountry, setUserCountry] = useState('US');
   const authState = useSelector(state => state.auth);
-  // Add state to track iOS purchases
+
   const [iosPurchaseCompleted, setIosPurchaseCompleted] = useState(false);
   const [currentIosPurchase, setCurrentIosPurchase] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -3565,6 +3548,10 @@ const SubscriptionScreen = () => {
               'Never expires',
             ];
 
+          const updatedTitle = product.title.replace(
+            '(MakeMySong - AI Music & Songs)',
+            '',
+          );
           const processedFeatures =
             Platform.OS === 'ios'
               ? features.map(feature =>
@@ -3574,12 +3561,10 @@ const SubscriptionScreen = () => {
                 )
               : features;
 
-          const showDiscount = discountValue > 0;
-
           return (
             <PlanCard
               key={product.productId || product.sku}
-              title={product.title || 'Credit Pack'}
+              title={updatedTitle || 'Credit Pack'}
               price={localizedPriceString}
               features={processedFeatures}
               onPurchase={() => {
@@ -3816,14 +3801,8 @@ const SubscriptionScreen = () => {
         }
       } else {
         // Android refresh
-        console.log('Refreshing Android products...');
         const directProducts = await fetchDirectPlayStoreProducts();
         if (directProducts && directProducts.length > 0) {
-          console.log(
-            `Successfully refreshed ${directProducts.length} Android products`,
-          );
-
-          // Sort products by price
           const sortedProducts = [...directProducts].sort((a, b) => {
             // Extract numeric value from price strings
             const getNumericPrice = product => {
@@ -3836,16 +3815,9 @@ const SubscriptionScreen = () => {
             return getNumericPrice(a) - getNumericPrice(b);
           });
 
-          // Log sorted products for verification
-          console.log('Android products sorted by price (lowest to highest):');
-          sortedProducts.forEach((product, idx) => {
-            console.log(`${idx + 1}. ${product.productId}: ${product.price}`);
-          });
-
           setProducts(sortedProducts);
           global.availableProducts = sortedProducts;
 
-          // Set the lowest price product as default
           if (sortedProducts.length > 0) {
             setSelectedProductId(sortedProducts[0].productId);
           }
@@ -3854,10 +3826,7 @@ const SubscriptionScreen = () => {
         }
       }
 
-      // One more credit refresh to ensure latest data
-      console.log('Performing final credit refresh to ensure latest data');
-      await refreshCredits(true); // Force refresh again to ensure we have the latest data
-      console.log('Pull-to-refresh completed successfully');
+      await refreshCredits(true);
     } catch (error) {
       console.error('Error during pull-to-refresh:', error);
     } finally {
@@ -4125,14 +4094,15 @@ const styles = StyleSheet.create({
     }),
   },
   createButton: {
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: '#A84D0C',
+    backgroundColor: '#FC6C14',
     marginVertical: 8,
     width: Platform.OS === 'ios' ? '90%' : '100%',
     height: 56,
-    borderRadius: 28,
     overflow: 'hidden',
-    borderWidth: 1,
     borderStyle: 'solid',
-    borderColor: '#C87D48',
     ...(Platform.OS === 'ios' && {
       marginHorizontal: 5,
       marginBottom: 40,
@@ -4141,26 +4111,28 @@ const styles = StyleSheet.create({
       height: 54,
     }),
   },
-  disabledButton: {
-    opacity: 0.6,
-  },
   gradient: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 100,
-    borderWidth: 4,
+    borderWidth: 1,
+    borderColor: '#FFF',
     borderStyle: 'solid',
-    borderColor: '#C87D48',
+    backgroundColor: '#FC6C14',
+    boxShadow: '0 0 14px 0 #FFDBC5 inset',
   },
   createButtonText: {
     color: '#000',
     fontSize: 18,
-    fontWeight: '700',
-    ...(Platform.OS === 'ios' ? {paddingBottom: 3, fontWeight: '700'} : {}),
+    fontWeight: '600',
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   disabledButtonText: {
-    color: '#666',
+    opacity: 0.5,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   gradientContainer: {
     overflow: 'hidden',

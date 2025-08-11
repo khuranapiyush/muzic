@@ -1,7 +1,7 @@
 import React from 'react';
 import {useDispatch} from 'react-redux';
 import appImages from '../../../../resource/images';
-import {resetUser} from '../../../../stores/slices/user';
+import {logoutUser} from '../../../../utils/authUtils';
 import CView from '../../core/View';
 import CustomDrawerItem from '../DrawerItem';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
@@ -15,7 +15,7 @@ const DrawerFooter = () => {
   const navigation = useNavigation();
   const {showModal} = useModal();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     // Track logout event
     analyticsUtils.trackCustomEvent('user_logout', {
       method: 'drawer_menu',
@@ -31,8 +31,8 @@ const DrawerFooter = () => {
       // Silent error handling
     }
 
-    setTimeout(() => {
-      dispatch(resetUser());
+    setTimeout(async () => {
+      await logoutUser();
     }, 300);
   };
 

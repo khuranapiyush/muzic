@@ -6,11 +6,15 @@ const getStyles = theme => {
     dropdownContainer: {
       alignItems: 'center',
       width: 110,
-      height: 44,
+      height: 50,
+      // borderRadius: 12,
+      // borderWidth: 1,
+      // borderColor: Colors[theme]?.cardBorderColor,
+      // backgroundColor: Colors[theme]?.appBg,
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: Colors[theme]?.cardBorderColor,
-      backgroundColor: Colors[theme]?.appBg,
+      borderColor: '#403F3F',
+      backgroundColor: '#1E1E1E',
     },
     dropdownHeader: {
       height: 44,

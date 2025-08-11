@@ -23,6 +23,7 @@ import Toaster from '../../Toaster';
 import CView from '../../core/View';
 import getStyles from './style';
 import {useTheme} from '@react-navigation/native';
+import GradientBackground from '../../GradientBackground';
 
 const MobileVerification = ({
   isVisible,
@@ -254,7 +255,9 @@ const MobileVerification = ({
           ...styles.modalContainer,
           height: screenHeight * (config.type == 'max' ? 1 : 0.45),
         }}>
-        <CView style={styles.modalContent}>{formRenderer()}</CView>
+        <GradientBackground>
+          <CView style={styles.modalContent}>{formRenderer()}</CView>
+        </GradientBackground>
         <Toaster />
       </SafeAreaView>
     </Modal>

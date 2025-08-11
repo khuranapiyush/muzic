@@ -10,7 +10,6 @@ const Stack = createNativeStackNavigator();
 const AppStackNavigator = () => {
   const {mode} = useTheme();
 
-  // Memoize screen options to prevent unnecessary re-renders
   const screenOptions = useMemo(
     () => ({
       headerBackTitleVisible: false,

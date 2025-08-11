@@ -1,32 +1,30 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../Colors'
+import {StyleSheet} from 'react-native';
 
 const getStyles = theme => {
   return StyleSheet.create({
     modal: {
       margin: 0,
-      justifyContent: 'flex-end'
+      justifyContent: 'flex-end',
     },
     modalContainer: {
-      backgroundColor: '#000',
       borderTopLeftRadius: 20,
       borderTopRightRadius: 20,
-      justifyContent: 'center'
+      justifyContent: 'center',
     },
-    modalContent: {},
+    modalContent: {flex: 1},
     closeButton: {
       backgroundColor: 'red',
       padding: 10,
       borderRadius: 10,
       marginTop: 20,
-      alignItems: 'center'
+      alignItems: 'center',
     },
     closeButtonText: {
       // color: 'white',
       fontSize: 16,
-      fontWeight: 'bold'
-    }
-  })
-}
+      fontWeight: 'bold',
+    },
+  });
+};
 
-export default getStyles
+export default getStyles;

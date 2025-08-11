@@ -38,6 +38,7 @@ import CView from '../../core/View';
 import getStyles from './style';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import MoEngageService from '../../../../services/moengageService';
+import GradientBackground from '../../GradientBackground';
 
 const getFormSchema = (authMode, formData = {}) => {
   switch (authMode) {
@@ -748,13 +749,13 @@ const AuthModal = ({
       // swipeDirection={['down']}
       propagateSwipe
       style={{...styles.modal}}
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
+      animationIn={'slideInUp'}
+      animationOut={'slideOutDown'}
       backdropOpacity={0.5}
       avoidKeyboard={false}
       coverScreen={true}
       hasBackdrop={true}
-      backdropColor="black"
+      backdropColor={'black'}
       useNativeDriverForBackdrop
       onSwipeComplete={handleSwipeComplete}>
       <KeyboardAvoidingView behavior={'padding'} style={{flex: 1}}>
@@ -763,7 +764,9 @@ const AuthModal = ({
             ...styles.modalContainer,
             height: height,
           }}>
-          <CView style={styles.modalContent}>{formRenderer()}</CView>
+          <GradientBackground>
+            <CView style={styles.modalContent}>{formRenderer()}</CView>
+          </GradientBackground>
           <Toaster />
         </SafeAreaView>
       </KeyboardAvoidingView>

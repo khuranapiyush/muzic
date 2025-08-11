@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   TouchableWithoutFeedback,
   ScrollView,
+  Platform,
 } from 'react-native';
 import CView from '../../../common/core/View';
 import CText from '../../../common/core/Text';
@@ -363,7 +364,6 @@ const AIGenerator = ({pageHeading}) => {
 
   const creditsPerSong = useSelector(selectCreditsPerSong);
 
-  // Add this to check global player visibility
   const {showGlobalPlayer} = useSelector(state => state.player);
 
   return (
@@ -374,12 +374,15 @@ const AIGenerator = ({pageHeading}) => {
           <CView style={[styles.flatList, {backgroundColor: 'transparent'}]}>
             <ScrollView
               style={styles.scrollContainer}
-              contentContainerStyle={styles.scrollContentContainer}
+              contentContainerStyle={[
+                styles.scrollContentContainer,
+                {paddingTop: Platform.OS === 'ios' ? 50 : 70},
+              ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled">
               <CView style={styles.wrapper}>
                 <CText size="largeBold" style={styles.promptHeading}>
-                  Write your Prompt
+                  Description
                 </CText>
                 <TextInputFC
                   control={control}
@@ -397,11 +400,6 @@ const AIGenerator = ({pageHeading}) => {
                   }}
                   onChangeText={handleInputChange}
                 />
-                <View style={styles.creditsContainer}>
-                  <CText style={styles.creditsText}>
-                    Songs Left: {Math.floor(creditsValue / creditsPerSong)}
-                  </CText>
-                </View>
                 {errorMessage ? (
                   <CText style={styles.errorText}>{errorMessage}</CText>
                 ) : null}
@@ -417,14 +415,22 @@ const AIGenerator = ({pageHeading}) => {
             <CView
               style={[
                 styles.buttonContainer,
-                showGlobalPlayer && {bottom: 90}, // Adjust bottom margin when player is visible
+                showGlobalPlayer && {bottom: 90},
               ]}>
+              <View style={styles.creditsContainer}>
+                <CText style={styles.creditsText}>
+                  {Math.floor(creditsValue / creditsPerSong)} Songs Left
+                </CText>
+              </View>
               <TouchableOpacity
                 style={styles.createButton}
                 activeOpacity={0.8}
                 onPress={handleSubmit}>
                 <LinearGradient
-                  colors={['#F4A460', '#DEB887']}
+                  colors={[
+                    'rgba(255, 255, 255, 0.20)',
+                    'rgba(255, 255, 255, 0.40)',
+                  ]}
                   start={{x: 0, y: 0}}
                   end={{x: 1, y: 1}}
                   style={styles.gradient}>
