@@ -26,6 +26,14 @@ const auth = createSlice({
           state.refreshToken = action.payload.refresh;
         }
 
+        // Backward/compat: accept keys named accessToken/refreshToken too
+        if (action.payload.hasOwnProperty('accessToken')) {
+          state.accessToken = action.payload.accessToken;
+        }
+        if (action.payload.hasOwnProperty('refreshToken')) {
+          state.refreshToken = action.payload.refreshToken;
+        }
+
         // Set logged in based on whether we have valid tokens
         const hasValidTokens = state.accessToken && state.refreshToken;
         state.isLoggedIn = hasValidTokens;

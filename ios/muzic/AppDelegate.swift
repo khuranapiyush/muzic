@@ -5,7 +5,9 @@ import ReactAppDependencyProvider
 import FirebaseCore
 import FirebaseAnalytics
 import UserNotifications
+import MoEngageSDKPush
 import FBSDKCoreKit
+import RNBranch
 // import RNSplashScreen
 // import FacebookCore
 
@@ -33,10 +35,8 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
     // Register for APNs permission
     UNUserNotificationCenter.current().delegate = self
     UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
-      if granted {
-        DispatchQueue.main.async {
-          UIApplication.shared.registerForRemoteNotifications()
-        }
+      DispatchQueue.main.async {
+        UIApplication.shared.registerForRemoteNotifications()
       }
     }
 
@@ -55,6 +55,10 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
     // Call super to complete React Native initialization
     let success = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     
+    // Initialize Branch session
+    // RNBranch.useTestInstance() // Uncomment while testing with Test keys
+    RNBranch.initSession(launchOptions: launchOptions, isReferrable: true)
+
     // Initialize splash screen AFTER React initialization
     // RNSplashScreen.show()
     
@@ -64,14 +68,33 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
     return success
   }
 
-  // Forward APNs token to JS/native modules if needed (MoEngage RN handles this internally)
+  // Forward APNs token to MoEngage
   override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
     print("📬 APNs token registered: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
+    MoEngageSDKPush.sharedInstance().setPushToken(deviceToken)
   }
 
   // Handle APNs registration failure (optional)
   override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
     print("❌ APNs registration failed: \(error.localizedDescription)")
+  }
+
+  // Foreground push display handling via MoEngage
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    MoEngageSDKPush.sharedInstance().userNotificationCenter(center,
+                                                            willPresent: notification,
+                                                            withCompletionHandler: completionHandler)
+  }
+
+  // Push click handling via MoEngage
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+    MoEngageSDKPush.sharedInstance().userNotificationCenter(center,
+                                                            didReceive: response,
+                                                            withCompletionHandler: completionHandler)
   }
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {
@@ -88,6 +111,11 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
   
   // URL handler for Facebook SDK and other deep links
   override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    // Give Branch a chance to handle deep link URLs first
+    if RNBranch.application(app, open: url, options: options) {
+      return true
+    }
+
     // Handle Facebook URL scheme
     let fbHandled = FBSDKCoreKit.ApplicationDelegate.shared.application(
       app,
@@ -102,5 +130,13 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
     
     // Call super for other URL scheme handlers (like Google Sign-In)
     return super.application(app, open: url, options: options)
+  }
+
+  // Handle Universal Links via Branch (pre-iOS 13 or when not using SceneDelegate)
+  override func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+    if RNBranch.continue(userActivity) {
+      return true
+    }
+    return false
   }
 }

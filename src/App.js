@@ -36,6 +36,7 @@ import messaging from '@react-native-firebase/messaging';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import moEngageService from './services/moengageService';
 import useMoEngageUser from './hooks/useMoEngageUser';
+import branch from 'react-native-branch';
 
 // Default credit settings in case API fails
 const DEFAULT_CREDIT_SETTINGS = {
@@ -269,6 +270,31 @@ const AppContent = () => {
   }, []);
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
+
+  // Branch deep link subscription
+  useEffect(() => {
+    const unsubscribe = branch.subscribe({
+      onOpenStart: ({uri, cachedInitialEvent}) => {
+        console.log('Branch opening:', uri, 'cached?', cachedInitialEvent);
+      },
+      onOpenComplete: ({error, params, uri}) => {
+        if (error) {
+          console.error('Branch open error', error);
+          return;
+        }
+        try {
+          const productId = params?.product_id || params?.['product_id'];
+          if (productId) {
+            // TODO: wire navigation to product screen
+            console.log('Branch product_id:', productId, 'from', uri);
+          }
+        } catch (e) {
+          // no-op
+        }
+      },
+    });
+    return () => unsubscribe && unsubscribe();
+  }, []);
 
   // If app initialization failed, show error screen
   if (initError) {

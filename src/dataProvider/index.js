@@ -1,5 +1,5 @@
 import {updateToken} from '../stores/slices/auth';
-import {getData} from '../utils/asyncStorage';
+// import {getData} from '../utils/asyncStorage';
 import {
   fanTvInstance,
   rawInstance,
@@ -92,20 +92,30 @@ const fetcher = {
 
       console.log('Setting auth token in axios instances');
 
-      // Update token in all axios instances
-      fanTvInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
-      strapiInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
+      // Determine token string value (handle object or string)
+      const tokenValue =
+        typeof token === 'object' && token !== null && token.access
+          ? token.access
+          : token;
+
+      // Update token in axios instances with the proper string value
+      if (typeof tokenValue === 'string') {
+        fanTvInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+        strapiInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+        defaultInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+        rawInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+      }
 
       // Check if token is already an object or a string
-      if (typeof token === 'string') {
+      if (typeof tokenValue === 'string' && typeof token === 'string') {
         // If it's a string, update Redux with proper structure
         store.dispatch(
           updateToken({
-            access: token,
+            access: tokenValue,
             refresh: store.getState()?.auth?.refreshToken, // Keep existing refresh token
           }),
         );
-      } else if (token.access && token.refresh) {
+      } else if (token && token.access && token.refresh) {
         // If it's already the correct structure with access & refresh
         store.dispatch(updateToken(token));
       }
@@ -393,7 +403,7 @@ const processQueue = (error, token = null, axiosInstance = fanTvInstance) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.originalRequest.headers['Authorization'] = `Bearer ${token}`;
+      prom.originalRequest.headers.Authorization = `Bearer ${token}`;
       prom.resolve(axiosInstance(prom.originalRequest));
     }
   });
@@ -401,7 +411,7 @@ const processQueue = (error, token = null, axiosInstance = fanTvInstance) => {
   failedQueue = [];
 };
 
-export const setupResponseInterceptor = async store => {
+export const setupResponseInterceptor = async injectedStore => {
   // Define the response interceptor function to reuse for multiple instances
   const responseInterceptorFunction = (response, axiosInstance) => {
     return response;
@@ -411,7 +421,7 @@ export const setupResponseInterceptor = async store => {
     const originalRequest = error.config;
 
     if (error.response && error.response.status === 401) {
-      const state = store.getState();
+      const state = injectedStore.getState();
 
       const refreshToken = state?.auth?.refreshToken;
 
@@ -437,7 +447,7 @@ export const setupResponseInterceptor = async store => {
             .then(async res => {
               const access = res.data.access?.token;
               const refresh = res.data.refresh?.token;
-              store.dispatch(updateToken({access, refresh}));
+              injectedStore.dispatch(updateToken({access, refresh}));
 
               processQueue(null, access, axiosInstance);
               resolve(axiosInstance(originalRequest));

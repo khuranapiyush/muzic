@@ -377,15 +377,10 @@ const CoverCreationScreen = () => {
           throw new Error('Authentication required. Please log in again.');
         }
 
-        // Make API request using fetcher
+        // Make API request using fetcher without overriding Authorization header.
+        // The global interceptor will inject the correct bearer token and handle refresh.
         const response = await fetcher.get(
           `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          },
         );
 
         // Handle the response properly - check both data and data.data
@@ -649,8 +644,6 @@ const CoverCreationScreen = () => {
   const UserRecordingCard = ({recording}) => {
     const isSelected =
       isUsingMyVocal && selectedRecordingFile?._id === recording._id;
-    const isCurrentlyPlaying =
-      currentSong && currentSong.id === recording._id && isPlaying;
 
     const formatDuration = duration => {
       if (!duration) {
@@ -1541,7 +1534,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     aspectRatio: 1,
     marginBottom: 5,
-    marginHorizontal: 5,
     borderWidth: 1,
     borderRadius: 12,
     borderColor: '#2A2A2A',

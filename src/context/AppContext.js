@@ -178,9 +178,9 @@ export const AppProvider = ({children}) => {
       removeResponseInterceptor = await setupResponseInterceptor(store);
     };
 
-    if (userId) {
-      setupInterceptors();
-    }
+    // Set up interceptors irrespective of whether userId is present.
+    // This ensures token refresh/attachment works even before user profile is loaded.
+    setupInterceptors();
 
     return () => {
       if (removeAuthInterceptor) {
@@ -191,7 +191,7 @@ export const AppProvider = ({children}) => {
         removeResponseInterceptor();
       }
     };
-  }, [userId]);
+  }, []);
 
   // Initialize only microphone permissions when needed
   useEffect(() => {

@@ -36,11 +36,31 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- Branch App Links for https scheme -->
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="makemysong.app.link" />
+        </intent-filter>
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="makemysong-alternate.app.link" />
+        </intent-filter>
         <meta-data
         android:name="com.google.android.gms.client_id"
         android:value="@string/default_web_client_id" />
       </activity>
       
+      <!-- Branch keys (use env via react-native-config) -->
+      <meta-data android:name="io.branch.sdk.BranchKey"
+          android:value="@string/BRANCH_KEY" />
+      <!-- Optional test key -->
+      <meta-data android:name="io.branch.sdk.BranchKey.test"
+          android:value="@string/BRANCH_TEST_KEY" />
+
       <!-- MoEngage Configuration -->
       <meta-data android:name="moengage_app_id" 
               android:value="BUP4RKUJZXQL8R2J9N61ZKEL"/>

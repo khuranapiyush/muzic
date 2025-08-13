@@ -3,7 +3,7 @@ import {StyleSheet, View, KeyboardAvoidingView, Platform} from 'react-native';
 import {useMutation} from '@tanstack/react-query';
 import {useDispatch} from 'react-redux';
 import {authGoogleLogin, authAppleLogin} from '../../../api/auth';
-import fetcher, {addAuthInterceptor} from '../../../dataProvider';
+import fetcher from '../../../dataProvider';
 import {useNavigation} from '@react-navigation/native';
 import useToaster from '../../../hooks/useToaster';
 import ROUTE_NAME from '../../../navigator/config/routeName';
@@ -190,15 +190,12 @@ const LoginScreen = () => {
           console.log('Auth token set in axios instances');
         }
 
-        // Add token to axios interceptor
-        addAuthInterceptor(accessToken);
-
-        // Save token in Redux
+        // Save token in Redux with consistent keys
         if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              accessToken: accessToken,
-              refreshToken: refreshToken,
+              access: accessToken,
+              refresh: refreshToken,
             }),
           );
           console.log('Tokens saved in Redux');
@@ -282,15 +279,12 @@ const LoginScreen = () => {
           console.log('Auth token set in axios instances');
         }
 
-        // Add token to axios interceptor
-        addAuthInterceptor(accessToken);
-
-        // Save token in Redux
+        // Save token in Redux with consistent keys
         if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              accessToken: accessToken,
-              refreshToken: refreshToken,
+              access: accessToken,
+              refresh: refreshToken,
             }),
           );
           console.log('Tokens saved in Redux');

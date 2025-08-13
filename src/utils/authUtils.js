@@ -141,12 +141,9 @@ export const checkAndRefreshTokens = async () => {
       return false;
     }
 
-    // Check if refresh token itself is expired
-    if (isTokenExpired(refreshToken)) {
-      console.log('Refresh token is expired, logging out user');
-      await logoutUser();
-      return false;
-    }
+    // Do NOT attempt to locally decode/verify refresh token expiry here.
+    // Some backends issue opaque (non-JWT) refresh tokens which cannot be decoded client-side.
+    // Instead, rely on the server during refreshAccessToken() to validate and decide.
 
     // If access token is valid, no need to refresh
     if (accessToken && !isTokenExpired(accessToken)) {

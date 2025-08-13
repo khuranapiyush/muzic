@@ -19,6 +19,7 @@ import com.moengage.core.LogLevel
 import com.moengage.core.DataCenter
 import com.moengage.core.config.NotificationConfig
 import com.moengage.react.MoEInitializer
+import io.branch.rnbranch.RNBranchModule
 
 
 class MainApplication : Application(), ReactApplication {
@@ -52,8 +53,9 @@ class MainApplication : Application(), ReactApplication {
       load()
     }
     
-    // Facebook SDK is initialized automatically via AndroidManifest.xml
-    // No need to call FacebookSdk.sdkInitialize() or AppEventsLogger.activateApp() here
+    // Initialize Branch auto instance
+    RNBranchModule.getAutoInstance(this)
+    RNBranchModule.enableLogging() // Remove or disable in production
     
     // Initialize Firebase
     try {
