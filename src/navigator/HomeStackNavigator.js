@@ -208,14 +208,14 @@ const styles = StyleSheet.create({
     borderRadius: 58,
   },
   unfocusedIcon: {
-    borderRadius: 22,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.05)',
     backgroundColor: '#121212',
   },
   iconImage: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
   },
   tabLabel: {
     fontSize: 12,

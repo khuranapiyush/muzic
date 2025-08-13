@@ -22,14 +22,7 @@ BackHandler.addEventListener = (eventName, handler) => {
   };
 };
 
-// Define removeEventListener as a no-op function to prevent errors
-if (BackHandler.removeEventListener === undefined) {
-  BackHandler.removeEventListener = (eventName, handler) => {
-    console.warn(
-      'BackHandler.removeEventListener is deprecated. Please use the remove() method on the event subscription returned by addEventListener.',
-    );
-    // This is a no-op function, as the actual cleanup should be done using the remove() method
-  };
-}
+// Note: removeEventListener is deprecated in React Native 0.65+
+// Components should use the subscription.remove() method instead
 
 export default BackHandler;

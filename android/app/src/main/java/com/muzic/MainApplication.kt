@@ -13,6 +13,12 @@ import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import com.google.firebase.FirebaseApp
 import com.google.firebase.analytics.FirebaseAnalytics
+import com.moengage.core.MoEngage
+import com.moengage.core.config.LogConfig
+import com.moengage.core.LogLevel
+import com.moengage.core.DataCenter
+import com.moengage.core.config.NotificationConfig
+import com.moengage.react.MoEInitializer
 
 
 class MainApplication : Application(), ReactApplication {
@@ -74,7 +80,27 @@ class MainApplication : Application(), ReactApplication {
       android.util.Log.e("FirebaseInit", "Error initializing Firebase: ${e.message}", e)
     }
     
-    // MoEngage initialization is handled automatically by react-native-moengage package
-    // App ID is configured in AndroidManifest.xml
+    // Initialize MoEngage SDK with proper configuration
+    try {
+      android.util.Log.d("MoEngageInit", "Starting MoEngage initialization...")
+      
+      val moEngageAppId = "BUP4RKUJZXQL8R2J9N61ZKEL"
+      val moEngageBuilder = MoEngage.Builder(this, moEngageAppId, DataCenter.DATA_CENTER_4)
+        .configureLogs(LogConfig(LogLevel.VERBOSE, true))
+        .configureNotificationMetaData(
+          NotificationConfig(
+            R.mipmap.icon, // small icon
+            R.mipmap.icon, // large icon (optional)
+            0, // accent color (0 => default)
+            true // allow multiple notifications
+          )
+        )
+      
+      MoEInitializer.initializeDefaultInstance(applicationContext, moEngageBuilder)
+      
+      android.util.Log.d("MoEngageInit", "MoEngage initialized successfully with App ID: $moEngageAppId")
+    } catch (e: Exception) {
+      android.util.Log.e("MoEngageInit", "Error initializing MoEngage: ${e.message}", e)
+    }
   }
 }

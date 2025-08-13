@@ -179,8 +179,6 @@ const GlobalPlayer = () => {
               {...panResponder.panHandlers}>
               {/* Background gradient with no gaps */}
               <LinearGradient
-                //               background: linear-gradient(180deg, #FF6F02 -40.63%, #FF7E85 120.31%);
-                // box-shadow: 0 0 9px 0 rgba(255, 213, 169, 0.22);
                 colors={['#FF6F02', '#FF7E85']}
                 start={{x: 0, y: 0}}
                 end={{x: 0, y: 1}}
@@ -384,11 +382,7 @@ const GlobalPlayer = () => {
               <TouchableOpacity
                 onPress={handlePlayPause}
                 style={styles.fullPlayerPlayPauseButton}>
-                <LinearGradient
-                  colors={['#FE954A', '#FC6C14']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.playPauseGradient}>
+                <View style={styles.playPauseGradient}>
                   <Image
                     source={
                       isPlaying
@@ -398,7 +392,7 @@ const GlobalPlayer = () => {
                     style={styles.fullPlayerPlayPauseIcon}
                     resizeMode="contain"
                   />
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -492,7 +486,7 @@ const GlobalPlayer = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 110 : 100,
+    bottom: Platform.OS === 'ios' ? 120 : 110,
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
@@ -574,22 +568,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: '#FFFFFF',
+    color: '#000',
     fontSize: 14,
     fontWeight: '700',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
   },
   artist: {
-    color: '#EEEEEE',
+    color: '#000',
     fontSize: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
   },
   timeText: {
-    color: '#EEEEEE',
+    color: '#000',
     fontSize: 10,
     marginTop: 2,
   },
@@ -599,7 +593,7 @@ const styles = StyleSheet.create({
   },
   playPauseButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    // backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
     marginHorizontal: 5,
     justifyContent: 'center',
@@ -608,9 +602,8 @@ const styles = StyleSheet.create({
     height: 40,
   },
   playPauseIcon: {
-    width: 24,
-    height: 24,
-    tintColor: '#FFFFFF',
+    width: 40,
+    height: 40,
   },
   closePlayerButton: {
     position: 'absolute',
@@ -803,9 +796,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullPlayerPlayPauseIcon: {
-    width: Platform.OS === 'ios' ? 36 : 40,
-    height: Platform.OS === 'ios' ? 36 : 40,
-    tintColor: '#121212',
+    width: Platform.OS === 'ios' ? 76 : 80,
+    height: Platform.OS === 'ios' ? 76 : 80,
+    // tintColor: '#121212',
     marginLeft: Platform.OS === 'ios' ? 0 : 2, // Small adjustment for Android play icon
   },
   queueContainer: {

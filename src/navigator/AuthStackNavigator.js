@@ -14,7 +14,6 @@ const AuthStackNavigator = () => {
       screenOptions={{
         headerShown: false,
         headerBackTitleVisible: false,
-        contentStyle: {backgroundColor: 'transparent'},
       }}>
       <Stack.Screen name={ROUTE_NAME.Login} component={LoginScreen} />
       <Stack.Screen name={ROUTE_NAME.PhoneInput} component={PhoneInputScreen} />

@@ -1,7 +1,7 @@
 import {StyleSheet} from 'react-native';
 
 const styles = StyleSheet.create({
-  wrapper: {paddingTop: 5},
+  wrapper: {paddingTop: 0},
   container: {alignItems: 'center'},
   contentContainer: {justifyContent: 'center', marginLeft: 10},
   submitBtn: {

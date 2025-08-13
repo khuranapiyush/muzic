@@ -37,7 +37,6 @@ import {
   setGeneratingSong,
   setGeneratingSongId,
 } from '../../../../stores/slices/player';
-// import appImages from '../../../../resource/images'; // Removed unused import
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
@@ -222,7 +221,7 @@ const CoverCreationScreen = () => {
               Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
-            timeout: 300000, // Increased timeout to 5 minutes (300,000ms)
+            // No timeout specified - allows unlimited time for AI voice conversion processing
           })
           .then(response => {
             // Check if the response is successful and contains expected data
@@ -493,7 +492,6 @@ const CoverCreationScreen = () => {
             headers: {
               Authorization: `Bearer ${API_TOKEN}`,
             },
-            timeout: 30000,
           },
           'raw',
         );
@@ -694,11 +692,6 @@ const CoverCreationScreen = () => {
                 style={styles.recordingCardIcon}
                 resizeMode={'cover'}
               />
-              {isCurrentlyPlaying && (
-                <View style={styles.playingIndicator}>
-                  <CText style={styles.playingText}>▶️</CText>
-                </View>
-              )}
             </View>
             <View style={styles.recordingDuration}>
               <CText style={styles.durationText}>
@@ -718,16 +711,6 @@ const CoverCreationScreen = () => {
           <TouchableOpacity
             style={styles.playButton}
             onPress={() => {
-              console.log('Play button pressed for recording:', {
-                id: recording._id,
-                name: recording.name,
-                audioUrl: recording.audioUrl,
-                url: recording.url,
-                fileUrl: recording.fileUrl,
-                recording: JSON.stringify(recording, null, 2),
-              });
-
-              // Try different possible audio URL properties
               const audioUrl =
                 recording.audioUrl ||
                 recording.url ||
@@ -767,7 +750,10 @@ const CoverCreationScreen = () => {
                 );
               }
             }}>
-            <CText style={styles.playButtonText}>▶️</CText>
+            <Image
+              source={appImages.playerPlayIcon}
+              style={styles.playButtonIcon}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.moreOptionsButton}
@@ -787,7 +773,13 @@ const CoverCreationScreen = () => {
       <>
         <View style={styles.myVocalHeaderContainer}>
           <View style={styles.myVocalTitleRow}>
-            <CText style={styles.myVocalTitle}>🎤 My Vocal</CText>
+            <View style={{flexDirection: 'row', alignItems: 'center'}}>
+              <Image
+                source={appImages.microphoneIcon}
+                style={styles.soundIcon}
+              />
+              <CText style={styles.myVocalTitle}>My Vocal</CText>
+            </View>
             {userRecordings.length > 0 && (
               <TouchableOpacity
                 style={styles.showAllButton}
@@ -848,9 +840,8 @@ const CoverCreationScreen = () => {
         </View>
 
         <View style={{...styles.vocalTitleContainer}}>
-          <Text style={[styles.sectionTitle, styles.vocalTitle]}>
-            🎤 Vocals
-          </Text>
+          <Image source={appImages.soundIcon} style={styles.soundIcon} />
+          <Text style={[styles.sectionTitle, styles.vocalTitle]}>Vocals</Text>
         </View>
       </>
     );
@@ -1741,9 +1732,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   deleteButton: {
-    // backgroundColor: '#FF4444',
-    // paddingVertical: 16,
-    // borderRadius: 12,
     alignItems: 'flex-start',
     marginBottom: 10,
   },
@@ -1762,6 +1750,15 @@ const styles = StyleSheet.create({
   recordingCardIcon: {
     width: 120,
     height: 120,
+  },
+  soundIcon: {
+    width: 20,
+    height: 20,
+    marginRight: 5,
+  },
+  playButtonIcon: {
+    width: 20,
+    height: 20,
   },
 });
 

@@ -37,7 +37,7 @@ import Toaster from '../../Toaster';
 import CView from '../../core/View';
 import getStyles from './style';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
-import MoEngageService from '../../../../services/moengageService';
+import useMoEngageUser from '../../../../hooks/useMoEngageUser';
 import GradientBackground from '../../GradientBackground';
 
 const getFormSchema = (authMode, formData = {}) => {
@@ -123,6 +123,9 @@ const AuthModal = ({
   const navigator = useNavigation();
   const {showToaster} = useToaster();
   const dispatch = useDispatch();
+
+  // Use the MoEngage hook for automatic user tracking
+  const {trackMuzicEvents} = useMoEngageUser();
 
   const {
     control,
@@ -221,11 +224,16 @@ const AuthModal = ({
     onSuccess: res => {
       dispatch(setUser({isGuest: false, isLoggedIn: true, ...res.data}));
 
-      // Register user in MoEngage
+      // Track login success with Muzic-specific context
       try {
-        MoEngageService.registerUserFromLogin(res.data.user, 'google');
+        trackMuzicEvents.socialAction('login', {
+          method: 'google',
+          user_id: res.data.user?.id || res.data.user?._id,
+          email: res.data.user?.email,
+          source: 'auth_modal',
+        });
       } catch (error) {
-        console.warn('MoEngage user registration failed:', error);
+        console.warn('MoEngage login tracking failed:', error);
       }
 
       handleLoginEvent(res?.data?.user, {
@@ -260,11 +268,16 @@ const AuthModal = ({
     onSuccess: res => {
       dispatch(setUser({isGuest: false, isLoggedIn: true, ...res.data}));
 
-      // Register user in MoEngage
+      // Track login success with Muzic-specific context
       try {
-        MoEngageService.registerUserFromLogin(res.data.user, 'apple');
+        trackMuzicEvents.socialAction('login', {
+          method: 'apple',
+          user_id: res.data.user?.id || res.data.user?._id,
+          email: res.data.user?.email,
+          source: 'auth_modal',
+        });
       } catch (error) {
-        console.warn('MoEngage user registration failed:', error);
+        console.warn('MoEngage login tracking failed:', error);
       }
 
       handleLoginEvent(res?.data?.user, {

@@ -42,6 +42,10 @@ target 'muzic' do
   pod 'FirebaseCore', :modular_headers => true
   pod 'FirebaseCoreInternal', :modular_headers => true
   
+  # MoEngage iOS SDK and Push
+  pod 'MoEngage-iOS-SDK', '~> 9.21.0'
+  pod 'MoEngagePush', '~> 9.21.0'
+  
   # Facebook SDK 
   pod 'FBSDKCoreKit'
   pod 'FBSDKLoginKit'

@@ -1,4 +1,4 @@
-import {getApps} from '@react-native-firebase/app';
+import messaging from '@react-native-firebase/messaging';
 import {Platform} from 'react-native';
 
 // Firebase configuration for the native applications
@@ -25,15 +25,17 @@ const firebaseConfig = {
  */
 export const initializeFirebase = async () => {
   try {
-    // For native platforms, Firebase initialization happens automatically
-    // through the native Firebase SDK with google-services.json and GoogleService-Info.plist
-    const apps = getApps();
-    if (apps.length > 0) {
-      console.log('Firebase is initialized in native mode');
-      return true;
-    } else {
-      console.error('Firebase app not found - check native configuration');
-      return false;
+    // Assume native initialization via google-services / plist
+    console.log('Firebase is initialized in native mode');
+    // Ensure notification permission on Android 13+ and log token
+    try {
+      const token = await messaging().getToken();
+      console.log('[Firebase] FCM token:', token);
+    } catch (permErr) {
+      console.warn(
+        '[Firebase] Notification token fetch error:',
+        permErr?.message || permErr,
+      );
     }
   } catch (error) {
     console.error('Error checking Firebase initialization:', error);

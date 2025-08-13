@@ -1,22 +1,22 @@
-import React from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import { useTheme } from '@react-navigation/native'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import { getFilterByTab } from '../../../../constants/constant'
-import getStyles from './AIGenerator.styles'
-import appImages from '../../../../resource/images'
+import React from 'react';
+import {Image, TouchableOpacity} from 'react-native';
+import {useTheme} from '@react-navigation/native';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import {getFilterByTab} from '../../../../constants/constant';
+import getStyles from './AIGenerator.styles';
+import appImages from '../../../../resource/images';
 
 const AiFilter = ({
   pageType,
   tabIndex,
   filterValue,
-  setIsFilterModalVisible
+  setIsFilterModalVisible,
 }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const {mode} = useTheme();
+  const styles = getStyles(mode);
 
-  const filters = getFilterByTab(tabIndex === 1 ? 'script' : pageType)
+  const filters = getFilterByTab(tabIndex === 1 ? 'script' : pageType);
 
   return (
     <CView row style={styles.filterWrapper}>
@@ -27,7 +27,7 @@ const AiFilter = ({
               setIsFilterModalVisible({
                 isVisible: true,
                 data: item?.filterTypeData,
-                filterKey: item?.key
+                filterKey: item?.key,
               })
             }
             style={styles.filterContainer}
@@ -45,10 +45,10 @@ const AiFilter = ({
               />
             </CView>
           </TouchableOpacity>
-        )
+        );
       })}
     </CView>
-  )
-}
+  );
+};
 
-export default AiFilter
+export default AiFilter;

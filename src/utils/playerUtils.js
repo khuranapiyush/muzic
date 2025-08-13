@@ -47,15 +47,24 @@ export const normalizeSongData = songData => {
   const normalizedSong = {
     id: songData.id || songData._id || `song-${Date.now()}`,
     title: songData.title || songData.name || 'Unknown Title',
-    artist: songData.artist || songData.artistName || 'Unknown Artist',
+    artist: songData.artist || songData.artistName || 'AI Generated',
     uri: songData.uri || songData.url || songData.audioUrl || '',
-    thumbnail: songData.thumbnail || songData.image || songData.artwork || '',
+    thumbnail:
+      songData.thumbnail ||
+      songData.image ||
+      songData.imageUrl ||
+      songData.artwork ||
+      '',
     poster:
       songData.poster ||
       songData.coverImage ||
       songData.thumbnail ||
       songData.image ||
+      songData.imageUrl ||
       '',
+    duration: songData.duration || 0,
+    // Keep original data for reference
+    originalData: songData,
   };
 
   // Cache the normalized song
@@ -78,9 +87,12 @@ export const playSong = (songData, source, songList = null) => {
     songListLength: songList?.length || 0,
   });
 
-  // Add validation for required fields
-  if (!songData || !songData.uri) {
+  // Add validation for required fields - check for any valid audio URL property
+  const hasAudioUrl =
+    songData && (songData.uri || songData.url || songData.audioUrl);
+  if (!songData || !hasAudioUrl) {
     console.error('Invalid song data provided to playSong:', songData);
+    console.error('Available properties:', Object.keys(songData || {}));
     return;
   }
 

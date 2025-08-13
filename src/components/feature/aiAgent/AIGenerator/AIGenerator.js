@@ -116,13 +116,12 @@ const AIGenerator = ({pageHeading}) => {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // Using fetcher with a much longer timeout since we know song generation takes time
     const response = await fetcher.post(
       `${API_BASE_URL}/v1/generate-song`,
       requestPayload,
       {
         headers,
-        timeout: 300000, // 5 minutes timeout - significantly longer to accommodate AI processing time
+        // No timeout specified - allows unlimited time for AI processing
       },
     );
 

@@ -997,10 +997,8 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   playIconContainer: {
-    width: 25,
-    height: 25,
-    borderRadius: 20,
-    backgroundColor: 'rgba(244, 164, 96, 0.9)',
+    width: 40,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -1013,9 +1011,8 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   playIcon: {
-    width: 12,
-    height: 12,
-    tintColor: '#FFFFFF',
+    width: 40,
+    height: 40,
   },
 });
 

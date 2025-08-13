@@ -4,9 +4,7 @@ import {useSelector} from 'react-redux';
 import useModal from '../../../../hooks/useModal';
 import appImages from '../../../../resource/images';
 import {useAuthUser} from '../../../../stores/selector';
-// import Avatar from '../../Avatar';
 import CButton from '../../core/Button';
-// import CText from '../../core/Text';
 import CView from '../../core/View';
 import styles from './style';
 import Colors from '../../Colors';
@@ -15,8 +13,6 @@ import {useTheme} from '@react-navigation/native';
 const DrawerHeader = ({navigation}) => {
   const {showModal, hideModal} = useModal();
   const {isGuest, isLoggedIn} = useSelector(useAuthUser);
-  // const user = useSelector(state => state.user);
-  // const {isShowFeature} = useSelector(state => state.app);
 
   const {mode} = useTheme();
 
@@ -34,23 +30,10 @@ const DrawerHeader = ({navigation}) => {
     <CView style={styles.wrapper}>
       <CView row style={styles.container}>
         {!isGuest && isLoggedIn ? (
-          <CView row style={{flex: 3}}>
+          <CView row style={{flex: 1}}>
             <CView>
-              {/* <Avatar
-                name={user?.name || 'User'}
-                imageUrl={user?.profilePic}
-                customStyles={{avatarContainer: {width: 48, height: 48}}}
-              /> */}
-              {/* {isShowFeature && ( */}
               <Image source={appImages.appLogo} style={styles.badgeStyle} />
-              {/* )} */}
             </CView>
-            {/* <CView style={styles.contentContainer}>
-              <CText style={styles.userStyle}>{user?.name}</CText>
-              {isShowFeature && (
-                <CText style={styles.userStyle}>{user?.userSubTitle}</CText>
-              )}
-            </CView> */}
           </CView>
         ) : (
           <CView>

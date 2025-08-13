@@ -22,7 +22,7 @@ import {setTokenChecked} from '../../../stores/slices/app';
 import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
 import {store} from '../../../stores';
-import MoEngageService from '../../../services/moengageService';
+import useMoEngageUser from '../../../hooks/useMoEngageUser';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -30,6 +30,9 @@ const LoginScreen = () => {
   const [isAppleSignInProgress, setIsAppleSignInProgress] = useState(false);
   const {showToaster} = useToaster();
   const navigation = useNavigation();
+
+  // Use the MoEngage hook for automatic user tracking
+  const {trackMuzicEvents} = useMoEngageUser();
 
   // Initialize Google Sign-In when component mounts
   useEffect(() => {
@@ -211,11 +214,15 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Register user in MoEngage
+        // Track login success with Muzic-specific context
         try {
-          MoEngageService.registerUserFromLogin(res.data.user, 'google');
+          trackMuzicEvents.socialAction('login', {
+            method: 'google',
+            user_id: res.data.user?.id || res.data.user?._id,
+            email: res.data.user?.email,
+          });
         } catch (error) {
-          console.warn('MoEngage user registration failed:', error);
+          console.warn('MoEngage login tracking failed:', error);
         }
 
         // Log the login event for analytics
@@ -299,11 +306,15 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Register user in MoEngage
+        // Track login success with Muzic-specific context
         try {
-          MoEngageService.registerUserFromLogin(res.data.user, 'apple');
+          trackMuzicEvents.socialAction('login', {
+            method: 'apple',
+            user_id: res.data.user?.id || res.data.user?._id,
+            email: res.data.user?.email,
+          });
         } catch (error) {
-          console.warn('MoEngage user registration failed:', error);
+          console.warn('MoEngage login tracking failed:', error);
         }
 
         // Log the login event for analytics
@@ -645,7 +656,6 @@ const styles = StyleSheet.create({
   },
   keyboardAvoidView: {
     flex: 1,
-    backgroundColor: 'transparent',
   },
   content: {
     flex: 1,

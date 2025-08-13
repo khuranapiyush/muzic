@@ -1,4 +1,5 @@
 import React from 'react';
+import {Platform} from 'react-native';
 import {StyleSheet, View} from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
@@ -41,7 +42,7 @@ const styles = StyleSheet.create({
     height: '100%',
     width: '100%',
     position: 'absolute',
-    top: -300,
+    top: Platform.OS === 'ios' ? -200 : -300,
     left: 0,
     right: 0,
     bottom: 0,

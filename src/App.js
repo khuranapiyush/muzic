@@ -32,7 +32,10 @@ import analyticsUtils from './utils/analytics';
 import tagManagerUtils from './utils/tagManager';
 import facebookEvents from './utils/facebookEvents';
 import {initializeFirebase} from './utils/firebase';
-import MoEngageService from './services/moengageService';
+import messaging from '@react-native-firebase/messaging';
+import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
+import moEngageService from './services/moengageService';
+import useMoEngageUser from './hooks/useMoEngageUser';
 
 // Default credit settings in case API fails
 const DEFAULT_CREDIT_SETTINGS = {
@@ -57,6 +60,8 @@ if (!store) {
 
 const AppContent = () => {
   const dispatch = useDispatch();
+  // Mount global MoEngage user tracking
+  const {isUserIdentified, currentUserId} = useMoEngageUser();
   const [theme, setTheme] = useState({
     mode: 'dark',
   });
@@ -98,6 +103,44 @@ const AppContent = () => {
     try {
       // Initialize Firebase
       const firebaseReady = await initializeFirebase();
+      // Runtime notification permission and token (platform-aware)
+      try {
+        if (Platform.OS === 'android') {
+          // Only request POST_NOTIFICATIONS on Android 13+ (API 33)
+          const sdk = Platform.Version;
+          const canRequestPostNotifications =
+            typeof sdk === 'number' &&
+            sdk >= 33 &&
+            PERMISSIONS?.ANDROID?.POST_NOTIFICATIONS;
+          if (canRequestPostNotifications) {
+            try {
+              const status = await check(
+                PERMISSIONS.ANDROID.POST_NOTIFICATIONS,
+              );
+              if (status !== RESULTS.GRANTED) {
+                await request(PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
+              }
+            } catch (permErr) {
+              console.warn(
+                '[App] POST_NOTIFICATIONS check/request error:',
+                permErr?.message || permErr,
+              );
+            }
+          } else {
+            console.log('[App] Skipping POST_NOTIFICATIONS (SDK < 33)');
+          }
+        } else {
+          // iOS permission via Messaging API
+          await messaging().requestPermission();
+        }
+        const fcmToken = await messaging().getToken();
+        console.log('[App] FCM token:', fcmToken);
+      } catch (e) {
+        console.warn(
+          '[App] Unable to request notification permission or fetch token:',
+          e?.message || e,
+        );
+      }
 
       // Initialize Facebook SDK
       try {
@@ -135,12 +178,19 @@ const AppContent = () => {
         dispatch(setLoading(false));
       }
 
-      // Initialize MoEngage using service
+      // Initialize MoEngage using modernized service
       try {
-        await MoEngageService.initialize();
-        console.log('✅ MoEngage initialized for production');
+        const moengageInitialized = moEngageService.initialize();
+        if (moengageInitialized) {
+          console.log('✅ MoEngage initialized successfully for Muzic app');
+
+          // Track app open event
+          moEngageService.trackAppOpen();
+        } else {
+          console.warn('⚠️ MoEngage initialization returned false');
+        }
       } catch (moeError) {
-        console.warn('MoEngage initialization failed:', moeError.message);
+        console.warn('❌ MoEngage initialization failed:', moeError.message);
       }
 
       // Hide splash screen after all initialization is complete
@@ -199,12 +249,19 @@ const AppContent = () => {
     };
   }, [initializeApp, handleAppStateChange]);
 
+  // Optional: log identification state changes for debugging
+  useEffect(() => {
+    if (isUserIdentified && currentUserId) {
+      console.log('[MoEngage] User identified globally:', currentUserId);
+    }
+  }, [isUserIdentified, currentUserId]);
+
   useEffect(() => {
     // Track app opened event using MoEngage service
     try {
       // This will be called after initialization, so service should be ready
       setTimeout(() => {
-        MoEngageService.trackAppOpened('HomeScreen');
+        moEngageService.trackAppOpen();
       }, 2000); // Small delay to ensure initialization is complete
     } catch (moeError) {
       console.warn('MoEngage event tracking failed:', moeError.message);

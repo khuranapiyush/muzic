@@ -42,7 +42,6 @@ const SongCard = ({
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
-  const {isPlaying: globalIsPlaying} = useMusicPlayer('HomeScreen');
 
   return (
     <TouchableOpacity
@@ -53,12 +52,10 @@ const SongCard = ({
           source={imageUrl ? {uri: imageUrl} : appImages.songPlaceHolder}
           style={styles.thumbnailImage}
         />
-        <View style={[styles.playButton, isPlaying && styles.playButtonActive]}>
+        <View style={[styles.playButton]}>
           <Image
             source={
-              isPlaying && globalIsPlaying
-                ? appImages.playerPauseIcon
-                : appImages.playerPlayIcon
+              isPlaying ? appImages.playerPauseIcon : appImages.playerPlayIcon
             }
             style={[styles.playPauseIcon, !isPlaying && {marginLeft: 4}]}
           />
@@ -101,7 +98,8 @@ const SongSection = ({
   title,
   data,
   onSongPress,
-  currentSongId,
+  currentSong,
+  isPlaying,
   isListLoading,
   onShowAllPress,
 }) => {
@@ -138,7 +136,13 @@ const SongSection = ({
             audioUrl={item.audioUrl}
             imageUrl={item.imageUrl}
             onPress={() => onSongPress(item)}
-            isPlaying={currentSongId === item.audioUrl}
+            isPlaying={
+              isPlaying &&
+              currentSong &&
+              (currentSong.audioUrl === item.audioUrl ||
+                currentSong.uri === item.audioUrl ||
+                currentSong.id === item.audioUrl)
+            }
             createdAt={item.createdAt}
           />
         )}
@@ -157,7 +161,8 @@ export default function HomeScreen() {
   const styles = getStyles(mode);
   const navigation = useNavigation();
 
-  const {play, currentSong, togglePlayPause} = useMusicPlayer('HomeScreen');
+  const {play, currentSong, isPlaying, togglePlayPause} =
+    useMusicPlayer('HomeScreen');
 
   const {mutate: fetchAudioList, isLoading: isListLoading} = useMutation(
     () => fetcher.get(`${API_BASE_URL}/v1/audio-list`),
@@ -209,7 +214,12 @@ export default function HomeScreen() {
 
       facebookEvents.logSongPlay(song.audioUrl, song.title || 'Unknown Song');
 
-      if (currentSong && currentSong.audioUrl === song.audioUrl) {
+      if (
+        currentSong &&
+        (currentSong.audioUrl === song.audioUrl ||
+          currentSong.uri === song.audioUrl ||
+          currentSong.id === song.audioUrl)
+      ) {
         togglePlayPause();
         return;
       }
@@ -265,7 +275,8 @@ export default function HomeScreen() {
               title={section.title}
               data={section.data}
               onSongPress={song => handleSongPress(song)}
-              currentSongId={currentSong?.audioUrl}
+              currentSong={currentSong}
+              isPlaying={isPlaying}
               isListLoading={isListLoading}
               onShowAllPress={() =>
                 handleShowAllPress(section.sectionType, section.title)
