@@ -12,7 +12,6 @@ import {
 import fetcher from '../../../../dataProvider';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
-import {getAuthToken} from '../../../../utils/authUtils';
 
 const {width} = Dimensions.get('window');
 const GENRE_ITEM_WIDTH = (width - 48 - 32) / 5;
@@ -39,25 +38,20 @@ const GenreSelectionScreen = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const token = await getAuthToken();
-
-        const headers = {
-          'Content-Type': 'application/json',
-        };
-
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
+        // These endpoints are public; avoid attaching auth and token validation
         const genresResponse = await fetcher.get(`${API_BASE_URL}/v1/genres`, {
-          headers,
+          headers: {'Content-Type': 'application/json'},
+          skipTokenValidation: true,
+          skipAuthHeader: true,
         });
         setGenreList(genresResponse.data.data);
 
         const filtersResponse = await fetcher.get(
           `${API_BASE_URL}/v1/filters`,
           {
-            headers,
+            headers: {'Content-Type': 'application/json'},
+            skipTokenValidation: true,
+            skipAuthHeader: true,
           },
         );
         setFilterList(filtersResponse.data.data);

@@ -138,8 +138,10 @@ const fetcher = {
     axiosInstanceType,
     logConfigs = {log: false},
   ) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -167,8 +169,10 @@ const fetcher = {
    * @returns Promise
    */
   post: async (url, data, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -196,8 +200,10 @@ const fetcher = {
    * @returns Promise
    */
   put: async (url, data, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -225,8 +231,10 @@ const fetcher = {
    * @returns Promise
    */
   patch: async (url, data, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -254,8 +262,10 @@ const fetcher = {
    * @returns Promise
    */
   delete: async (url, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -275,8 +285,10 @@ const fetcher = {
       });
   },
   upload: async (url, formData, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -310,10 +322,20 @@ export const addAuthInterceptor = async () => {
       !req.url.includes('verify-email') &&
       !req.url.includes('refresh-tokens');
 
-    if (shouldAddAuthHeaders) {
+    // Allow callers to skip auth header injection and token refresh
+    const skipAuthHeader = Boolean(req.skipAuthHeader);
+
+    // Note: when callers set Authorization explicitly, we respect it below
+
+    if (shouldAddAuthHeaders && !skipAuthHeader) {
       console.log(`Adding auth headers to request: ${req.url}`);
 
       try {
+        // If Authorization already set by caller, do not override
+        if (req.headers && req.headers.Authorization) {
+          return req;
+        }
+
         // Use our token utility directly instead of trying to get from multiple places
         const state = store.getState();
         const userIsLoggedIn = state?.user?.isLoggedIn;
@@ -421,6 +443,15 @@ export const setupResponseInterceptor = async injectedStore => {
     const originalRequest = error.config;
 
     if (error.response && error.response.status === 401) {
+      // If this request explicitly opted out of auth handling, don't attempt refresh
+      if (
+        originalRequest?.skipAuthHeader ||
+        originalRequest?.skipTokenValidation ||
+        originalRequest?.skipAuthHandling
+      ) {
+        return Promise.reject(error);
+      }
+
       const state = injectedStore.getState();
 
       const refreshToken = state?.auth?.refreshToken;

@@ -26,7 +26,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    height: height * 0.6,
+    height: height * 0.85,
   },
   // Gradient behind buttons
   buttonGradient: {
@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   referralTextContainer: {marginRight: 5},
   tickIcon: {width: 16, height: 16},
   referralInputContainer: {marginVertical: 16},
-  btnContainer: {marginVertical: 16, width: '85%'},
+  btnContainer: {marginVertical: 10, width: '90%'},
   submitBtn: {
     buttonTextStyles: {fontSize: 18, fontWeight: '700'},
   },

@@ -43,21 +43,6 @@ const Login = ({
             <CView style={styles.labelContainer}>
               <CText style={styles.label}>Login to your account</CText>
             </CView>
-            {/* <LinearGradient
-            colors={[
-              'transparent',
-              'rgba(254, 149, 74, 0.1)',
-              'rgba(254, 149, 74, 0.6)',
-              'rgba(254, 149, 74, 0.4)',
-              'rgba(254, 149, 74, 0.3)',
-              'transparent',
-            ]}
-            start={{x: 0.5, y: 0}}
-            end={{x: 0.5, y: 1}}
-            style={styles.buttonGradient}
-          /> */}
-
-            {/* Phone Login Button */}
             <CView style={[styles.btnContainer, {zIndex: 10}]}>
               <TouchableOpacity
                 style={styles.createButton}
@@ -83,7 +68,14 @@ const Login = ({
 
             <CView style={styles.btnContainer}>
               <CText
-                style={{color: 'white', textAlign: 'center', marginBottom: 10}}>
+                style={{
+                  color: 'white',
+                  textAlign: 'center',
+                  fontSize: 16,
+                  fontFamily: 'Inter',
+                  fontWeight: '500',
+                  lineHeight: 24,
+                }}>
                 or continue with
               </CText>
             </CView>

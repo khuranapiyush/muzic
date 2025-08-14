@@ -64,8 +64,8 @@ const CoverCreationScreen = () => {
   const [isLoadingRecordings, setIsLoadingRecordings] = useState(false);
   const [isUsingMyVocal, setIsUsingMyVocal] = useState(false);
   const [selectedRecordingFile, setSelectedRecordingFile] = useState(null);
-  const [songTitle, setSongTitle] = useState('');
-  const [artistName, setArtistName] = useState('');
+  const [songTitle] = useState('');
+  const [artistName] = useState('');
 
   // Add state for modal visibility
   const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -94,12 +94,12 @@ const CoverCreationScreen = () => {
   }, [refreshCredits]);
 
   // Remove pagination states - cleaned up unused variables
-  const [page, setPage] = useState(1);
+  // Removed page state (unused)
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasMoreData, setHasMoreData] = useState(true);
+  // Removed hasMoreData state (unused)
   const PAGE_SIZE = 9; // Number of items to load per page
 
-  const [isRetrying, setIsRetrying] = useState(false);
+  // Removed unused retrying state to satisfy linter
   const retryAttempts = useRef(0);
 
   // Add refresh state
@@ -329,7 +329,6 @@ const CoverCreationScreen = () => {
         return false; // Return false to indicate failure
       } finally {
         setIsLoading(false);
-        setIsRetrying(false);
         retryAttempts.current = 0;
       }
     }, creditsPerSong);
@@ -366,7 +365,7 @@ const CoverCreationScreen = () => {
     }
   };
 
-  const API_TOKEN = 'w8TOqTQD.HDIa0GVr6XlSFBbp4HIztEGj';
+  // Public API token removed; this endpoint requires user authentication in current environment
 
   // Fetch user's voice recordings - updated to track loading state
   const fetchUserRecordings = useCallback(
@@ -455,9 +454,7 @@ const CoverCreationScreen = () => {
         return;
       }
 
-      // Reset pagination
-      setPage(1);
-      setHasMoreData(true);
+      // Pagination removed
 
       // Run refreshes in parallel for faster loading
       await Promise.all([
@@ -495,10 +492,23 @@ const CoverCreationScreen = () => {
     async (pageNum = 1, shouldAppend = false) => {
       try {
         setIsLoadingMore(true);
+
+        // Require user token for this environment
+        const userToken = await getAuthToken();
+        if (!userToken) {
+          // Not logged in: do not fetch protected voice models
+          setSampleVoice([]);
+          return {data: []};
+        }
+
         const response = await fetcher.get(
           `${config.API_BASE_URL}/v1/kits/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
           {
-            headers: {Authorization: `Bearer ${API_TOKEN}`},
+            headers: {Authorization: `Bearer ${userToken}`},
+            // Avoid preflight refresh and avoid response refresh/logout
+            skipTokenValidation: true,
+            skipAuthHeader: true,
+            skipAuthHandling: true,
           },
         );
 
@@ -516,7 +526,7 @@ const CoverCreationScreen = () => {
         setIsLoadingMore(false);
       }
     },
-    [API_TOKEN, PAGE_SIZE],
+    [PAGE_SIZE],
   );
 
   useEffect(() => {
