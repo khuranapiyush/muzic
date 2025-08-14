@@ -36,7 +36,7 @@ import messaging from '@react-native-firebase/messaging';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import moEngageService from './services/moengageService';
 import useMoEngageUser from './hooks/useMoEngageUser';
-import branch from 'react-native-branch';
+import branch, {BranchEvent} from 'react-native-branch';
 
 // Default credit settings in case API fails
 const DEFAULT_CREDIT_SETTINGS = {
@@ -287,6 +287,24 @@ const AppContent = () => {
           if (productId) {
             // TODO: wire navigation to product screen
             console.log('Branch product_id:', productId, 'from', uri);
+          }
+
+          // Track install / open attribution once per session
+          const isFirstOpen = params?.['+is_first_session'];
+          const clickedBranchLink = params?.['+clicked_branch_link'];
+          if (isFirstOpen) {
+            try {
+              const attribution = {
+                channel: params?.['~channel'],
+                campaign: params?.['~campaign'],
+                feature: params?.['~feature'],
+                tags: params?.['~tags'],
+                ad_set: params?.ad_set || params?.['$3p'],
+                clicked_branch_link: clickedBranchLink,
+              };
+              new BranchEvent('INSTALL_ATTRIBUTED', attribution).logEvent();
+              moEngageService.trackEvent('Install_Attribution', attribution);
+            } catch (e) {}
           }
         } catch (e) {
           // no-op

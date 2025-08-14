@@ -216,6 +216,7 @@ const styles = StyleSheet.create({
   iconImage: {
     width: 20,
     height: 20,
+    marginLeft: -2,
   },
   tabLabel: {
     fontSize: 12,

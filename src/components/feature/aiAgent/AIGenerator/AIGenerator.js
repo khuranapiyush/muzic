@@ -39,6 +39,8 @@ import ROUTE_NAME from '../../../../navigator/config/routeName';
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
+import moEngageService from '../../../../services/moengageService';
+import {BranchEvent} from 'react-native-branch';
 
 const AIGenerator = ({pageHeading}) => {
   const dispatch = useDispatch();
@@ -169,7 +171,7 @@ const AIGenerator = ({pageHeading}) => {
             timestamp: Date.now(),
           });
 
-          // Track song creation with Facebook Events
+          // Track song creation with Facebook Events + MoEngage + Branch
           try {
             facebookEvents.logCustomEvent('song_created', {
               method: 'ai_generator',
@@ -183,6 +185,20 @@ const AIGenerator = ({pageHeading}) => {
               voice: data.voice || 'Not specified',
               timestamp: Date.now(),
             });
+
+            moEngageService.trackEvent('AI_Content_Generated', {
+              generation_type: 'song',
+              song_id: data._id || 'unknown',
+              prompt: data.prompt,
+              title: data.title || 'Untitled',
+              genre: data.genre || 'Not specified',
+              voice: data.voice || 'Not specified',
+            });
+
+            new BranchEvent('AI_SONG_GENERATED', {
+              song_id: data._id || 'unknown',
+              title: data.title || 'Untitled',
+            }).logEvent();
           } catch (error) {
             // Silent error handling
           }

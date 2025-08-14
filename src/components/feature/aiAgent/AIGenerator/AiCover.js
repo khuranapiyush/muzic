@@ -40,6 +40,8 @@ import {
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
+import moEngageService from '../../../../services/moengageService';
+import {BranchEvent} from 'react-native-branch';
 import appImages from '../../../../resource/images';
 
 const {width} = Dimensions.get('window');
@@ -247,7 +249,7 @@ const CoverCreationScreen = () => {
               timestamp: Date.now(),
             });
 
-            // Track song creation with Facebook Events
+            // Track song creation with Facebook Events + MoEngage + Branch
             try {
               facebookEvents.logCustomEvent('song_created', {
                 method: 'ai_cover',
@@ -257,6 +259,20 @@ const CoverCreationScreen = () => {
                 artist: artistName || 'AI Cover',
                 voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
               });
+
+              moEngageService.trackEvent('AI_Content_Generated', {
+                generation_type: 'cover',
+                song_id: response.data._id || 'unknown',
+                title: songTitle || 'My Cover',
+                artist: artistName || 'AI Cover',
+                voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
+                voice_id: requestData.voiceModelId,
+              });
+
+              new BranchEvent('AI_COVER_GENERATED', {
+                song_id: response.data._id || 'unknown',
+                voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
+              }).logEvent();
             } catch (error) {
               // Silent error handling
             }

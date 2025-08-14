@@ -23,6 +23,8 @@ import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
 import {store} from '../../../stores';
 import useMoEngageUser from '../../../hooks/useMoEngageUser';
+import moEngageService from '../../../services/moengageService';
+import branch, {BranchEvent} from 'react-native-branch';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -211,15 +213,25 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Track login success with Muzic-specific context
+        // Track login (MoEngage + Branch)
         try {
-          trackMuzicEvents.socialAction('login', {
+          const trackedUserId = String(
+            res?.data?.user?.id || res?.data?.user?._id || '',
+          );
+          if (trackedUserId) {
+            moEngageService.trackUserLogin(trackedUserId, {
+              method: 'google',
+              email: res?.data?.user?.email,
+            });
+            try {
+              branch.setIdentity(trackedUserId);
+            } catch (_) {}
+          }
+          new BranchEvent(BranchEvent.Login, {
             method: 'google',
-            user_id: res.data.user?.id || res.data.user?._id,
-            email: res.data.user?.email,
-          });
+          }).logEvent();
         } catch (error) {
-          console.warn('MoEngage login tracking failed:', error);
+          console.warn('Login tracking failed:', error);
         }
 
         // Log the login event for analytics
@@ -300,15 +312,25 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Track login success with Muzic-specific context
+        // Track login (MoEngage + Branch)
         try {
-          trackMuzicEvents.socialAction('login', {
+          const trackedUserId = String(
+            res?.data?.user?.id || res?.data?.user?._id || '',
+          );
+          if (trackedUserId) {
+            moEngageService.trackUserLogin(trackedUserId, {
+              method: 'apple',
+              email: res?.data?.user?.email,
+            });
+            try {
+              branch.setIdentity(trackedUserId);
+            } catch (_) {}
+          }
+          new BranchEvent(BranchEvent.Login, {
             method: 'apple',
-            user_id: res.data.user?.id || res.data.user?._id,
-            email: res.data.user?.email,
-          });
+          }).logEvent();
         } catch (error) {
-          console.warn('MoEngage login tracking failed:', error);
+          console.warn('Login tracking failed:', error);
         }
 
         // Log the login event for analytics

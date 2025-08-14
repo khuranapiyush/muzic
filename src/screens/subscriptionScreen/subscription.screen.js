@@ -21,6 +21,8 @@ import * as RNLocalize from 'react-native-localize';
 import facebookEvents from '../../utils/facebookEvents';
 import analyticsUtils from '../../utils/analytics';
 import {getPlatformProductIds} from '../../api/config';
+import moEngageService from '../../services/moengageService';
+import {BranchEvent} from 'react-native-branch';
 
 const API_URL = config.API_BASE_URL;
 
@@ -218,7 +220,7 @@ const processPurchase = async (purchase, token) => {
           resultData.status = 'SUCCESS';
         }
 
-        // Track the purchase with Facebook SDK
+        // Track the purchase with Facebook SDK + MoEngage + Branch
         const amount = getAmountFromProductId(purchase.productId);
         if (resultData.status === 'SUCCESS' && amount) {
           try {
@@ -226,16 +228,30 @@ const processPurchase = async (purchase, token) => {
             analyticsUtils.trackCustomEvent('purchase_completed', {
               product_id: purchase.productId,
               amount: amount,
-              currency: 'USD',
+              currency: resultData.currency,
               platform: 'ios',
               timestamp: new Date().toISOString(),
             });
 
             facebookEvents.logPurchase(
               amount,
-              'USD', // Or get currency from resultData
+              resultData.currency,
               purchase.productId,
             );
+
+            moEngageService.trackPurchase({
+              amount: amount,
+              currency: resultData.currency,
+              productId: purchase.productId,
+              transactionId: purchase?.transactionId,
+              platform: 'ios',
+            });
+
+            new BranchEvent(BranchEvent.Purchase, {
+              revenue: amount,
+              currency: resultData.currency,
+              product_id: purchase.productId,
+            }).logEvent();
           } catch (fbError) {
             // Silent fallback
           }
@@ -284,7 +300,7 @@ const processPurchase = async (purchase, token) => {
 
       const resultData = await response.json();
 
-      // Track the purchase with Facebook SDK for Android
+      // Track the purchase with Facebook SDK + MoEngage + Branch for Android
       if (resultData.status === 'SUCCESS') {
         try {
           const amount = getAmountFromProductId(purchase.productId);
@@ -293,16 +309,30 @@ const processPurchase = async (purchase, token) => {
             analyticsUtils.trackCustomEvent('purchase_completed', {
               product_id: purchase.productId,
               amount: amount,
-              currency: 'USD',
+              currency: resultData.currency,
               platform: 'android',
               timestamp: new Date().toISOString(),
             });
 
             facebookEvents.logPurchase(
               amount,
-              'USD', // Or get currency from resultData
+              resultData.currency,
               purchase.productId,
             );
+
+            moEngageService.trackPurchase({
+              amount: amount,
+              currency: resultData.currency,
+              productId: purchase.productId,
+              transactionId: purchase?.orderId || purchase?.transactionId,
+              platform: 'android',
+            });
+
+            new BranchEvent(BranchEvent.Purchase, {
+              revenue: amount,
+              currency: resultData.currency,
+              product_id: purchase.productId,
+            }).logEvent();
           }
         } catch (fbError) {
           // Silent fallback
@@ -312,6 +342,24 @@ const processPurchase = async (purchase, token) => {
       return resultData;
     }
   } catch (err) {
+    // Catch-all failure tracking for processing stage
+    try {
+      moEngageService.trackEvent('Purchase_Failed', {
+        stage: 'processing',
+        product_id: purchase?.productId,
+        reason: err?.message,
+      });
+      new BranchEvent('PURCHASE_FAILED', {
+        stage: 'processing',
+        product_id: purchase?.productId,
+        reason: err?.message,
+      }).logEvent();
+      analyticsUtils.trackCustomEvent('purchase_failed', {
+        stage: 'processing',
+        product_id: purchase?.productId,
+        reason: err?.message,
+      });
+    } catch (_) {}
     throw err;
   }
 };
@@ -505,6 +553,24 @@ const requestPurchase = async (
       );
     }
 
+    // Track purchase initiated (MoEngage + Branch + Firebase)
+    try {
+      analyticsUtils.trackPurchaseInitiated('subscription_screen', {
+        product_id: productId,
+        country: countryCode,
+        platform: Platform.OS,
+      });
+      moEngageService.trackEvent('Purchase_Initiated', {
+        product_id: productId,
+        country: countryCode,
+        platform: Platform.OS,
+        source: 'subscription_screen',
+      });
+      new BranchEvent(BranchEvent.InitiatePurchase, {
+        product_id: productId,
+      }).logEvent();
+    } catch (e) {}
+
     // Use different methods for Android vs iOS
     let purchase;
     if (Platform.OS === 'android') {
@@ -528,6 +594,28 @@ const requestPurchase = async (
     return purchase;
   } catch (err) {
     console.error('Error requesting purchase:', err);
+
+    // Track purchase initiation failure
+    try {
+      moEngageService.trackEvent('Purchase_Failed', {
+        stage: 'initiation',
+        product_id: productId,
+        reason: err?.message,
+        code: err?.code,
+      });
+      new BranchEvent('PURCHASE_FAILED', {
+        stage: 'initiation',
+        product_id: productId,
+        reason: err?.message,
+        code: err?.code,
+      }).logEvent();
+      analyticsUtils.trackCustomEvent('purchase_failed', {
+        stage: 'initiation',
+        product_id: productId,
+        reason: err?.message,
+        code: err?.code,
+      });
+    } catch (_) {}
 
     // Specifically handle already owned errors for Android
     if (err.code === 'E_ALREADY_OWNED' && Platform.OS === 'android') {
