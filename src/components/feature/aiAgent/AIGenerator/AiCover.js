@@ -478,21 +478,15 @@ const CoverCreationScreen = () => {
   const getVoiceSamples = useCallback(
     async (pageNum = 1, shouldAppend = false) => {
       try {
-        console.log('getVoiceSamples', pageNum, shouldAppend);
         setIsLoadingMore(true);
-
         const response = await fetcher.get(
-          `https://arpeggi.io/api/kits/v1/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
+          `${config.API_BASE_URL}/v1/kits/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
           {
-            headers: {
-              Authorization: `Bearer ${API_TOKEN}`,
-            },
+            headers: {Authorization: `Bearer ${API_TOKEN}`},
           },
-          'raw',
         );
 
         const newData = response.data?.data || [];
-        console.log(newData, 'newData');
         setSampleVoice(newData);
 
         return response.data;
@@ -509,15 +503,19 @@ const CoverCreationScreen = () => {
     [API_TOKEN, PAGE_SIZE],
   );
 
-  // Initial data load - only once on mount
   useEffect(() => {
     getVoiceSamples(1, false);
     if (userId && !recordingsLoaded) {
       fetchUserRecordings();
     }
-  }, [userId, fetchUserRecordings, getVoiceSamples, recordingsLoaded]);
+  }, [
+    userId,
+    isRefreshing,
+    fetchUserRecordings,
+    getVoiceSamples,
+    recordingsLoaded,
+  ]);
 
-  // Handler for playing voice samples with improved logging
   const handlePlaySample = sample => {
     if (!sample || !sample.previewUrl) {
       Alert.alert('Error', 'No preview available for this voice sample');

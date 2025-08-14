@@ -3,6 +3,6 @@
     <string name="default_web_client_id">22319693149-8u0i7andagg60qu75c98bim53kpv3gkd.apps.googleusercontent.com</string>
     <string name="facebook_app_id">2359835304391514</string>
     <string name="fb_login_protocol_scheme">fb2359835304391514</string>
-    <string name="BRANCH_KEY">${BRANCH_KEY}</string>
-    <string name="BRANCH_TEST_KEY">${BRANCH_TEST_KEY}</string>
+    <string name="BRANCH_KEY">key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs</string>
+    <string name="BRANCH_TEST_KEY">key_test_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs</string>
 </resources>

@@ -161,7 +161,7 @@ const HomeStackNavigator = () => {
   );
 
   const aiCoverOptions = useMemo(
-    () => createTabOptions(appImages.aiCoverIcon, 'AI Cover'),
+    () => createTabOptions(appImages.aiCoverIcon, 'Cover Song'),
     [createTabOptions],
   );
 
@@ -175,14 +175,14 @@ const HomeStackNavigator = () => {
         options={createOptions}
       />
       <Tab.Screen
+        name="Cover Song"
+        component={CoverCreationScreen}
+        options={aiCoverOptions}
+      />
+      <Tab.Screen
         name="Discover"
         component={Home}
         options={discoverTabOptions}
-      />
-      <Tab.Screen
-        name="AI Cover"
-        component={CoverCreationScreen}
-        options={aiCoverOptions}
       />
       <Tab.Screen
         name="Library"

@@ -56,10 +56,10 @@
       
       <!-- Branch keys (use env via react-native-config) -->
       <meta-data android:name="io.branch.sdk.BranchKey"
-          android:value="@string/BRANCH_KEY" />
+          android:value="key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
       <!-- Optional test key -->
       <meta-data android:name="io.branch.sdk.BranchKey.test"
-          android:value="@string/BRANCH_TEST_KEY" />
+          android:value="key_test_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
 
       <!-- MoEngage Configuration -->
       <meta-data android:name="moengage_app_id" 

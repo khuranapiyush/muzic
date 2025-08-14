@@ -5,7 +5,7 @@ import ReactAppDependencyProvider
 import FirebaseCore
 import FirebaseAnalytics
 import UserNotifications
-import MoEngageSDKPush
+import MoEngageMessaging
 import FBSDKCoreKit
 import RNBranch
 // import RNSplashScreen
@@ -55,7 +55,7 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
     // Call super to complete React Native initialization
     let success = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     
-    // Initialize Branch session
+    // Initialize Branch session (keys are now configured in Info.plist / Build Settings)
     // RNBranch.useTestInstance() // Uncomment while testing with Test keys
     RNBranch.initSession(launchOptions: launchOptions, isReferrable: true)
 
@@ -71,30 +71,31 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
   // Forward APNs token to MoEngage
   override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
     print("📬 APNs token registered: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
-    MoEngageSDKPush.sharedInstance().setPushToken(deviceToken)
+    MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)
   }
 
   // Handle APNs registration failure (optional)
   override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
     print("❌ APNs registration failed: \(error.localizedDescription)")
+    MoEngageSDKMessaging.sharedInstance.didFailToRegisterForPush()
   }
 
   // Foreground push display handling via MoEngage
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               willPresent notification: UNNotification,
                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-    MoEngageSDKPush.sharedInstance().userNotificationCenter(center,
-                                                            willPresent: notification,
-                                                            withCompletionHandler: completionHandler)
+    MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center,
+                                                               willPresent: notification)
+    completionHandler([.alert, .badge, .sound])
   }
 
   // Push click handling via MoEngage
   func userNotificationCenter(_ center: UNUserNotificationCenter,
                               didReceive response: UNNotificationResponse,
                               withCompletionHandler completionHandler: @escaping () -> Void) {
-    MoEngageSDKPush.sharedInstance().userNotificationCenter(center,
-                                                            didReceive: response,
-                                                            withCompletionHandler: completionHandler)
+    MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center,
+                                                               didReceive: response)
+    completionHandler()
   }
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {

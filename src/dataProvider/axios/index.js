@@ -71,7 +71,7 @@ const instances = [
 instances.forEach(instance => {
   // Request interceptor to check network connectivity
   instance.interceptors.request.use(
-    async config => {
+    async reqConfig => {
       try {
         // Check network connectivity before making the request
         const netInfo = await NetInfo.fetch();
@@ -86,11 +86,11 @@ instances.forEach(instance => {
           });
         }
 
-        return config;
+        return reqConfig;
       } catch (error) {
         console.error('Error checking network status:', error);
         // Continue with the request even if NetInfo fails
-        return config;
+        return reqConfig;
       }
     },
     error => {
@@ -102,11 +102,11 @@ instances.forEach(instance => {
   instance.interceptors.response.use(
     response => response,
     async error => {
-      const config = error.config;
+      const requestConfig = error && error.config ? error.config : null;
 
       // Initialize retry count if not present
-      if (!config.__retryCount) {
-        config.__retryCount = 0;
+      if (requestConfig && typeof requestConfig.__retryCount !== 'number') {
+        requestConfig.__retryCount = 0;
       }
 
       // Create a default error message
@@ -130,18 +130,23 @@ instances.forEach(instance => {
         errorMessage = 'Request timed out. Please try again later.';
 
         // Retry logic for timeout errors
-        if (config.__retryCount < (config.retry || 3)) {
-          config.__retryCount += 1;
+        if (
+          requestConfig &&
+          requestConfig.__retryCount < (requestConfig.retry || 3)
+        ) {
+          requestConfig.__retryCount += 1;
           console.log(
-            `Retrying request (${config.__retryCount}/${config.retry || 3})`,
+            `Retrying request (${requestConfig.__retryCount}/${
+              requestConfig.retry || 3
+            })`,
           );
 
           // Wait before retrying
           await new Promise(resolve =>
-            setTimeout(resolve, config.retryDelay || 1000),
+            setTimeout(resolve, requestConfig.retryDelay || 1000),
           );
 
-          return instance(config);
+          return instance(requestConfig);
         }
       } else if (error.response) {
         // The request was made and the server responded with a status code
@@ -158,19 +163,22 @@ instances.forEach(instance => {
           errorMessage = 'Server error. Please try again later.';
 
           // Retry for server errors
-          if (config.__retryCount < (config.retry || 3)) {
-            config.__retryCount += 1;
+          if (
+            requestConfig &&
+            requestConfig.__retryCount < (requestConfig.retry || 3)
+          ) {
+            requestConfig.__retryCount += 1;
             console.log(
-              `Retrying request due to server error (${config.__retryCount}/${
-                config.retry || 3
-              })`,
+              `Retrying request due to server error (${
+                requestConfig.__retryCount
+              }/${requestConfig.retry || 3})`,
             );
 
             await new Promise(resolve =>
-              setTimeout(resolve, config.retryDelay || 1000),
+              setTimeout(resolve, requestConfig.retryDelay || 1000),
             );
 
-            return instance(config);
+            return instance(requestConfig);
           }
         }
       } else if (error.request) {
@@ -179,19 +187,22 @@ instances.forEach(instance => {
         errorMessage = 'No response from server. Please try again later.';
 
         // Retry for no response
-        if (config.__retryCount < (config.retry || 3)) {
-          config.__retryCount += 1;
+        if (
+          requestConfig &&
+          requestConfig.__retryCount < (requestConfig.retry || 3)
+        ) {
+          requestConfig.__retryCount += 1;
           console.log(
-            `Retrying request due to no response (${config.__retryCount}/${
-              config.retry || 3
-            })`,
+            `Retrying request due to no response (${
+              requestConfig.__retryCount
+            }/${requestConfig.retry || 3})`,
           );
 
           await new Promise(resolve =>
-            setTimeout(resolve, config.retryDelay || 1000),
+            setTimeout(resolve, requestConfig.retryDelay || 1000),
           );
 
-          return instance(config);
+          return instance(requestConfig);
         }
       }
 
