@@ -26,6 +26,7 @@ const initialState = {
   isTransitioning: false,
   isGeneratingSong: false,
   generatingSongId: null,
+  shouldRefreshLibrary: false,
 };
 
 const player = createSlice({
@@ -104,6 +105,9 @@ const player = createSlice({
     setGeneratingSongId: (state, action) => {
       state.generatingSongId = action.payload;
     },
+    setShouldRefreshLibrary: (state, action) => {
+      state.shouldRefreshLibrary = action.payload;
+    },
   },
   extraReducers: builder => {
     builder.addCase(setIsWatchPageVisible, (state, action) => {
@@ -152,6 +156,7 @@ export const {
   resetPlayer,
   setGeneratingSong,
   setGeneratingSongId,
+  setShouldRefreshLibrary,
 } = player.actions;
 
 export default player.reducer;

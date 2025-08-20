@@ -28,6 +28,7 @@ import {PermissionsAndroid} from 'react-native';
 import {
   setGeneratingSong,
   setGeneratingSongId,
+  setShouldRefreshLibrary,
 } from '../../../stores/slices/player';
 import GradientBackground from '../../common/GradientBackground';
 
@@ -102,9 +103,8 @@ const LibraryScreen = () => {
   const [audioList, setAudioList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  const {isGeneratingSong, generatingSongId} = useSelector(
-    state => state.player,
-  );
+  const {isGeneratingSong, generatingSongId, shouldRefreshLibrary} =
+    useSelector(state => state.player);
   const [prevGeneratingState, setPrevGeneratingState] = useState(false);
   const [prevAudioList, setPrevAudioList] = useState([]);
   const isLibraryScreen = useRef(true);
@@ -267,22 +267,28 @@ const LibraryScreen = () => {
   //   }
   // }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
 
+  // Removed polling mechanism - library will be refreshed once when song generation completes
+
+  // Effect to refresh library when song generation completes
   useEffect(() => {
-    let intervalId = null;
-
-    if (isGeneratingSong && isLibraryScreen.current) {
-      intervalId = setInterval(() => {
-        console.log('Polling for library updates...');
+    console.log(
+      'Library state - isGeneratingSong:',
+      isGeneratingSong,
+      'shouldRefreshLibrary:',
+      shouldRefreshLibrary,
+    );
+    if (shouldRefreshLibrary && isLibraryScreen.current) {
+      console.log('Song generation complete - refreshing library...');
+      // Add a small delay to ensure the song is available in the backend
+      const timeoutId = setTimeout(() => {
         fetchAudioList();
-      }, 10000);
-    }
+        // Reset the flag after refreshing
+        dispatch(setShouldRefreshLibrary(false));
+      }, 2000); // 2 second delay to ensure backend has processed the song
 
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isGeneratingSong, fetchAudioList]);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [shouldRefreshLibrary, isGeneratingSong, fetchAudioList, dispatch]);
 
   // Memoize the song press handler
   const handleSongPress = useCallback(
@@ -671,6 +677,7 @@ const LibraryScreen = () => {
       </LinearGradient>
     );
   };
+  console.log(isGeneratingSong, 'isGeneratingSong');
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
@@ -703,7 +710,7 @@ const LibraryScreen = () => {
               keyExtractor={keyExtractor}
               ListHeaderComponent={ListHeaderComponent}
               ListEmptyComponent={ListEmptyComponent}
-              contentContainerStyle={{paddingBottom: 80, paddingTop: 40}}
+              contentContainerStyle={{paddingBottom: 80, paddingTop: 20}}
               refreshControl={
                 <RefreshControl
                   refreshing={refreshing}
@@ -984,11 +991,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 8,
-    marginBottom: 16,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#F4A460',
+    marginTop: 30,
   },
   generatingText: {
     color: '#F4A460',

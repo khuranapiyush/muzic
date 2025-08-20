@@ -36,6 +36,7 @@ import useCredits from '../../../../hooks/useCredits';
 import {
   setGeneratingSong,
   setGeneratingSongId,
+  setShouldRefreshLibrary,
 } from '../../../../stores/slices/player';
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
@@ -282,9 +283,9 @@ const CoverCreationScreen = () => {
               refreshCredits();
             }, 500);
 
-            // On success - we keep the generating state active
-            // It will be reset when the song appears in the library
+            // Song generation completed - trigger library refresh
             dispatch(setGeneratingSong(false));
+            dispatch(setShouldRefreshLibrary(true));
 
             return true; // Return true to indicate success
           })

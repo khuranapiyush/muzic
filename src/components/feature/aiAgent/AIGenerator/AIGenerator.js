@@ -33,6 +33,7 @@ import useCredits from '../../../../hooks/useCredits';
 import {
   setGeneratingSong,
   setGeneratingSongId,
+  setShouldRefreshLibrary,
 } from '../../../../stores/slices/player';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
@@ -145,10 +146,12 @@ const AIGenerator = ({pageHeading}) => {
           // Store the generated song ID for tracking
           if (data._id) {
             dispatch(setGeneratingSongId(data._id));
-            dispatch(setGeneratingSong(false));
           }
 
+          // Song generation completed - trigger library refresh
+          console.log('Song generation completed - triggering library refresh');
           dispatch(setGeneratingSong(false));
+          dispatch(setShouldRefreshLibrary(true));
           // Only show toast for direct UI feedback about generation success
           // Don't show song generation progress notifications here
           showToaster({
@@ -303,6 +306,7 @@ const AIGenerator = ({pageHeading}) => {
     setShowBottomSheet(true);
 
     // Set global generating state - this will trigger the library indicator
+    console.log('Starting song generation - setting isGeneratingSong to true');
     dispatch(setGeneratingSong(true));
 
     reset();
@@ -326,7 +330,7 @@ const AIGenerator = ({pageHeading}) => {
         genre: genreToSend,
         voice: voiceToSend,
       });
-      dispatch(setGeneratingSong(true));
+      // Don't set generating state here - it's already set above and will be cleared in onSuccess/onError
     } catch (error) {
       dispatch(setGeneratingSong(false));
       dispatch(setGeneratingSongId(null));
