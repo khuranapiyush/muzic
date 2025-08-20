@@ -86,14 +86,28 @@ export const isTokenExpired = (token, bufferSeconds = 60) => {
   if (!token) return true;
 
   try {
-    // Validate token format - must contain two dots (header.payload.signature)
-    if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
-      console.warn('Invalid token format');
+    // Handle token as object with access property
+    let tokenString = token;
+    if (typeof token === 'object' && token !== null && token.access) {
+      tokenString = token.access;
+    }
+
+    // Validate token format - must be string and contain two dots (header.payload.signature)
+    if (
+      !tokenString ||
+      typeof tokenString !== 'string' ||
+      tokenString.split('.').length !== 3
+    ) {
+      console.warn(
+        'Invalid token format:',
+        typeof tokenString,
+        tokenString ? 'has content' : 'empty',
+      );
       return true; // Treat as expired
     }
 
     // Decode the token to get expiration time
-    const base64Url = token.split('.')[1];
+    const base64Url = tokenString.split('.')[1];
     if (!base64Url) {
       console.warn('Token payload section missing');
       return true; // Treat as expired
@@ -308,10 +322,34 @@ export const getAuthToken = async () => {
 
     // Handle token as object with access property
     if (typeof token === 'object' && token !== null && token.access) {
-      return token.access;
+      const extractedToken = token.access;
+
+      // Validate the extracted token format
+      if (
+        typeof extractedToken === 'string' &&
+        extractedToken.split('.').length === 3
+      ) {
+        return extractedToken;
+      } else {
+        console.warn(
+          'getAuthToken - Invalid token format from object:',
+          typeof extractedToken,
+        );
+        return null;
+      }
     }
 
-    return token;
+    // Validate string token format
+    if (typeof token === 'string' && token.split('.').length === 3) {
+      return token;
+    }
+
+    console.warn(
+      'getAuthToken - Invalid token format:',
+      typeof token,
+      token ? 'has content' : 'empty',
+    );
+    return null;
   } catch (error) {
     console.error('getAuthToken - Unexpected error:', error);
     return null;

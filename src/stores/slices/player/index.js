@@ -27,6 +27,7 @@ const initialState = {
   isGeneratingSong: false,
   generatingSongId: null,
   shouldRefreshLibrary: false,
+  currentPage: null,
 };
 
 const player = createSlice({
@@ -108,6 +109,9 @@ const player = createSlice({
     setShouldRefreshLibrary: (state, action) => {
       state.shouldRefreshLibrary = action.payload;
     },
+    setCurrentPage: (state, action) => {
+      state.currentPage = action.payload;
+    },
   },
   extraReducers: builder => {
     builder.addCase(setIsWatchPageVisible, (state, action) => {
@@ -157,6 +161,7 @@ export const {
   setGeneratingSong,
   setGeneratingSongId,
   setShouldRefreshLibrary,
+  setCurrentPage,
 } = player.actions;
 
 export default player.reducer;

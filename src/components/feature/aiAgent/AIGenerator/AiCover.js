@@ -29,7 +29,6 @@ import Clipboard from '@react-native-clipboard/clipboard';
 import useMusicPlayer from '../../../../hooks/useMusicPlayer';
 import config from 'react-native-config';
 import {deleteVoiceRecording} from '../../../../api/voiceRecordings';
-import {getAuthToken} from '../../../../utils/authUtils';
 import {useSelector, useDispatch} from 'react-redux';
 import NetInfo from '@react-native-community/netinfo';
 import useCredits from '../../../../hooks/useCredits';
@@ -44,6 +43,9 @@ import facebookEvents from '../../../../utils/facebookEvents';
 import moEngageService from '../../../../services/moengageService';
 import {BranchEvent} from 'react-native-branch';
 import appImages from '../../../../resource/images';
+import {getAuthToken} from '../../../../utils/authUtils';
+import {useMutation} from '@tanstack/react-query';
+import { KeyboardAvoidingView } from 'react-native';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
@@ -176,12 +178,6 @@ const CoverCreationScreen = () => {
       // We'll set the song ID after successful generation
 
       try {
-        // Get auth token
-        const token = await getAuthToken();
-        if (!token) {
-          throw new Error('Authentication required. Please log in again.');
-        }
-
         console.log(link, 'link');
 
         // Format request data
@@ -221,7 +217,6 @@ const CoverCreationScreen = () => {
         fetcher
           .post(apiUrl, requestData, {
             headers: {
-              Authorization: `Bearer ${token}`,
               'Content-Type': 'application/json',
             },
             // No timeout specified - allows unlimited time for AI voice conversion processing
@@ -366,74 +361,48 @@ const CoverCreationScreen = () => {
     }
   };
 
-  // Public API token removed; this endpoint requires user authentication in current environment
+  const {mutate: fetchUserRecordings} = useMutation(
+    useCallback(async () => {
+      // Get the current auth token
+      const token = await getAuthToken();
 
-  // Fetch user's voice recordings - updated to track loading state
-  const fetchUserRecordings = useCallback(
-    async (showToast = false) => {
-      // Don't fetch if already loaded unless it's a manual refresh
-      if (recordingsLoaded && !showToast && !isRefreshing) {
-        return userRecordings;
-      }
+      const headers = {
+        'Content-Type': 'application/json',
+        ...(token && {Authorization: `Bearer ${token}`}),
+      };
 
-      try {
-        setIsLoadingRecordings(true);
-
-        // Check for internet connection
-        const netInfo = await NetInfo.fetch();
-        if (!netInfo.isConnected) {
-          throw new Error(
-            'No internet connection. Please try again when you are connected.',
+      setIsLoadingRecordings(true);
+      const response = await fetcher.get(
+        `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
+        {
+          headers,
+        },
+      );
+      return response;
+    }, [userId]),
+    {
+      onSuccess: response => {
+        if (response) {
+          // Log API response to understand data structure
+          const recordings = response.data?.data || response.data || [];
+          setUserRecordings(recordings);
+          setRecordingsLoaded(true);
+          setIsLoadingRecordings(false);
+        } else {
+          console.warn(
+            'Invalid or empty response from library API:',
+            response.data,
           );
         }
-
-        // Get auth token
-        const token = await getAuthToken();
-        if (!token) {
-          throw new Error('Authentication required. Please log in again.');
-        }
-
-        // Make API request using fetcher without overriding Authorization header.
-        // The global interceptor will inject the correct bearer token and handle refresh.
-        const response = await fetcher.get(
-          `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
-        );
-
-        // Handle the response properly - check both data and data.data
-        const recordings = response.data?.data || response.data || [];
-        setUserRecordings(recordings);
-        setRecordingsLoaded(true);
-
-        // Show success message if requested
-        if (showToast) {
-          if (Platform.OS === 'android') {
-            ToastAndroid.show(
-              'Voice recordings refreshed!',
-              ToastAndroid.SHORT,
-            );
-          } else {
-            Alert.alert(
-              'Success',
-              'Voice recordings refreshed!',
-              [{text: 'OK', onPress: () => {}}],
-              {cancelable: true},
-            );
-          }
-        }
-
-        return recordings;
-      } catch (error) {
+      },
+      onError: error => {
         console.error('Failed to fetch user recordings:', error);
-        // Only show alert for manual refreshes
-        if (showToast || isRefreshing) {
+        if (isRefreshing) {
           Alert.alert('Error', 'Failed to fetch your voice recordings');
         }
         return [];
-      } finally {
-        setIsLoadingRecordings(false);
-      }
+      },
     },
-    [userId, userRecordings, recordingsLoaded, isRefreshing],
   );
 
   // Update the handleRefresh function to reset pagination and properly refresh data
@@ -458,16 +427,19 @@ const CoverCreationScreen = () => {
       // Pagination removed
 
       // Run refreshes in parallel for faster loading
-      await Promise.all([
+      const promises = [
         // Reload voice models
         getVoiceSamples(1, false),
-
-        // Reload user recordings if user is logged in
-        userId ? fetchUserRecordings(true) : Promise.resolve(),
-
         // Refresh credits
         refreshCredits(),
-      ]);
+      ];
+
+      // Reload user recordings if user is logged in
+      if (userId) {
+        promises.push(fetchUserRecordings(true));
+      }
+
+      await Promise.all(promises);
 
       // Small delay before finishing to ensure refresh spinner displays properly
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -483,7 +455,6 @@ const CoverCreationScreen = () => {
   }, [
     checkNetworkConnectivity,
     getVoiceSamples,
-    fetchUserRecordings,
     refreshCredits,
     userId,
     isRefreshing,
@@ -494,23 +465,8 @@ const CoverCreationScreen = () => {
       try {
         setIsLoadingMore(true);
 
-        // Require user token for this environment
-        const userToken = await getAuthToken();
-        if (!userToken) {
-          // Not logged in: do not fetch protected voice models
-          setSampleVoice([]);
-          return {data: []};
-        }
-
         const response = await fetcher.get(
           `${config.API_BASE_URL}/v1/kits/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
-          {
-            headers: {Authorization: `Bearer ${userToken}`},
-            // Avoid preflight refresh and avoid response refresh/logout
-            skipTokenValidation: true,
-            skipAuthHeader: true,
-            skipAuthHandling: true,
-          },
         );
 
         const newData = response.data?.data || [];
@@ -866,258 +822,263 @@ const CoverCreationScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
-      <GradientBackground>
-        <View style={[styles.content, {backgroundColor: 'transparent'}]}>
-          <View style={styles.headerSection}>
-            <View style={styles.titleContainer}>
-              <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
-            </View>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{flex: 1}}>
+      <SafeAreaView
+        style={[styles.container, {backgroundColor: 'transparent'}]}>
+        <GradientBackground>
+          <View style={[styles.content, {backgroundColor: 'transparent'}]}>
+            <View style={styles.headerSection}>
+              <View style={styles.titleContainer}>
+                <Text style={styles.pageHeader}>Youtube/Spotify Link</Text>
+              </View>
 
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Paste Youtube/Spotify Link"
-                placeholderTextColor="#666"
-                value={link}
-                onChangeText={setLink}
-              />
-              <TouchableOpacity
-                style={styles.pasteButton}
-                onPress={handlePaste}
-                activeOpacity={0.8}>
-                <Text style={styles.pasteButtonText}>✨ Paste</Text>
-              </TouchableOpacity>
-            </View>
-            {/* <View style={styles.creditsContainer}>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Paste Youtube/Spotify Link"
+                  placeholderTextColor="#666"
+                  value={link}
+                  onChangeText={setLink}
+                />
+                <TouchableOpacity
+                  style={styles.pasteButton}
+                  onPress={handlePaste}
+                  activeOpacity={0.8}>
+                  <Text style={styles.pasteButtonText}>✨ Paste</Text>
+                </TouchableOpacity>
+              </View>
+              {/* <View style={styles.creditsContainer}>
               <Text style={styles.creditsText}>
                 Songs Left: {Math.floor(creditsValue / creditsPerSong)}
               </Text>
             </View> */}
-          </View>
+            </View>
 
-          {/* Vocals Section */}
-          <View style={styles.listContainer}>
-            {sampleVoice.length === 0 && !isLoadingMore ? (
-              <View style={styles.loaderContainer}>
-                <ActivityIndicator size="large" color="#F4A460" />
-                <Text style={styles.loadingText}>Loading voices...</Text>
-              </View>
-            ) : (
-              <FlatList
-                data={sampleVoice}
-                ListHeaderComponent={MyVocalsSection}
-                renderItem={({item}) => <VocalCard recording={item} />}
-                keyExtractor={item => item.id.toString()}
-                numColumns={3}
-                contentContainerStyle={[styles.vocalsContainerGrid]}
-                showsVerticalScrollIndicator={true}
-                columnWrapperStyle={styles.row}
-                refreshControl={
-                  <RefreshControl
-                    refreshing={isRefreshing}
-                    onRefresh={handleRefresh}
-                    colors={['#F4A460']}
-                    tintColor="#F4A460"
-                    title="Pull to refresh"
-                    titleColor="#F4A460"
-                  />
-                }
-                scrollEnabled={true}
-                initialNumToRender={9}
-                maxToRenderPerBatch={6}
-                windowSize={10}
-                removeClippedSubviews={false}
-              />
-            )}
-          </View>
-        </View>
-
-        <View
-          style={[styles.buttonContainer, showGlobalPlayer && {bottom: 90}]}>
-          <TouchableOpacity
-            style={styles.createButton}
-            activeOpacity={0.8}
-            onPress={createVoiceConversion}>
-            <LinearGradient
-              colors={[
-                'rgba(255, 255, 255, 0.20)',
-                'rgba(255, 255, 255, 0.40)',
-              ]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
-              style={styles.gradient}>
-              <CText
-                style={[
-                  styles.createButtonText,
-                  isLoading && styles.disabledButtonText,
-                ]}>
-                {isLoading ? 'Creating...' : 'Create Cover'}
-              </CText>
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
-
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showBottomSheet}
-          onRequestClose={() => setShowBottomSheet(false)}
-          onBackdropPress={() => setShowBottomSheet(false)}
-          onBackButtonPress={() => setShowBottomSheet(false)}
-          swipeDirection={['down']}
-          propagateSwipe
-          animationIn="slideInUp"
-          animationOut="slideOutDown"
-          backdropOpacity={0.5}
-          avoidKeyboard={true}>
-          <View style={styles.bottomSheetContainer}>
-            <View style={styles.bottomSheetContent}>
-              <CText size="largeBold" style={styles.bottomSheetTitle}>
-                Cover Generation Started
-              </CText>
-              <CText style={styles.bottomSheetText}>
-                Your cover will be generated in 10-15 mins. Come back and check
-                in the library.
-              </CText>
-              <TouchableOpacity
-                style={styles.bottomSheetButton}
-                onPress={() => setShowBottomSheet(false)}>
-                <LinearGradient
-                  colors={['#F4A460', '#DEB887']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.gradient}>
-                  <CText style={styles.bottomSheetButtonText}>Got it</CText>
-                </LinearGradient>
-              </TouchableOpacity>
+            {/* Vocals Section */}
+            <View style={styles.listContainer}>
+              {sampleVoice.length === 0 && !isLoadingMore ? (
+                <View style={styles.loaderContainer}>
+                  <ActivityIndicator size="large" color="#F4A460" />
+                  <Text style={styles.loadingText}>Loading voices...</Text>
+                </View>
+              ) : (
+                <FlatList
+                  data={sampleVoice}
+                  ListHeaderComponent={MyVocalsSection}
+                  renderItem={({item}) => <VocalCard recording={item} />}
+                  keyExtractor={item => item.id.toString()}
+                  numColumns={3}
+                  contentContainerStyle={[styles.vocalsContainerGrid]}
+                  showsVerticalScrollIndicator={true}
+                  columnWrapperStyle={styles.row}
+                  refreshControl={
+                    <RefreshControl
+                      refreshing={isRefreshing}
+                      onRefresh={handleRefresh}
+                      colors={['#F4A460']}
+                      tintColor="#F4A460"
+                      title="Pull to refresh"
+                      titleColor="#F4A460"
+                    />
+                  }
+                  scrollEnabled={true}
+                  initialNumToRender={9}
+                  maxToRenderPerBatch={6}
+                  windowSize={10}
+                  removeClippedSubviews={false}
+                />
+              )}
             </View>
           </View>
-        </Modal>
 
-        {/* Delete Recording Bottom Sheet */}
-        {showDeleteBottomSheet && (
+          <View
+            style={[styles.buttonContainer, showGlobalPlayer && {bottom: 90}]}>
+            <TouchableOpacity
+              style={styles.createButton}
+              activeOpacity={0.8}
+              onPress={createVoiceConversion}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.20)',
+                  'rgba(255, 255, 255, 0.40)',
+                ]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={styles.gradient}>
+                <CText
+                  style={[
+                    styles.createButtonText,
+                    isLoading && styles.disabledButtonText,
+                  ]}>
+                  {isLoading ? 'Creating...' : 'Create Cover'}
+                </CText>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
+
           <Modal
             animationType="slide"
             transparent={true}
-            visible={showDeleteBottomSheet}
-            onRequestClose={() => {
-              setShowDeleteBottomSheet(false);
-              setSelectedRecordingForDelete(null);
-            }}>
-            <TouchableWithoutFeedback
-              onPress={() => {
+            visible={showBottomSheet}
+            onRequestClose={() => setShowBottomSheet(false)}
+            onBackdropPress={() => setShowBottomSheet(false)}
+            onBackButtonPress={() => setShowBottomSheet(false)}
+            swipeDirection={['down']}
+            propagateSwipe
+            animationIn="slideInUp"
+            animationOut="slideOutDown"
+            backdropOpacity={0.5}
+            avoidKeyboard={true}>
+            <View style={styles.bottomSheetContainer}>
+              <View style={styles.bottomSheetContent}>
+                <CText size="largeBold" style={styles.bottomSheetTitle}>
+                  Cover Generation Started
+                </CText>
+                <CText style={styles.bottomSheetText}>
+                  Your cover will be generated in 10-15 mins. Come back and
+                  check in the library.
+                </CText>
+                <TouchableOpacity
+                  style={styles.bottomSheetButton}
+                  onPress={() => setShowBottomSheet(false)}>
+                  <LinearGradient
+                    colors={['#F4A460', '#DEB887']}
+                    start={{x: 0, y: 0}}
+                    end={{x: 1, y: 1}}
+                    style={styles.gradient}>
+                    <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                  </LinearGradient>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+
+          {/* Delete Recording Bottom Sheet */}
+          {showDeleteBottomSheet && (
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={showDeleteBottomSheet}
+              onRequestClose={() => {
                 setShowDeleteBottomSheet(false);
                 setSelectedRecordingForDelete(null);
               }}>
-              <View style={styles.deleteModalOverlay}>
-                <TouchableWithoutFeedback onPress={() => {}}>
-                  <View style={styles.deleteBottomSheetContent}>
-                    <View style={styles.deleteBottomSheetHandle} />
-                    <TouchableOpacity
-                      style={styles.deleteButton}
-                      onPress={() =>
-                        handleDeleteRecording(selectedRecordingForDelete?._id)
-                      }>
-                      <CText style={styles.deleteButtonText}>
-                        🗑 Delete Recording
-                      </CText>
-                    </TouchableOpacity>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
-        )}
-
-        {/* Insufficient Credits Modal */}
-        {showInsufficientCreditsModal && (
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={showInsufficientCreditsModal}
-            onRequestClose={() => setShowInsufficientCreditsModal(false)}>
-            <TouchableWithoutFeedback
-              onPress={() => setShowInsufficientCreditsModal(false)}>
-              <View style={styles.bottomSheetOverlay}>
-                <TouchableWithoutFeedback onPress={() => {}}>
-                  <View style={styles.bottomSheetContainer}>
-                    <View style={styles.bottomSheetContent}>
-                      <CText size="largeBold" style={styles.bottomSheetTitle}>
-                        Insufficient Credits
-                      </CText>
-                      <CText style={styles.bottomSheetText}>
-                        Please buy some credits to generate cover
-                      </CText>
+              <TouchableWithoutFeedback
+                onPress={() => {
+                  setShowDeleteBottomSheet(false);
+                  setSelectedRecordingForDelete(null);
+                }}>
+                <View style={styles.deleteModalOverlay}>
+                  <TouchableWithoutFeedback onPress={() => {}}>
+                    <View style={styles.deleteBottomSheetContent}>
+                      <View style={styles.deleteBottomSheetHandle} />
                       <TouchableOpacity
-                        style={styles.bottomSheetButton}
-                        onPress={() => {
-                          setShowInsufficientCreditsModal(false);
-                          navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-                        }}>
-                        <LinearGradient
-                          colors={['#F4A460', '#DEB887']}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={styles.gradient}>
-                          <CText style={styles.bottomSheetButtonText}>
-                            Buy Credits
-                          </CText>
-                        </LinearGradient>
+                        style={styles.deleteButton}
+                        onPress={() =>
+                          handleDeleteRecording(selectedRecordingForDelete?._id)
+                        }>
+                        <CText style={styles.deleteButtonText}>
+                          🗑 Delete Recording
+                        </CText>
                       </TouchableOpacity>
                     </View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
-        )}
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
 
-        {/* Validation Modal */}
-        {showValidationModal && (
-          <Modal
-            animationType="slide"
-            transparent={true}
-            visible={showValidationModal}
-            onRequestClose={() => setShowValidationModal(false)}>
-            <TouchableWithoutFeedback
-              onPress={() => setShowValidationModal(false)}>
-              <View style={styles.bottomSheetOverlay}>
-                <TouchableWithoutFeedback onPress={() => {}}>
-                  <View style={styles.bottomSheetContainer}>
-                    <View style={styles.bottomSheetContent}>
-                      <CText size="largeBold" style={styles.bottomSheetTitle}>
-                        {!link
-                          ? 'Missing Link'
-                          : !selectedVoiceId && !selectedRecordingFile
-                          ? 'Missing Voice'
-                          : ''}
-                      </CText>
-                      <CText style={styles.bottomSheetText}>
-                        {validationMessage}
-                      </CText>
-                      <TouchableOpacity
-                        style={styles.bottomSheetButton}
-                        onPress={() => setShowValidationModal(false)}>
-                        <LinearGradient
-                          colors={['#F4A460', '#DEB887']}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={styles.gradient}>
-                          <CText style={styles.bottomSheetButtonText}>
-                            Got it
-                          </CText>
-                        </LinearGradient>
-                      </TouchableOpacity>
+          {/* Insufficient Credits Modal */}
+          {showInsufficientCreditsModal && (
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={showInsufficientCreditsModal}
+              onRequestClose={() => setShowInsufficientCreditsModal(false)}>
+              <TouchableWithoutFeedback
+                onPress={() => setShowInsufficientCreditsModal(false)}>
+                <View style={styles.bottomSheetOverlay}>
+                  <TouchableWithoutFeedback onPress={() => {}}>
+                    <View style={styles.bottomSheetContainer}>
+                      <View style={styles.bottomSheetContent}>
+                        <CText size="largeBold" style={styles.bottomSheetTitle}>
+                          Insufficient Credits
+                        </CText>
+                        <CText style={styles.bottomSheetText}>
+                          Please buy some credits to generate cover
+                        </CText>
+                        <TouchableOpacity
+                          style={styles.bottomSheetButton}
+                          onPress={() => {
+                            setShowInsufficientCreditsModal(false);
+                            navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                          }}>
+                          <LinearGradient
+                            colors={['#F4A460', '#DEB887']}
+                            start={{x: 0, y: 0}}
+                            end={{x: 1, y: 1}}
+                            style={styles.gradient}>
+                            <CText style={styles.bottomSheetButtonText}>
+                              Buy Credits
+                            </CText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                </TouchableWithoutFeedback>
-              </View>
-            </TouchableWithoutFeedback>
-          </Modal>
-        )}
-      </GradientBackground>
-    </SafeAreaView>
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
+
+          {/* Validation Modal */}
+          {showValidationModal && (
+            <Modal
+              animationType="slide"
+              transparent={true}
+              visible={showValidationModal}
+              onRequestClose={() => setShowValidationModal(false)}>
+              <TouchableWithoutFeedback
+                onPress={() => setShowValidationModal(false)}>
+                <View style={styles.bottomSheetOverlay}>
+                  <TouchableWithoutFeedback onPress={() => {}}>
+                    <View style={styles.bottomSheetContainer}>
+                      <View style={styles.bottomSheetContent}>
+                        <CText size="largeBold" style={styles.bottomSheetTitle}>
+                          {!link
+                            ? 'Missing Link'
+                            : !selectedVoiceId && !selectedRecordingFile
+                            ? 'Missing Voice'
+                            : ''}
+                        </CText>
+                        <CText style={styles.bottomSheetText}>
+                          {validationMessage}
+                        </CText>
+                        <TouchableOpacity
+                          style={styles.bottomSheetButton}
+                          onPress={() => setShowValidationModal(false)}>
+                          <LinearGradient
+                            colors={['#F4A460', '#DEB887']}
+                            start={{x: 0, y: 0}}
+                            end={{x: 1, y: 1}}
+                            style={styles.gradient}>
+                            <CText style={styles.bottomSheetButtonText}>
+                              Got it
+                            </CText>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </TouchableWithoutFeedback>
+                </View>
+              </TouchableWithoutFeedback>
+            </Modal>
+          )}
+        </GradientBackground>
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 };
 

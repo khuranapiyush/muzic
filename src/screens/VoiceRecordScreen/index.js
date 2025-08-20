@@ -1486,7 +1486,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bottomSheetContent: {
-    marginBottom: 32,
+    marginBottom: 10,
   },
   tipItem: {
     flexDirection: 'row',
@@ -1514,19 +1514,22 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   gotItButton: {
-    borderRadius: 16,
+    borderRadius: 24,
     overflow: 'hidden',
-    marginBottom: 8,
   },
   gotItButtonGradient: {
-    paddingVertical: 18,
-    paddingHorizontal: 24,
+    height: 50,
     alignItems: 'center',
+    borderRadius: 16,
+    textAlign: 'center',
+    justifyContent: 'center',
   },
   gotItButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    lineHeight: 24,
+    fontFamily: 'Inter',
   },
   // Naming Bottom Sheet styles
   namingBottomSheetContainer: {
@@ -1578,7 +1581,7 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     backgroundColor: '#333',
-    borderRadius: 12,
+    borderRadius: 24,
     paddingVertical: 16,
     alignItems: 'center',
   },
@@ -1588,7 +1591,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   saveButton: {
-    flex: 2,
+    flex: 1,
     borderRadius: 12,
     overflow: 'hidden',
   },
@@ -1596,13 +1599,18 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   saveButtonGradient: {
-    paddingVertical: 16,
+    height: 50,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 24,
   },
   saveButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+    fontFamily: 'Inter',
+    fontStyle: 'normal',
+    lineHeight: 24,
   },
 });
 

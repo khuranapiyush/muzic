@@ -13,6 +13,7 @@ import facebookEvents from '../utils/facebookEvents';
 // Import directly for iOS to prevent lazy loading issues
 import AppStackNavigatorDirect from './AppStackNavigator';
 import AuthStackNavigatorDirect from './AuthStackNavigator';
+import GlobalPlayer from '../components/common/GlobalPlayer';
 
 // Keep lazy loading for Android which works fine
 const AppStackNavigator =
@@ -160,9 +161,19 @@ const AppNavigator = () => {
     };
   }, [tokenChecked, dispatch]);
 
-  // Handle screen tracking for analytics
+  // Handle screen tracking for analytics and Redux store
   const handleNavigationStateChange = useCallback(state => {
-    if (!state) return;
+    if (!state) {
+      return;
+    }
+
+    // Track navigation state in Redux store
+    try {
+      const navigationTracker = require('../utils/navigationTracker').default;
+      navigationTracker.handleNavigationStateChange(state);
+    } catch (error) {
+      console.warn('Failed to track navigation in Redux:', error);
+    }
 
     // Get current route name
     const currentRouteName = navigationRef.current?.getCurrentRoute()?.name;

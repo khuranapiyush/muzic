@@ -262,24 +262,13 @@ const LibraryScreen = () => {
   //     });
   //   } else if (!isGeneratingSong && prevGeneratingState) {
   //     // Song generation completed or was canceled
-  //     console.log('Hiding generating song toast - generation complete');
   //     hideToaster();
   //   }
   // }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
 
-  // Removed polling mechanism - library will be refreshed once when song generation completes
-
   // Effect to refresh library when song generation completes
   useEffect(() => {
-    console.log(
-      'Library state - isGeneratingSong:',
-      isGeneratingSong,
-      'shouldRefreshLibrary:',
-      shouldRefreshLibrary,
-    );
     if (shouldRefreshLibrary && isLibraryScreen.current) {
-      console.log('Song generation complete - refreshing library...');
-      // Add a small delay to ensure the song is available in the backend
       const timeoutId = setTimeout(() => {
         fetchAudioList();
         // Reset the flag after refreshing
@@ -677,7 +666,6 @@ const LibraryScreen = () => {
       </LinearGradient>
     );
   };
-  console.log(isGeneratingSong, 'isGeneratingSong');
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>

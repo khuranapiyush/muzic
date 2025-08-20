@@ -4,6 +4,7 @@ import {appStackRoutes} from './config/route';
 import ROUTE_NAME from './config/routeName';
 import {useTheme} from '@react-navigation/native';
 import Colors from '../components/common/Colors';
+import GlobalPlayer from '../components/common/GlobalPlayer';
 
 const Stack = createNativeStackNavigator();
 

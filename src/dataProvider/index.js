@@ -33,36 +33,14 @@ const isAuthEndpoint = url => {
 
 // Check and refresh token if needed before making API call
 const ensureValidToken = async url => {
-  // Skip token validation for auth endpoints
+  // Skip token validation for auth endpoints - let interceptors handle all token logic
   if (isAuthEndpoint(url)) {
     return;
   }
 
-  try {
-    const state = store.getState();
-    const accessToken = state?.auth?.accessToken;
-    const refreshToken = state?.auth?.refreshToken;
-    const isLoggedIn = state?.auth?.isLoggedIn || state?.user?.isLoggedIn;
-
-    // Only proceed if user is logged in and we have tokens
-    if (!isLoggedIn) {
-      return;
-    }
-
-    // If we have a refresh token and the access token is expired, refresh it
-    if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
-      console.log(`Token validation before API call to ${url}`);
-      const tokenRefreshResult = await checkAndRefreshTokens();
-
-      if (!tokenRefreshResult) {
-        console.log('Token refresh failed, user may be logged out');
-        // Don't throw error here, let the request proceed and handle 401 in response interceptor
-      }
-    }
-  } catch (error) {
-    console.error('Error ensuring valid token:', error);
-    // Continue with request anyway - the interceptor will handle 401 errors
-  }
+  // Remove redundant token validation logic to avoid conflicts with interceptors
+  // The auth interceptor will handle token validation and refresh automatically
+  console.log(`API call to ${url} - token handling delegated to interceptors`);
 };
 
 const fetchAxiosInstanceType = type => {
@@ -402,7 +380,7 @@ export const addAuthInterceptor = async () => {
     return req;
   };
 
-  // Apply the interceptor to both fanTvInstance and rawInstance
+  // Apply the interceptor to all axios instances
   const fanTvInterceptorId = fanTvInstance.interceptors.request.use(
     authInterceptorFunction,
   );
@@ -412,11 +390,15 @@ export const addAuthInterceptor = async () => {
   const defaultInterceptorId = defaultInstance.interceptors.request.use(
     authInterceptorFunction,
   );
+  const strapiInterceptorId = strapiInstance.interceptors.request.use(
+    authInterceptorFunction,
+  );
 
   return () => {
     fanTvInstance.interceptors.request.eject(fanTvInterceptorId);
     rawInstance.interceptors.request.eject(rawInterceptorId);
     defaultInstance.interceptors.request.eject(defaultInterceptorId);
+    strapiInstance.interceptors.request.eject(strapiInterceptorId);
   };
 };
 
@@ -521,7 +503,7 @@ export const setupResponseInterceptor = async injectedStore => {
     return Promise.reject(error);
   };
 
-  // Apply the response interceptor to both fanTvInstance and rawInstance
+  // Apply the response interceptor to all axios instances
   const fanTvInterceptorId = fanTvInstance.interceptors.response.use(
     response => responseInterceptorFunction(response, fanTvInstance),
     error => responseErrorHandler(error, fanTvInstance),
@@ -537,10 +519,16 @@ export const setupResponseInterceptor = async injectedStore => {
     error => responseErrorHandler(error, defaultInstance),
   );
 
+  const strapiInterceptorId = strapiInstance.interceptors.response.use(
+    response => responseInterceptorFunction(response, strapiInstance),
+    error => responseErrorHandler(error, strapiInstance),
+  );
+
   return () => {
     fanTvInstance.interceptors.response.eject(fanTvInterceptorId);
     rawInstance.interceptors.response.eject(rawInterceptorId);
     defaultInstance.interceptors.response.eject(defaultInterceptorId);
+    strapiInstance.interceptors.response.eject(strapiInterceptorId);
   };
 };
 

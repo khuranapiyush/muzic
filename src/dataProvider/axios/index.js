@@ -14,7 +14,7 @@ const defaultInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000,
+  timeout: 600000,
   retry: 3,
   retryDelay: 1000,
 });
@@ -23,7 +23,7 @@ export const rawInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000,
+  timeout: 600000,
   retry: 3,
   retryDelay: 1000,
 });
@@ -33,7 +33,7 @@ export const strapiInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000,
+  timeout: 600000,
   retry: 3,
   retryDelay: 1000,
 });
@@ -43,7 +43,7 @@ export const fanTvInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000,
+  timeout: 600000,
   retry: 3,
   retryDelay: 1000,
 });
@@ -53,7 +53,7 @@ export const refreshInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 45000,
+  timeout: 600000,
   retry: 3,
   retryDelay: 1000,
 });

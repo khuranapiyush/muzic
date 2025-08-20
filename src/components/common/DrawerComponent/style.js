@@ -14,7 +14,6 @@ const getStyles = theme => {
       flex: 1,
       justifyContent: 'center',
       paddingHorizontal: 16,
-      // paddingTop: 25,
     },
   });
 };

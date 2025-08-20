@@ -106,7 +106,6 @@ const getStyles = theme => {
       width: 40,
       height: 40,
       borderRadius: 20,
-      backgroundColor: 'rgba(244, 164, 96, 0.9)',
       justifyContent: 'center',
       alignItems: 'center',
       shadowColor: '#000',
@@ -119,9 +118,9 @@ const getStyles = theme => {
       elevation: 5,
     },
     playIcon: {
-      width: 16,
-      height: 16,
-      tintColor: '#FFFFFF',
+      width: 40,
+      height: 40,
+      tintColor: 'rgba(244, 164, 96, 0.9)',
     },
     loadingContainer: {
       flex: 1,

@@ -25,6 +25,7 @@ import appImages from '../../../resource/images';
 import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
 import {hidePlayer} from '../../../stores/slices/player';
+import useCurrentPage from '../../../hooks/useCurrentPage';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -39,6 +40,8 @@ const GlobalPlayer = () => {
     duration,
     showGlobalPlayer,
   } = useSelector(state => state.player);
+
+  const {currentPage} = useCurrentPage();
 
   const [isFullPlayer, setIsFullPlayer] = useState(false);
   const videoRef = useRef(null);
@@ -154,7 +157,20 @@ const GlobalPlayer = () => {
     <>
       {/* Mini Player */}
       <Animated.View
-        style={[styles.container, {transform: [{scale: scaleAnimation}]}]}>
+        style={[
+          styles.container,
+          {
+            bottom:
+              currentPage !== 'MainStack'
+                ? 20
+                : Platform.OS === 'ios'
+                ? 120
+                : 110,
+          },
+          {
+            transform: [{scale: scaleAnimation}],
+          },
+        ]}>
         {Platform.OS === 'ios' ? (
           <>
             {/* iOS Close button placed outside the player container */}
@@ -330,7 +346,7 @@ const GlobalPlayer = () => {
           <TouchableOpacity
             style={styles.closeButton}
             onPress={toggleFullPlayer}>
-            <Image source={appImages.closeIcon} style={styles.closeIcon} />
+            <Image source={appImages.arrowBack} style={styles.closeIcon} />
           </TouchableOpacity>
 
           <ScrollView
@@ -486,11 +502,9 @@ const GlobalPlayer = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 120 : 110,
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
-    // borderRadius: 8,
     elevation: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -2},
@@ -536,7 +550,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 0, // No rounding needed as it's inside the container
+    borderRadius: 0,
   },
   iosMiniProgressBarContainer: {
     height: 4,
@@ -690,20 +704,21 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   closeIcon: {
-    width: 24,
-    height: 24,
+    transform: [{rotate: '90deg'}],
+    width: 20,
+    height: 20,
     tintColor: '#FFF',
     ...Platform.select({
       ios: {
-        width: 20,
-        height: 20,
+        width: 15,
+        height: 15,
       },
     }),
   },
   albumArtContainer: {
     width: SCREEN_WIDTH * 0.85,
     height: SCREEN_WIDTH * 0.85,
-    marginTop: 20, // Add top margin to create separation from top
+    marginTop: 20,
     marginBottom: 40,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 4},
@@ -804,14 +819,14 @@ const styles = StyleSheet.create({
   queueContainer: {
     width: '90%', // Make it less stretched by reducing width
     marginTop: 30,
-    alignSelf: 'center', // Center the queue container
+    alignSelf: 'center',
   },
   queueTitle: {
     color: '#FE954A',
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 16,
-    marginLeft: 5, // Add a small left margin
+    marginLeft: 5,
   },
   queueList: {
     width: '100%',
