@@ -14,14 +14,18 @@ const defaultInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000, // 30 second timeout
+  timeout: 45000,
+  retry: 3,
+  retryDelay: 1000,
 });
 
 export const rawInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 45000,
+  retry: 3,
+  retryDelay: 1000,
 });
 
 export const strapiInstance = axios.create({
@@ -29,7 +33,9 @@ export const strapiInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 45000,
+  retry: 3,
+  retryDelay: 1000,
 });
 
 export const fanTvInstance = axios.create({
@@ -37,7 +43,9 @@ export const fanTvInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 45000,
+  retry: 3,
+  retryDelay: 1000,
 });
 
 export const refreshInstance = axios.create({
@@ -45,7 +53,9 @@ export const refreshInstance = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 30000,
+  timeout: 45000,
+  retry: 3,
+  retryDelay: 1000,
 });
 
 // Add error handling to all axios instances
@@ -61,7 +71,7 @@ const instances = [
 instances.forEach(instance => {
   // Request interceptor to check network connectivity
   instance.interceptors.request.use(
-    async config => {
+    async reqConfig => {
       try {
         // Check network connectivity before making the request
         const netInfo = await NetInfo.fetch();
@@ -76,11 +86,11 @@ instances.forEach(instance => {
           });
         }
 
-        return config;
+        return reqConfig;
       } catch (error) {
         console.error('Error checking network status:', error);
         // Continue with the request even if NetInfo fails
-        return config;
+        return reqConfig;
       }
     },
     error => {
@@ -88,10 +98,17 @@ instances.forEach(instance => {
     },
   );
 
-  // Response interceptor for handling errors
+  // Response interceptor for handling errors with retry logic
   instance.interceptors.response.use(
     response => response,
-    error => {
+    async error => {
+      const requestConfig = error && error.config ? error.config : null;
+
+      // Initialize retry count if not present
+      if (requestConfig && typeof requestConfig.__retryCount !== 'number') {
+        requestConfig.__retryCount = 0;
+      }
+
       // Create a default error message
       let errorMessage = 'An error occurred. Please try again.';
 
@@ -108,9 +125,29 @@ instances.forEach(instance => {
         errorMessage =
           'Network connection failed. Please check your internet connection and try again.';
       } else if (error.code === 'ECONNABORTED') {
-        // Handle timeout errors
+        // Handle timeout errors with retry
         console.error('Request timeout:', error);
         errorMessage = 'Request timed out. Please try again later.';
+
+        // Retry logic for timeout errors
+        if (
+          requestConfig &&
+          requestConfig.__retryCount < (requestConfig.retry || 3)
+        ) {
+          requestConfig.__retryCount += 1;
+          console.log(
+            `Retrying request (${requestConfig.__retryCount}/${
+              requestConfig.retry || 3
+            })`,
+          );
+
+          // Wait before retrying
+          await new Promise(resolve =>
+            setTimeout(resolve, requestConfig.retryDelay || 1000),
+          );
+
+          return instance(requestConfig);
+        }
       } else if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
@@ -124,11 +161,49 @@ instances.forEach(instance => {
           errorMessage = 'The requested resource was not found.';
         } else if (error.response.status >= 500) {
           errorMessage = 'Server error. Please try again later.';
+
+          // Retry for server errors
+          if (
+            requestConfig &&
+            requestConfig.__retryCount < (requestConfig.retry || 3)
+          ) {
+            requestConfig.__retryCount += 1;
+            console.log(
+              `Retrying request due to server error (${
+                requestConfig.__retryCount
+              }/${requestConfig.retry || 3})`,
+            );
+
+            await new Promise(resolve =>
+              setTimeout(resolve, requestConfig.retryDelay || 1000),
+            );
+
+            return instance(requestConfig);
+          }
         }
       } else if (error.request) {
         // The request was made but no response was received
         console.error('No response received:', error.request);
         errorMessage = 'No response from server. Please try again later.';
+
+        // Retry for no response
+        if (
+          requestConfig &&
+          requestConfig.__retryCount < (requestConfig.retry || 3)
+        ) {
+          requestConfig.__retryCount += 1;
+          console.log(
+            `Retrying request due to no response (${
+              requestConfig.__retryCount
+            }/${requestConfig.retry || 3})`,
+          );
+
+          await new Promise(resolve =>
+            setTimeout(resolve, requestConfig.retryDelay || 1000),
+          );
+
+          return instance(requestConfig);
+        }
       }
 
       // Add the custom message to the error object

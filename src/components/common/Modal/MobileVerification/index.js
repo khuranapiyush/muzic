@@ -16,13 +16,14 @@ import useEvent from '../../../../hooks/useEvent';
 import useToaster from '../../../../hooks/useToaster';
 import {setUser, setUserData} from '../../../../stores/slices/user';
 import {screenHeight} from '../../../../utils/common';
-import MoEngageService from '../../../../services/moengageService';
+import moEngageService from '../../../../services/moengageService';
 import VerifyOtp from '../../../feature/auth/verifyOtp';
 import MobileInputWithCountry from '../../../feature/verification/mobileVerify/mobileInputWithCountry';
 import Toaster from '../../Toaster';
 import CView from '../../core/View';
 import getStyles from './style';
 import {useTheme} from '@react-navigation/native';
+import GradientBackground from '../../GradientBackground';
 
 const MobileVerification = ({
   isVisible,
@@ -73,7 +74,7 @@ const MobileVerification = ({
 
       // Register user in MoEngage
       try {
-        MoEngageService.registerUserFromLogin(res.data.user, 'email');
+        moEngageService.registerUserFromLogin(res.data.user, 'email');
       } catch (error) {
         console.warn('MoEngage user registration failed:', error);
       }
@@ -254,7 +255,9 @@ const MobileVerification = ({
           ...styles.modalContainer,
           height: screenHeight * (config.type == 'max' ? 1 : 0.45),
         }}>
-        <CView style={styles.modalContent}>{formRenderer()}</CView>
+        <GradientBackground>
+          <CView style={styles.modalContent}>{formRenderer()}</CView>
+        </GradientBackground>
         <Toaster />
       </SafeAreaView>
     </Modal>

@@ -7,7 +7,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 16,
     height: '100%',
-    backgroundColor: '#0F0F11',
   },
   gradientContainer: {
     flex: 1,
@@ -27,7 +26,7 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
     justifyContent: 'center',
-    height: height * 0.6,
+    height: height * 0.85,
   },
   // Gradient behind buttons
   buttonGradient: {
@@ -128,7 +127,7 @@ const styles = StyleSheet.create({
   referralTextContainer: {marginRight: 5},
   tickIcon: {width: 16, height: 16},
   referralInputContainer: {marginVertical: 16},
-  btnContainer: {marginVertical: 16, width: '85%'},
+  btnContainer: {marginVertical: 10, width: '90%'},
   submitBtn: {
     buttonTextStyles: {fontSize: 18, fontWeight: '700'},
   },
@@ -165,6 +164,7 @@ const styles = StyleSheet.create({
     height: 30,
     marginBottom: Platform.OS === 'ios' ? 6 : 0,
     resizeMode: 'contain',
+    marginRight: 8,
   },
   emailIcon: {
     width: 44,
@@ -173,34 +173,25 @@ const styles = StyleSheet.create({
   validationText: {color: 'red'},
   buttonContainer: {marginHorizontal: 15},
   createButton: {
-    height: 56,
     width: '100%',
-    borderRadius: 28,
+    height: 56,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderStyle: 'solid',
-    borderColor: '#C87D48',
-  },
-  gradient: {
-    flexDirection: 'row',
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     borderRadius: 100,
     borderWidth: 4,
-    borderStyle: 'solid',
-    borderColor: '#C87D48',
+    borderColor: '#A84D0C',
+    backgroundColor: '#FC6C14',
+  },
+  gradient: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   createButtonText: {
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
-    lineHeight: 32,
-    paddingHorizontal: 10,
-    alignContent: 'center',
-    alignItems: 'center',
-    textAlign: 'center',
-    ...(Platform.OS === 'ios' ? {paddingBottom: 8} : {}),
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   checkmark: {
     position: 'absolute',

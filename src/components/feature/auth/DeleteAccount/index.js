@@ -7,7 +7,7 @@ import {useDispatch, useSelector} from 'react-redux';
 import {deleteAccount} from '../../../../api/auth';
 import useToaster from '../../../../hooks/useToaster';
 import appImages from '../../../../resource/images';
-import {resetUser} from '../../../../stores/slices/user';
+import {logoutUser} from '../../../../utils/authUtils';
 import {screenHeight} from '../../../../utils/common';
 import Toaster from '../../../common/Toaster';
 import CButton from '../../../common/core/Button';
@@ -74,8 +74,8 @@ const DeleteAccount = ({
         }
 
         // Delay logout to allow modal to close and toast to show
-        setTimeout(() => {
-          dispatch(resetUser());
+        setTimeout(async () => {
+          await logoutUser();
           navigator.navigate('Home');
         }, 1000);
       },

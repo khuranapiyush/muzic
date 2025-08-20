@@ -117,3 +117,7 @@
 # MoEngage HMS PushKit (optional - only if you support Huawei)
 -keep class com.huawei.hms.** { *; }
 -dontwarn com.huawei.hms.**
+
+# Branch.io
+-keep class io.branch.** { *; }
+-dontwarn io.branch.**

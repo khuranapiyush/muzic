@@ -28,7 +28,9 @@ import {PermissionsAndroid} from 'react-native';
 import {
   setGeneratingSong,
   setGeneratingSongId,
+  setShouldRefreshLibrary,
 } from '../../../stores/slices/player';
+import GradientBackground from '../../common/GradientBackground';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
@@ -101,9 +103,8 @@ const LibraryScreen = () => {
   const [audioList, setAudioList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const navigation = useNavigation();
-  const {isGeneratingSong, generatingSongId} = useSelector(
-    state => state.player,
-  );
+  const {isGeneratingSong, generatingSongId, shouldRefreshLibrary} =
+    useSelector(state => state.player);
   const [prevGeneratingState, setPrevGeneratingState] = useState(false);
   const [prevAudioList, setPrevAudioList] = useState([]);
   const isLibraryScreen = useRef(true);
@@ -266,29 +267,32 @@ const LibraryScreen = () => {
   //   }
   // }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
 
-  // Fetch library data every 15 seconds while a song is generating
+  // Removed polling mechanism - library will be refreshed once when song generation completes
+
+  // Effect to refresh library when song generation completes
   useEffect(() => {
-    let intervalId = null;
-
-    if (isGeneratingSong && isLibraryScreen.current) {
-      // Poll for updates while song is generating and we're on the library screen
-      intervalId = setInterval(() => {
-        console.log('Polling for library updates...');
+    console.log(
+      'Library state - isGeneratingSong:',
+      isGeneratingSong,
+      'shouldRefreshLibrary:',
+      shouldRefreshLibrary,
+    );
+    if (shouldRefreshLibrary && isLibraryScreen.current) {
+      console.log('Song generation complete - refreshing library...');
+      // Add a small delay to ensure the song is available in the backend
+      const timeoutId = setTimeout(() => {
         fetchAudioList();
-      }, 15000); // Check every 15 seconds
-    }
+        // Reset the flag after refreshing
+        dispatch(setShouldRefreshLibrary(false));
+      }, 2000); // 2 second delay to ensure backend has processed the song
 
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [isGeneratingSong, fetchAudioList]);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [shouldRefreshLibrary, isGeneratingSong, fetchAudioList, dispatch]);
 
   // Memoize the song press handler
   const handleSongPress = useCallback(
     (audioUrl, title, duration, imageUrl) => {
-      // Verify audioUrl is valid before attempting to play
       if (!audioUrl) {
         console.error('Cannot play song with empty audio URL:', title);
         return;
@@ -599,14 +603,17 @@ const LibraryScreen = () => {
               <Text style={styles.songGenres}>{formatTime(item.duration)}</Text>
             </View>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
-              {isCurrentlyPlaying && (
-                <View style={styles.playingIndicator}>
-                  <Image
-                    source={appImages.playerPauseIcon}
-                    style={[styles.playingIcon, {width: 20, height: 20}]}
-                  />
-                </View>
-              )}
+              <View style={styles.playIconContainer}>
+                <Image
+                  source={
+                    isCurrentlyPlaying
+                      ? appImages.playerPauseIcon
+                      : appImages.playerPlayIcon
+                  }
+                  style={styles.playIcon}
+                  resizeMode="contain"
+                />
+              </View>
               <TouchableOpacity
                 style={[styles.menuButton, {padding: 6}]}
                 onPress={() => handleDownload(item)}>
@@ -638,7 +645,11 @@ const LibraryScreen = () => {
 
   // Memoize the list header
   const ListHeaderComponent = useMemo(
-    () => <Text style={styles.heading}>Library</Text>,
+    () => (
+      <View style={{marginLeft: 10}}>
+        <Text style={styles.heading}>Library</Text>
+      </View>
+    ),
     [],
   );
 
@@ -647,7 +658,6 @@ const LibraryScreen = () => {
 
   // Create a generation indicator component
   const GenerationIndicator = () => {
-    // Only show if a song is actively being generated AND we have a generatingSongId
     if (!isGeneratingSong || !generatingSongId) return null;
 
     return (
@@ -667,49 +677,59 @@ const LibraryScreen = () => {
       </LinearGradient>
     );
   };
+  console.log(isGeneratingSong, 'isGeneratingSong');
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        {isGeneratingSong && (
-          <View style={styles.generatingContainer}>
-            <ActivityIndicator color="#F4A460" size="small" />
-            <Text style={styles.generatingText}>
-              Generating your song... Please wait
-            </Text>
-          </View>
-        )}
-        {isListLoading && audioList.length === 0 ? (
-          <View style={styles.loaderContainer}>
-            <ActivityIndicator size="large" color="#F4A460" />
-            <Text style={styles.loadingText}>Loading your library...</Text>
-          </View>
-        ) : (
-          <FlatList
-            data={audioList}
-            renderItem={renderItem}
-            keyExtractor={keyExtractor}
-            ListHeaderComponent={ListHeaderComponent}
-            ListEmptyComponent={ListEmptyComponent}
-            contentContainerStyle={{paddingBottom: 80}}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={onRefresh}
-                colors={['#F4A460']}
-                tintColor="#F4A460"
-              />
-            }
-            initialNumToRender={10}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            removeClippedSubviews={true}
-            getItemLayout={getItemLayout}
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </View>
+    <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
+      <GradientBackground>
+        <View
+          style={[
+            styles.content,
+            {
+              backgroundColor: 'transparent',
+              paddingTop: Platform.OS === 'ios' ? 50 : 60,
+            },
+          ]}>
+          {isGeneratingSong && (
+            <View style={styles.generatingContainer}>
+              <ActivityIndicator color="#F4A460" size="small" />
+              <Text style={styles.generatingText}>
+                Generating your song... Please wait
+              </Text>
+            </View>
+          )}
+          {isListLoading && audioList.length === 0 ? (
+            <View style={styles.loaderContainer}>
+              <ActivityIndicator size="large" color="#F4A460" />
+              <Text style={styles.loadingText}>Loading your library...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={audioList}
+              renderItem={renderItem}
+              keyExtractor={keyExtractor}
+              ListHeaderComponent={ListHeaderComponent}
+              ListEmptyComponent={ListEmptyComponent}
+              contentContainerStyle={{paddingBottom: 80, paddingTop: 20}}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={onRefresh}
+                  colors={['#F4A460']}
+                  tintColor="#F4A460"
+                />
+              }
+              initialNumToRender={10}
+              maxToRenderPerBatch={10}
+              windowSize={5}
+              removeClippedSubviews={true}
+              getItemLayout={getItemLayout}
+              style={styles.list}
+              showsVerticalScrollIndicator={false}
+            />
+          )}
+        </View>
+      </GradientBackground>
     </SafeAreaView>
   );
 };
@@ -717,9 +737,7 @@ const LibraryScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
-    paddingTop: 15,
-    marginHorizontal: 10,
+    backgroundColor: 'transparent',
   },
   list: {
     flex: 1,
@@ -752,13 +770,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   heading: {
-    fontSize: 24,
     fontWeight: '700',
-    color: '#FDF5E6',
-    fontFamily: 'Bricolage Grotesque',
     letterSpacing: -0.8,
     textTransform: 'capitalize',
     marginBottom: 16,
+    color: '#F2F2F2',
+    fontFamily: 'Inter',
+    fontSize: 16,
+    lineHeight: 24,
   },
   cardsContainer: {
     flexDirection: 'row',
@@ -799,8 +818,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 10,
     borderRadius: 12,
-    backgroundColor: '#1F1F1F', // Solid background color
     height: 70,
+    borderWidth: 1,
+    borderColor: '#2A2A2A',
+    backgroundColor: '#1E1E1E',
   },
   playingSongItem: {
     backgroundColor: '#3C3129', // Darker background for playing items
@@ -970,17 +991,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 8,
-    marginBottom: 16,
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: '#F4A460',
+    marginTop: 30,
   },
   generatingText: {
     color: '#F4A460',
     fontSize: 15,
     fontWeight: '500',
     marginLeft: 12,
+  },
+  playIconContainer: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  playIcon: {
+    width: 40,
+    height: 40,
   },
 });
 

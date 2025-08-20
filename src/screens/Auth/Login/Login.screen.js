@@ -1,20 +1,9 @@
 import React, {useState, useEffect} from 'react';
-import {
-  SafeAreaView,
-  StyleSheet,
-  View,
-  KeyboardAvoidingView,
-  Platform,
-} from 'react-native';
-import {useForm} from 'react-hook-form';
+import {StyleSheet, View, KeyboardAvoidingView, Platform} from 'react-native';
 import {useMutation} from '@tanstack/react-query';
 import {useDispatch} from 'react-redux';
-import {
-  authGoogleLogin,
-  authLoginSignup,
-  authAppleLogin,
-} from '../../../api/auth';
-import fetcher, {addAuthInterceptor} from '../../../dataProvider';
+import {authGoogleLogin, authAppleLogin} from '../../../api/auth';
+import fetcher from '../../../dataProvider';
 import {useNavigation} from '@react-navigation/native';
 import useToaster from '../../../hooks/useToaster';
 import ROUTE_NAME from '../../../navigator/config/routeName';
@@ -33,7 +22,9 @@ import {setTokenChecked} from '../../../stores/slices/app';
 import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
 import {store} from '../../../stores';
-import MoEngageService from '../../../services/moengageService';
+import useMoEngageUser from '../../../hooks/useMoEngageUser';
+import moEngageService from '../../../services/moengageService';
+import branch, {BranchEvent} from 'react-native-branch';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -41,6 +32,9 @@ const LoginScreen = () => {
   const [isAppleSignInProgress, setIsAppleSignInProgress] = useState(false);
   const {showToaster} = useToaster();
   const navigation = useNavigation();
+
+  // Use the MoEngage hook for automatic user tracking
+  const {trackMuzicEvents} = useMoEngageUser();
 
   // Initialize Google Sign-In when component mounts
   useEffect(() => {
@@ -122,86 +116,10 @@ const LoginScreen = () => {
     checkAppleSignInAvailability();
   }, []);
 
-  const {
-    control,
-    formState: {isValid, errors},
-    getValues,
-    watch,
-  } = useForm({
-    criteriaMode: 'all',
-    mode: 'all',
-    defaultValues: {
-      mobile: '',
-      phoneCountryCode: {
-        name: 'India',
-        cca2: 'IN',
-        callingCode: ['91'],
-      },
-      terms: true,
-      isReferralCode: false,
-      referralCode: '',
-    },
-  });
-
-  const {mutate: loginMobileApi} = useMutation(data => authLoginSignup(data), {
-    onSuccess: () => {
-      navigation.navigate(ROUTE_NAME.VerifyOtp, {
-        phone: watch('mobile'),
-        countryCode: `+${watch('phoneCountryCode').callingCode[0]}`,
-        referralCode: watch('isReferralCode') ? watch('referralCode') : null,
-      });
-    },
-    onError: err => {
-      showToaster({
-        type: 'error',
-        text1: 'Error',
-        text2: err.response.data.message,
-      });
-    },
-    onSettled: () => {
-      setIsLoading(false);
-    },
-  });
-
-  const handleLogin = () => {
-    setIsLoading(true);
-
-    // Track the button click in analytics
-    analyticsUtils.trackButtonClick('phone_login', {
-      screen: 'login',
-      platform: Platform.OS,
-    });
-
-    // Track Facebook event
-    facebookEvents.logCustomEvent('login_button_click', {
-      method: 'phone',
-      platform: Platform.OS,
-    });
-
-    const {mobile, phoneCountryCode, referralCode, isReferralCode} =
-      getValues();
-
-    // Track mobile number entry event
-    analyticsUtils.trackMobileNumberEntry({
-      country_code: `+${phoneCountryCode.callingCode[0]}`,
-    });
-
-    // Track mobile number entry with Facebook Events
-    try {
-      facebookEvents.logCustomEvent('mobile_number_entry', {
-        country_code: `+${phoneCountryCode.callingCode[0]}`,
-      });
-    } catch (error) {
-      // Silent error handling
-    }
-
-    const data = {
-      phoneNumber: mobile,
-      phoneCountryCode: `+${phoneCountryCode.callingCode[0]}`,
-      ...(isReferralCode && {referralCode}),
-    };
-
-    loginMobileApi(data);
+  const handlePhoneLogin = () => {
+    console.log('Phone login button pressed');
+    // Navigate to phone input screen
+    navigation.navigate(ROUTE_NAME.PhoneInput);
   };
 
   const dispatch = useDispatch();
@@ -274,15 +192,12 @@ const LoginScreen = () => {
           console.log('Auth token set in axios instances');
         }
 
-        // Add token to axios interceptor
-        addAuthInterceptor(accessToken);
-
-        // Save token in Redux
+        // Save token in Redux with consistent keys
         if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              accessToken: accessToken,
-              refreshToken: refreshToken,
+              access: accessToken,
+              refresh: refreshToken,
             }),
           );
           console.log('Tokens saved in Redux');
@@ -298,11 +213,25 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Register user in MoEngage
+        // Track login (MoEngage + Branch)
         try {
-          MoEngageService.registerUserFromLogin(res.data.user, 'google');
+          const trackedUserId = String(
+            res?.data?.user?.id || res?.data?.user?._id || '',
+          );
+          if (trackedUserId) {
+            moEngageService.trackUserLogin(trackedUserId, {
+              method: 'google',
+              email: res?.data?.user?.email,
+            });
+            try {
+              branch.setIdentity(trackedUserId);
+            } catch (_) {}
+          }
+          new BranchEvent(BranchEvent.Login, {
+            method: 'google',
+          }).logEvent();
         } catch (error) {
-          console.warn('MoEngage user registration failed:', error);
+          console.warn('Login tracking failed:', error);
         }
 
         // Log the login event for analytics
@@ -362,15 +291,12 @@ const LoginScreen = () => {
           console.log('Auth token set in axios instances');
         }
 
-        // Add token to axios interceptor
-        addAuthInterceptor(accessToken);
-
-        // Save token in Redux
+        // Save token in Redux with consistent keys
         if (accessToken && refreshToken) {
           dispatch(
             updateToken({
-              accessToken: accessToken,
-              refreshToken: refreshToken,
+              access: accessToken,
+              refresh: refreshToken,
             }),
           );
           console.log('Tokens saved in Redux');
@@ -386,11 +312,25 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Register user in MoEngage
+        // Track login (MoEngage + Branch)
         try {
-          MoEngageService.registerUserFromLogin(res.data.user, 'apple');
+          const trackedUserId = String(
+            res?.data?.user?.id || res?.data?.user?._id || '',
+          );
+          if (trackedUserId) {
+            moEngageService.trackUserLogin(trackedUserId, {
+              method: 'apple',
+              email: res?.data?.user?.email,
+            });
+            try {
+              branch.setIdentity(trackedUserId);
+            } catch (_) {}
+          }
+          new BranchEvent(BranchEvent.Login, {
+            method: 'apple',
+          }).logEvent();
         } catch (error) {
-          console.warn('MoEngage user registration failed:', error);
+          console.warn('Login tracking failed:', error);
         }
 
         // Log the login event for analytics
@@ -661,15 +601,8 @@ const LoginScreen = () => {
       }
 
       // Get the credentials
-      const {
-        user,
-        email,
-        nonce,
-        identityToken,
-        fullName,
-        authorizationCode,
-        realUserStatus,
-      } = appleAuthRequestResponse;
+      const {user, email, nonce, identityToken, fullName} =
+        appleAuthRequestResponse;
 
       // Ensure identityToken is available
       if (!identityToken) {
@@ -709,40 +642,33 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={styles.keyboardAvoidView}>
-        <View style={styles.content}>
-          <Login
-            handleLogin={handleLogin}
-            nextStep={() => {}}
-            control={control}
-            isValid={isValid}
-            isLoading={
-              isLoading || isGoogleSignInProgress || isAppleSignInProgress
-            }
-            handleModeChange={() => {}}
-            errors={errors}
-            handleGoogleLogin={handleGoogleLogin}
-            handleAppleLogin={handleAppleLogin}
-            appleSignInAvailable={
-              Platform.OS === 'ios' &&
-              parseInt(Platform.Version, 10) >= 13 &&
-              appleAuth &&
-              appleAuth.isSupported
-            }
-          />
-        </View>
-      </KeyboardAvoidingView>
-    </SafeAreaView>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.keyboardAvoidView}>
+      <View style={styles.content}>
+        <Login
+          handlePhoneLogin={handlePhoneLogin}
+          isLoading={
+            isLoading || isGoogleSignInProgress || isAppleSignInProgress
+          }
+          handleGoogleLogin={handleGoogleLogin}
+          handleAppleLogin={handleAppleLogin}
+          appleSignInAvailable={
+            Platform.OS === 'ios' &&
+            parseInt(Platform.Version, 10) >= 13 &&
+            appleAuth &&
+            appleAuth.isSupported
+          }
+        />
+      </View>
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // Background is now handled by the Login component
+    backgroundColor: 'transparent',
   },
   keyboardAvoidView: {
     flex: 1,

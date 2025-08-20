@@ -132,16 +132,16 @@ const OtpInput = ({
 
       <CView style={styles.submitBtnContainer}>
         <TouchableOpacity
-          onPress={() => handleSubmitOtp(otp)}
-          customStyles={styles.submitBtn}
-          disabled={otp.length !== pinCount}
           style={{
             ...styles.createButton,
             opacity: otp.length !== pinCount ? 0.6 : 1,
           }}
+          activeOpacity={0.8}
+          onPress={() => handleSubmitOtp(otp)}
+          disabled={otp.length !== pinCount}
           isLoading={isLoading}>
           <LinearGradient
-            colors={['#F4A460', '#DEB887']}
+            colors={['rgba(255, 255, 255, 0.20)', 'rgba(255, 255, 255, 0.40)']}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
             style={styles.gradient}>

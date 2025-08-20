@@ -22,6 +22,12 @@ const PrivacyPolicyScreen = React.lazy(() =>
 const TermsAndConditionsScreen = React.lazy(() =>
   import('../../screens/TermsAndConditions/TermsAndConditions.screen'),
 );
+const TrendingSongsScreen = React.lazy(() =>
+  import('../../screens/TrendingSongs/TrendingSongs.screen'),
+);
+const AllRecordingsScreen = React.lazy(() =>
+  import('../../screens/AllRecordings/AllRecordings.screen'),
+);
 
 // Loading component for Suspense
 const LoadingComponent = () => (
@@ -113,6 +119,22 @@ export const appStackRoutes = [
     name: ROUTE_NAME.AuthStack,
     component: withSuspense(AuthStackNavigator),
     key: ROUTE_NAME.AuthStack,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    name: ROUTE_NAME.TrendingSongs,
+    component: withSuspense(TrendingSongsScreen),
+    key: ROUTE_NAME.TrendingSongs,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    name: ROUTE_NAME.AllRecordings,
+    component: withSuspense(AllRecordingsScreen),
+    key: ROUTE_NAME.AllRecordings,
     options: {
       headerShown: false,
     },

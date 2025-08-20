@@ -2,6 +2,7 @@ import React from 'react';
 import OtpInput from '../../../common/OtpInput';
 import CView from '../../../common/core/View';
 import styles from './style';
+import GradientBackground from '../../../common/GradientBackground';
 
 const VerifyOtp = ({
   handlePreviousStep,
@@ -25,15 +26,17 @@ const VerifyOtp = ({
 
   return (
     <CView style={styles.container}>
-      <OtpInput
-        header={header}
-        handleEditMobile={handleEditMobile}
-        handleResendOtp={handleResendOtp}
-        handleSubmitOtp={handleSubmitOtp}
-        isLoading={isLoading}
-        autoFocusOnLoad={false}
-        {...rest}
-      />
+      <GradientBackground>
+        <OtpInput
+          header={header}
+          handleEditMobile={handleEditMobile}
+          handleResendOtp={handleResendOtp}
+          handleSubmitOtp={handleSubmitOtp}
+          isLoading={isLoading}
+          autoFocusOnLoad={false}
+          {...rest}
+        />
+      </GradientBackground>
     </CView>
   );
 };

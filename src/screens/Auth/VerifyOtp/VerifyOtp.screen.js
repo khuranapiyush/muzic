@@ -19,6 +19,8 @@ import VerifyOtp from '../../../components/feature/auth/verifyOtp';
 import {setUser} from '../../../stores/slices/user';
 import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
+import moEngageService from '../../../services/moengageService';
+import branch, {BranchEvent} from 'react-native-branch';
 
 const VerifyOtpScreen = ({route}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -106,6 +108,32 @@ const VerifyOtpScreen = ({route}) => {
         CurrentSourceName: loginSource.loginPhoneSource,
       });
 
+      // Track signup/login completion (MoEngage + Branch)
+      try {
+        const userId = String(
+          res?.data?.user?.id || res?.data?.user?._id || res?.data?.id || '',
+        );
+        if (userId) {
+          moEngageService.trackUserRegistration(userId, {
+            method: 'phone_otp',
+            phone_country_code: countryCode,
+          });
+          moEngageService.trackUserLogin(userId, {
+            method: 'phone_otp',
+            phone_country_code: countryCode,
+          });
+          try {
+            branch.setIdentity(userId);
+          } catch (_) {}
+        }
+        new BranchEvent(BranchEvent.CompleteRegistration, {
+          method: 'phone_otp',
+          country_code: countryCode,
+        }).logEvent();
+      } catch (e) {
+        // no-op
+      }
+
       // Navigate to home screen
       navigation.reset({
         index: 0,
@@ -181,7 +209,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: 16,
+    // paddingHorizontal: 16,
   },
 });
 

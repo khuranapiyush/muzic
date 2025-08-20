@@ -8,6 +8,8 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 import org.devio.rn.splashscreen.SplashScreen
 import android.view.View
 import com.google.firebase.analytics.FirebaseAnalytics
+import io.branch.rnbranch.RNBranchModule
+import android.content.Intent
 
 class MainActivity : ReactActivity() {
     private lateinit var firebaseAnalytics: FirebaseAnalytics
@@ -43,6 +45,19 @@ class MainActivity : ReactActivity() {
         } catch (e: Exception) {
             android.util.Log.e("MainActivity", "Error with Firebase Analytics: ${e.message}", e)
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // Initialize Branch session with the current intent data
+        RNBranchModule.initSession(intent?.data, this)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        // Re-init Branch session when a new intent is received (e.g., cold start to foreground)
+        RNBranchModule.reInitSession(this)
     }
 
     /**

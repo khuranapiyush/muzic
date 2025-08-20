@@ -69,18 +69,19 @@ export const AppProvider = ({children}) => {
 
           // Tokens present, validate them
           try {
-            // Validate token logic goes here
-            const validationResult = true; // Placeholder, replace with actual validation
+            // Validate tokens and refresh if needed
+            const validationResult = await checkAndRefreshTokens();
 
             if (validationResult) {
-              // Token valid, set user state
+              // Token valid or successfully refreshed, set user state
               dispatch(setUser({isLoggedIn: true}));
             } else {
-              // Token invalid, set to logged out
+              // Token validation/refresh failed, set to logged out
               dispatch(setUser({isLoggedIn: false}));
             }
           } catch (error) {
             // Token validation failed, set to logged out
+            console.error('Token validation error:', error);
             dispatch(setUser({isLoggedIn: false}));
           } finally {
             // Always mark token check as complete
@@ -133,27 +134,27 @@ export const AppProvider = ({children}) => {
     }
   };
 
-  useQuery({
-    queryKey: ['appConfig'],
-    queryFn: fetchAppConfig,
-    enabled: permissionsLoaded, // Only fetch after permissions are loaded
-    onSuccess: res => {
-      const data = res.data.data;
-      if (data.latestVersion == APP_VERSION) {
-        dispatch(setFeatureEnable(false));
-      } else {
-        dispatch(setFeatureEnable(true));
-      }
-      dispatch(setAppData(data));
-    },
-    onError: error => {
-      console.log('Error fetching app config:', error);
-      // Even if app config fails, ensure we move forward with the app
-      if (!tokenChecked) {
-        dispatch(setTokenChecked(true));
-      }
-    },
-  });
+  // useQuery({
+  //   queryKey: ['appConfig'],
+  //   queryFn: fetchAppConfig,
+  //   enabled: permissionsLoaded, // Only fetch after permissions are loaded
+  //   onSuccess: res => {
+  //     const data = res.data.data;
+  //     if (data.latestVersion == APP_VERSION) {
+  //       dispatch(setFeatureEnable(false));
+  //     } else {
+  //       dispatch(setFeatureEnable(true));
+  //     }
+  //     dispatch(setAppData(data));
+  //   },
+  //   onError: error => {
+  //     console.log('Error fetching app config:', error);
+  //     // Even if app config fails, ensure we move forward with the app
+  //     if (!tokenChecked) {
+  //       dispatch(setTokenChecked(true));
+  //     }
+  //   },
+  // });
 
   useEffect(() => {
     dispatch(setSessionId(getUniqueId()));
@@ -177,9 +178,9 @@ export const AppProvider = ({children}) => {
       removeResponseInterceptor = await setupResponseInterceptor(store);
     };
 
-    if (userId) {
-      setupInterceptors();
-    }
+    // Set up interceptors irrespective of whether userId is present.
+    // This ensures token refresh/attachment works even before user profile is loaded.
+    setupInterceptors();
 
     return () => {
       if (removeAuthInterceptor) {
@@ -190,7 +191,7 @@ export const AppProvider = ({children}) => {
         removeResponseInterceptor();
       }
     };
-  }, [userId]);
+  }, []);
 
   // Initialize only microphone permissions when needed
   useEffect(() => {

@@ -11,26 +11,25 @@ import {
 import {useSelector} from 'react-redux';
 import CustomHeader from '../components/common/Header';
 import appImages from '../resource/images';
-import CView from '../components/common/core/View';
 
 // Import screens directly instead of using lazy loading
 import Home from '../screens/Home/Home.screen';
 import AIGenerator from '../components/feature/aiAgent/AIGenerator/AIGenerator';
 import CoverCreationScreen from '../components/feature/aiAgent/AIGenerator/AiCover';
 import LibraryScreen from '../components/feature/library';
+import LinearGradient from 'react-native-linear-gradient';
 
 const Tab = createBottomTabNavigator();
 
-// Pre-define constants to avoid recreating objects in render cycles
 const ICON_TINT_COLORS = {
-  active: '#000',
+  active: '#FFF',
   inactive: '#A5A5A5',
 };
 
-// Optimize the tab icon component with stricter memoization
 const TabIcon = React.memo(
   ({iconSource, focused}) => (
-    <CView
+    <LinearGradient
+      colors={focused ? ['#FF6F02', '#FF7E85'] : ['#121212', '#121212']}
       style={[
         styles.iconContainer,
         focused ? styles.focusedIcon : styles.unfocusedIcon,
@@ -47,14 +46,13 @@ const TabIcon = React.memo(
         ]}
         resizeMode="contain"
       />
-    </CView>
+    </LinearGradient>
   ),
   (prevProps, nextProps) =>
     prevProps.iconSource === nextProps.iconSource &&
     prevProps.focused === nextProps.focused,
 );
 
-// Optimize the tab label component with stricter memoization
 const TabLabel = React.memo(
   ({label, focused}) => (
     <Text
@@ -70,25 +68,28 @@ const TabLabel = React.memo(
     prevProps.focused === nextProps.focused,
 );
 
-// Create constant styles outside the component to prevent recreating them
 const hiddenTabBarStyle = {display: 'none'};
 
 const HomeStackNavigator = () => {
   const {isFullScreen: isPlayerFullScreen} = useSelector(state => state.player);
 
-  // Memoize base screen options to avoid recalculation
   const baseScreenOptions = useMemo(
     () => ({
       tabBarStyle: {
-        height: 80,
-        paddingBottom: 30,
-        marginBottom: Platform.OS === 'ios' ? 30 : 20,
-        paddingTop: 20,
-        backgroundColor: '#000',
+        display: 'flex',
+        paddingTop: 30,
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+        borderTopLeftRadius: 12,
+        borderTopRightRadius: 12,
         borderTopWidth: 1,
-        borderColor: '#FFB680',
+        borderColor: '#2A2A2A',
+        backgroundColor: '#1E1E1E',
+        height: 120,
+        paddingBottom: 30,
         elevation: 0,
-        shadowOpacity: 0,
+        shadowOpacity: 1,
       },
       headerShown: false,
       header: props => <CustomHeader {...props} />,
@@ -96,12 +97,10 @@ const HomeStackNavigator = () => {
       tabBarInactiveTintColor: '#A5A5A5',
       lazy: true,
       detachInactiveScreens: true,
-      tabBarHideOnKeyboard: true, // Hide when keyboard is visible
-      // Remove touch animation
+      tabBarHideOnKeyboard: true,
       tabBarButton: props => (
         <TouchableOpacity {...props} activeOpacity={1} style={props.style} />
       ),
-      // Optimize transition animations
       ...(Platform.OS === 'android' && {
         animationEnabled: false,
       }),
@@ -109,7 +108,6 @@ const HomeStackNavigator = () => {
     [],
   );
 
-  // Optimize tab options creation with proper memoization
   const createTabOptions = useCallback(
     (icon, label) => ({
       headerShown: true,
@@ -121,7 +119,6 @@ const HomeStackNavigator = () => {
     [],
   );
 
-  // Memoize player-dependent options
   const playerDependentOptions = useMemo(
     () => ({
       headerShown: !isPlayerFullScreen,
@@ -132,7 +129,6 @@ const HomeStackNavigator = () => {
     [isPlayerFullScreen, baseScreenOptions.tabBarStyle],
   );
 
-  // Create individual tab options with minimal dependencies
   const discoverTabOptions = useMemo(
     () => ({
       ...playerDependentOptions,
@@ -159,15 +155,13 @@ const HomeStackNavigator = () => {
     [playerDependentOptions],
   );
 
-  // Memoize create tab options
   const createOptions = useMemo(
     () => createTabOptions(appImages.createIcon, 'Create'),
     [createTabOptions],
   );
 
-  // Memoize AI cover tab options
   const aiCoverOptions = useMemo(
-    () => createTabOptions(appImages.aiCoverIcon, 'AI Cover'),
+    () => createTabOptions(appImages.aiCoverIcon, 'Cover Song'),
     [createTabOptions],
   );
 
@@ -181,14 +175,14 @@ const HomeStackNavigator = () => {
         options={createOptions}
       />
       <Tab.Screen
+        name="Cover Song"
+        component={CoverCreationScreen}
+        options={aiCoverOptions}
+      />
+      <Tab.Screen
         name="Discover"
         component={Home}
         options={discoverTabOptions}
-      />
-      <Tab.Screen
-        name="AI Cover"
-        component={CoverCreationScreen}
-        options={aiCoverOptions}
       />
       <Tab.Screen
         name="Library"
@@ -199,7 +193,6 @@ const HomeStackNavigator = () => {
   );
 };
 
-// Optimize styles with StyleSheet.create for better performance
 const styles = StyleSheet.create({
   iconContainer: {
     width: 40,
@@ -212,13 +205,18 @@ const styles = StyleSheet.create({
   },
   focusedIcon: {
     backgroundColor: '#FFD5A9',
+    borderRadius: 58,
   },
   unfocusedIcon: {
-    backgroundColor: '#1E1E1E',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: '#121212',
   },
   iconImage: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
+    marginLeft: -2,
   },
   tabLabel: {
     fontSize: 12,

@@ -1,8 +1,8 @@
 import {StyleSheet} from 'react-native';
 
 const styles = StyleSheet.create({
-  wrapper: {paddingTop: 5},
-  container: {alignItems: 'center'},
+  wrapper: {paddingTop: 0},
+  container: {alignItems: 'center', marginTop: 30},
   contentContainer: {justifyContent: 'center', marginLeft: 10},
   submitBtn: {
     buttonTextStyles: {fontSize: 16, fontWeight: '600'},

@@ -1,5 +1,5 @@
 import {updateToken} from '../stores/slices/auth';
-import {getData} from '../utils/asyncStorage';
+// import {getData} from '../utils/asyncStorage';
 import {
   fanTvInstance,
   rawInstance,
@@ -11,6 +11,7 @@ import {
   isTokenExpired,
   refreshAccessToken,
   checkAndRefreshTokens,
+  logoutUser,
 } from '../utils/authUtils';
 import {store} from '../stores';
 import config from 'react-native-config';
@@ -41,11 +42,22 @@ const ensureValidToken = async url => {
     const state = store.getState();
     const accessToken = state?.auth?.accessToken;
     const refreshToken = state?.auth?.refreshToken;
+    const isLoggedIn = state?.auth?.isLoggedIn || state?.user?.isLoggedIn;
+
+    // Only proceed if user is logged in and we have tokens
+    if (!isLoggedIn) {
+      return;
+    }
 
     // If we have a refresh token and the access token is expired, refresh it
     if (refreshToken && (!accessToken || isTokenExpired(accessToken))) {
       console.log(`Token validation before API call to ${url}`);
-      await checkAndRefreshTokens();
+      const tokenRefreshResult = await checkAndRefreshTokens();
+
+      if (!tokenRefreshResult) {
+        console.log('Token refresh failed, user may be logged out');
+        // Don't throw error here, let the request proceed and handle 401 in response interceptor
+      }
     }
   } catch (error) {
     console.error('Error ensuring valid token:', error);
@@ -80,20 +92,30 @@ const fetcher = {
 
       console.log('Setting auth token in axios instances');
 
-      // Update token in all axios instances
-      fanTvInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
-      strapiInstance.defaults.headers.common.Authorization = `Bearer ${token}`;
+      // Determine token string value (handle object or string)
+      const tokenValue =
+        typeof token === 'object' && token !== null && token.access
+          ? token.access
+          : token;
+
+      // Update token in axios instances with the proper string value
+      if (typeof tokenValue === 'string') {
+        fanTvInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+        strapiInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+        defaultInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+        rawInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
+      }
 
       // Check if token is already an object or a string
-      if (typeof token === 'string') {
+      if (typeof tokenValue === 'string' && typeof token === 'string') {
         // If it's a string, update Redux with proper structure
         store.dispatch(
           updateToken({
-            access: token,
+            access: tokenValue,
             refresh: store.getState()?.auth?.refreshToken, // Keep existing refresh token
           }),
         );
-      } else if (token.access && token.refresh) {
+      } else if (token && token.access && token.refresh) {
         // If it's already the correct structure with access & refresh
         store.dispatch(updateToken(token));
       }
@@ -116,8 +138,10 @@ const fetcher = {
     axiosInstanceType,
     logConfigs = {log: false},
   ) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -145,8 +169,10 @@ const fetcher = {
    * @returns Promise
    */
   post: async (url, data, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -174,8 +200,10 @@ const fetcher = {
    * @returns Promise
    */
   put: async (url, data, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -203,8 +231,10 @@ const fetcher = {
    * @returns Promise
    */
   patch: async (url, data, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -232,8 +262,10 @@ const fetcher = {
    * @returns Promise
    */
   delete: async (url, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -253,8 +285,10 @@ const fetcher = {
       });
   },
   upload: async (url, formData, paramConfigs = {}, axiosInstanceType) => {
-    // Check token validity before making the request
-    await ensureValidToken(url);
+    // Check token validity before making the request unless explicitly skipped
+    if (!paramConfigs?.skipTokenValidation) {
+      await ensureValidToken(url);
+    }
 
     const instance = fetchAxiosInstanceType(axiosInstanceType);
     return instance
@@ -288,10 +322,20 @@ export const addAuthInterceptor = async () => {
       !req.url.includes('verify-email') &&
       !req.url.includes('refresh-tokens');
 
-    if (shouldAddAuthHeaders) {
+    // Allow callers to skip auth header injection and token refresh
+    const skipAuthHeader = Boolean(req.skipAuthHeader);
+
+    // Note: when callers set Authorization explicitly, we respect it below
+
+    if (shouldAddAuthHeaders && !skipAuthHeader) {
       console.log(`Adding auth headers to request: ${req.url}`);
 
       try {
+        // If Authorization already set by caller, do not override
+        if (req.headers && req.headers.Authorization) {
+          return req;
+        }
+
         // Use our token utility directly instead of trying to get from multiple places
         const state = store.getState();
         const userIsLoggedIn = state?.user?.isLoggedIn;
@@ -314,6 +358,18 @@ export const addAuthInterceptor = async () => {
               console.log('Interceptor: Token refreshed successfully');
             } catch (error) {
               console.error('Interceptor: Failed to refresh token:', error);
+              // If refresh fails with 401/403, user will be logged out in refreshAccessToken
+              // For other errors, we continue and let the request fail normally
+              if (
+                error.response &&
+                (error.response.status === 401 || error.response.status === 403)
+              ) {
+                // Token refresh failed due to invalid refresh token
+                console.log(
+                  'Interceptor: Refresh token invalid, skipping auth header',
+                );
+                return req; // Continue without auth header
+              }
             }
           }
 
@@ -369,7 +425,7 @@ const processQueue = (error, token = null, axiosInstance = fanTvInstance) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.originalRequest.headers['Authorization'] = `Bearer ${token}`;
+      prom.originalRequest.headers.Authorization = `Bearer ${token}`;
       prom.resolve(axiosInstance(prom.originalRequest));
     }
   });
@@ -377,7 +433,7 @@ const processQueue = (error, token = null, axiosInstance = fanTvInstance) => {
   failedQueue = [];
 };
 
-export const setupResponseInterceptor = async store => {
+export const setupResponseInterceptor = async injectedStore => {
   // Define the response interceptor function to reuse for multiple instances
   const responseInterceptorFunction = (response, axiosInstance) => {
     return response;
@@ -387,7 +443,16 @@ export const setupResponseInterceptor = async store => {
     const originalRequest = error.config;
 
     if (error.response && error.response.status === 401) {
-      const state = store.getState();
+      // If this request explicitly opted out of auth handling, don't attempt refresh
+      if (
+        originalRequest?.skipAuthHeader ||
+        originalRequest?.skipTokenValidation ||
+        originalRequest?.skipAuthHandling
+      ) {
+        return Promise.reject(error);
+      }
+
+      const state = injectedStore.getState();
 
       const refreshToken = state?.auth?.refreshToken;
 
@@ -413,7 +478,7 @@ export const setupResponseInterceptor = async store => {
             .then(async res => {
               const access = res.data.access?.token;
               const refresh = res.data.refresh?.token;
-              store.dispatch(updateToken({access, refresh}));
+              injectedStore.dispatch(updateToken({access, refresh}));
 
               processQueue(null, access, axiosInstance);
               resolve(axiosInstance(originalRequest));
@@ -427,9 +492,9 @@ export const setupResponseInterceptor = async store => {
                   refreshError.response.status === 403)
               ) {
                 console.log(
-                  'Refresh token is invalid or expired. Logging out.',
+                  'Refresh token is invalid or expired. Logging out user.',
                 );
-                store.dispatch(updateToken({access: '', refresh: ''}));
+                logoutUser().catch(err => console.error('Logout error:', err));
               } else {
                 console.log(
                   'Token refresh failed due to network or server error.',

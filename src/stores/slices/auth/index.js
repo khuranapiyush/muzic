@@ -19,14 +19,24 @@ const auth = createSlice({
         state.isLoggedIn = true;
       } else if (action.payload && typeof action.payload === 'object') {
         // Handle object with access, refresh format
-        if (action.payload.access) {
+        if (action.payload.hasOwnProperty('access')) {
           state.accessToken = action.payload.access;
         }
-        if (action.payload.refresh) {
+        if (action.payload.hasOwnProperty('refresh')) {
           state.refreshToken = action.payload.refresh;
         }
-        // Always set logged in when tokens are updated
-        state.isLoggedIn = true;
+
+        // Backward/compat: accept keys named accessToken/refreshToken too
+        if (action.payload.hasOwnProperty('accessToken')) {
+          state.accessToken = action.payload.accessToken;
+        }
+        if (action.payload.hasOwnProperty('refreshToken')) {
+          state.refreshToken = action.payload.refreshToken;
+        }
+
+        // Set logged in based on whether we have valid tokens
+        const hasValidTokens = state.accessToken && state.refreshToken;
+        state.isLoggedIn = hasValidTokens;
       }
     },
     setLoggedIn: (state, action) => {

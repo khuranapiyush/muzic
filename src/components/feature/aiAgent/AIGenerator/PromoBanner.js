@@ -15,14 +15,14 @@ import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import * as RNIap from 'react-native-iap';
-import {getPlatformProductIds} from '../../../../api/config';
+import {getDefaultProductId} from '../../../../api/config';
 
 const PRICE_MULTIPLIERS = {
   payment_101: 1.5,
   payment_201: 1.9,
   payment_301: 9.3,
 
-  payment_100: 1.5,
+  payment_100: 1.6,
   payment_200: 1.9,
   payment_300: 9.3,
 };
@@ -83,53 +83,31 @@ const PromoModal = ({visible, onClose}) => {
           return;
         }
 
-        // Fetch product IDs dynamically from backend
         const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-        const productIds = await getPlatformProductIds(platform);
+        const defaultProductId = await getDefaultProductId(platform);
 
-        console.log(
-          `PromoBanner: Fetched ${productIds.length} product IDs for ${platform}:`,
-          productIds,
-        );
-
-        if (productIds.length === 0) {
-          console.warn('PromoBanner: No product IDs received from backend');
+        if (!defaultProductId) {
           setLoading(false);
           return;
         }
 
         const storeProducts = await RNIap.getProducts({
-          skus: productIds,
+          skus: [defaultProductId],
           forceRefresh: true,
         });
 
-        const validProducts = (storeProducts || []).filter(
+        const validProduct = (storeProducts || []).find(
           p => p && p.productId && (p.price || p.localizedPrice),
         );
 
-        if (validProducts.length === 0) {
-          console.warn('PromoBanner: No valid products found from store');
+        if (!validProduct) {
           setLoading(false);
           return;
         }
 
-        console.log(
-          `PromoBanner: Found ${validProducts.length} valid products from store`,
-        );
-
-        const sortedByPrice = [...validProducts].sort((a, b) => {
-          const aPrice = calculatePricing(a)?.discountedPriceNumeric || 0;
-          const bPrice = calculatePricing(b)?.discountedPriceNumeric || 0;
-          return bPrice - aPrice;
-        });
-
-        setProductData(sortedByPrice[0]);
-        console.log(
-          'PromoBanner: Selected highest priced product:',
-          sortedByPrice[0]?.productId,
-        );
+        setProductData(validProduct);
       } catch (err) {
-        console.error('PromoBanner: Error fetching IAP products', err);
+        console.error('Error fetching IAP products', err);
       } finally {
         setLoading(false);
       }
@@ -243,9 +221,9 @@ const PromoModal = ({visible, onClose}) => {
                     })()}
                   </View>
 
-                  <Text style={styles.renewalText}>
+                  {/* <Text style={styles.renewalText}>
                     Auto renewable. Cancel anytime.
-                  </Text>
+                  </Text> */}
 
                   <TouchableOpacity
                     style={styles.createButton}

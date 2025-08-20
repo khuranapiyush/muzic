@@ -6,6 +6,13 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    <!-- Android 13+ notification permission -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    
+    <!-- Push notification permissions for MoEngage -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
 
     <application
       android:name=".MainApplication"
@@ -29,11 +36,31 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <!-- Branch App Links for https scheme -->
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="makemysong.app.link" />
+        </intent-filter>
+        <intent-filter android:autoVerify="true">
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" android:host="makemysong-alternate.app.link" />
+        </intent-filter>
         <meta-data
         android:name="com.google.android.gms.client_id"
         android:value="@string/default_web_client_id" />
       </activity>
       
+      <!-- Branch keys (use env via react-native-config) -->
+      <meta-data android:name="io.branch.sdk.BranchKey"
+          android:value="key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
+      <!-- Optional test key -->
+      <meta-data android:name="io.branch.sdk.BranchKey.test"
+          android:value="key_test_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
+
       <!-- MoEngage Configuration -->
       <meta-data android:name="moengage_app_id" 
               android:value="BUP4RKUJZXQL8R2J9N61ZKEL"/>
@@ -59,5 +86,14 @@
               <data android:scheme="@string/fb_login_protocol_scheme" />
           </intent-filter>
       </activity>
+      
+      <!-- Use MoEngage's Firebase Messaging Service to auto-handle push -->
+      <service
+          android:name="com.moengage.firebase.MoEFireBaseMessagingService"
+          android:exported="false">
+          <intent-filter>
+              <action android:name="com.google.firebase.MESSAGING_EVENT" />
+          </intent-filter>
+      </service>
     </application>
 </manifest>

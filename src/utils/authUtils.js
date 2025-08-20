@@ -1,5 +1,6 @@
 import {store} from '../stores';
-import {updateToken} from '../stores/slices/auth';
+import {updateToken, setLoggedIn} from '../stores/slices/auth';
+import {resetUser} from '../stores/slices/user';
 import {getData} from './asyncStorage';
 import fetcher from '../dataProvider';
 import config from 'react-native-config';
@@ -23,6 +24,26 @@ const processQueue = (error, token = null) => {
     }
   });
   refreshQueue = [];
+};
+
+/**
+ * Log out the user completely by clearing tokens and resetting user state
+ */
+export const logoutUser = async () => {
+  try {
+    console.log('Logging out user - clearing all tokens and user state');
+
+    // Clear tokens from Redux store
+    store.dispatch(updateToken({access: null, refresh: null}));
+    store.dispatch(setLoggedIn(false));
+
+    // Reset user state
+    store.dispatch(resetUser());
+
+    console.log('User logged out successfully');
+  } catch (error) {
+    console.error('Error during logout:', error);
+  }
 };
 
 /**
@@ -116,8 +137,13 @@ export const checkAndRefreshTokens = async () => {
 
     // If no refresh token, authentication is not possible
     if (!refreshToken) {
+      console.log('No refresh token available');
       return false;
     }
+
+    // Do NOT attempt to locally decode/verify refresh token expiry here.
+    // Some backends issue opaque (non-JWT) refresh tokens which cannot be decoded client-side.
+    // Instead, rely on the server during refreshAccessToken() to validate and decide.
 
     // If access token is valid, no need to refresh
     if (accessToken && !isTokenExpired(accessToken)) {
@@ -200,8 +226,8 @@ export const refreshAccessToken = async () => {
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      console.log('Refresh token is invalid or expired. Logging out.');
-      store.dispatch(updateToken({access: '', refresh: ''}));
+      console.log('Refresh token is invalid or expired. Logging out user.');
+      await logoutUser();
     } else {
       // For network errors or server issues, we keep the tokens
       // so we can retry later
@@ -331,7 +357,9 @@ export const makeAuthenticatedRequest = async apiCall => {
   try {
     // Check if user is logged in
     const state = store.getState();
-    const isLoggedIn = state?.auth?.isLoggedIn;
+    const authIsLoggedIn = state?.auth?.isLoggedIn;
+    const userIsLoggedIn = state?.user?.isLoggedIn;
+    const isLoggedIn = authIsLoggedIn || userIsLoggedIn;
 
     // If user is not logged in, don't attempt the request
     if (!isLoggedIn) {
@@ -339,38 +367,28 @@ export const makeAuthenticatedRequest = async apiCall => {
       throw new Error('User is not logged in');
     }
 
-    // Check if access token is expired and refresh if needed
-    const accessToken = state?.auth?.accessToken;
+    // Check if tokens are valid and refresh if needed
+    const tokenValidationResult = await checkAndRefreshTokens();
 
-    if (accessToken && isTokenExpired(accessToken)) {
-      try {
-        // Proactively refresh token if it's expired
-        await refreshAccessToken();
-      } catch (refreshError) {
-        // If refresh fails but was due to network error, still try the original request
-        if (!refreshError.response) {
-          console.log(
-            'Refresh failed due to network error. Trying original request anyway.',
-          );
-        } else {
-          throw refreshError;
-        }
-      }
+    if (!tokenValidationResult) {
+      console.log('Token validation failed, user may have been logged out');
+      throw new Error('Authentication failed');
     }
 
     // Attempt the API call
     return await apiCall();
   } catch (error) {
-    // If error is 401 Unauthorized, try to refresh token
+    // If error is 401 Unauthorized, try to refresh token one more time
     if (error.response && error.response.status === 401) {
       try {
+        console.log('Received 401 error, attempting token refresh');
         // Refresh the token
         await refreshAccessToken();
 
         // Retry the API call with new token
         return await apiCall();
       } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+        console.error('Token refresh failed after 401 error:', refreshError);
         throw refreshError;
       }
     }
@@ -378,4 +396,32 @@ export const makeAuthenticatedRequest = async apiCall => {
     // If error is not 401 or refresh failed, throw the original error
     throw error;
   }
+};
+
+/**
+ * Check if user needs to be redirected to login/auth screen
+ * @returns {boolean} True if user should be redirected to login
+ */
+export const shouldRedirectToLogin = () => {
+  const state = store.getState();
+  const authIsLoggedIn = state?.auth?.isLoggedIn;
+  const userIsLoggedIn = state?.user?.isLoggedIn;
+  const refreshToken = state?.auth?.refreshToken;
+
+  // If no login state or no refresh token, should redirect
+  if (!authIsLoggedIn && !userIsLoggedIn) {
+    return true;
+  }
+
+  // If no refresh token, should redirect
+  if (!refreshToken) {
+    return true;
+  }
+
+  // If refresh token is expired, should redirect
+  if (isTokenExpired(refreshToken)) {
+    return true;
+  }
+
+  return false;
 };

@@ -4,7 +4,7 @@ const API_URL = config.API_BASE_URL;
 
 /**
  * Fetch product IDs from backend configuration
- * @returns {Promise<{ios: string[], android: string[]}>}
+ * @returns {Promise<{ios: string[], android: string[], defaultPlan: {ios: string, android: string}}>}
  */
 export const fetchProductConfig = async () => {
   try {
@@ -33,6 +33,10 @@ export const fetchProductConfig = async () => {
     return {
       ios: ['payment_101', 'payment_201', 'payment_301'],
       android: ['payment_100', 'payment_200', 'payment_300'],
+      defaultPlan: {
+        ios: 'payment_101',
+        android: 'payment_100',
+      },
     };
   }
 };
@@ -45,16 +49,33 @@ export const fetchProductConfig = async () => {
 export const getPlatformProductIds = async (platform = 'ios') => {
   try {
     const config = await fetchProductConfig();
-    console.log(config, 'config');
     return config[platform] || [];
   } catch (error) {
     console.error('Error getting platform product IDs:', error);
 
-    // Return fallback based on platform
     if (platform === 'ios') {
       return ['payment_101', 'payment_201', 'payment_301'];
     } else {
       return ['payment_100', 'payment_200', 'payment_300'];
     }
+  }
+};
+
+/**
+ * Get default product ID for a specific platform
+ * @param {string} platform - 'ios' or 'android'
+ * @returns {Promise<string>}
+ */
+export const getDefaultProductId = async (platform = 'ios') => {
+  try {
+    const config = await fetchProductConfig();
+    return (
+      config.defaultPlan?.[platform] ||
+      (platform === 'ios' ? 'payment_101' : 'payment_100')
+    );
+  } catch (error) {
+    console.error('Error getting default product ID:', error);
+
+    return platform === 'ios' ? 'payment_101' : 'payment_100';
   }
 };

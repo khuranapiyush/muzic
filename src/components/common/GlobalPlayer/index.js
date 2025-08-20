@@ -10,6 +10,7 @@ import {
   View,
   Platform,
   ScrollView,
+  PanResponder,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import Video from 'react-native-video';
@@ -45,7 +46,6 @@ const GlobalPlayer = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    // Animate the player when play/pause state changes
     Animated.sequence([
       Animated.timing(scaleAnimation, {
         toValue: 1.05,
@@ -59,11 +59,6 @@ const GlobalPlayer = () => {
       }),
     ]).start();
   }, [isPlaying, scaleAnimation]);
-
-  // Don't render if no song is selected or player shouldn't be shown
-  if (!currentSong || !showGlobalPlayer) {
-    return null;
-  }
 
   const handlePlayPause = () => {
     if (currentSong) {
@@ -112,9 +107,48 @@ const GlobalPlayer = () => {
   };
 
   const handleClose = () => {
-    // Only hide the player, don't reset the state
     dispatch(hidePlayer());
   };
+
+  const handleSwipeClose = () => {
+    if (isPlaying) {
+      togglePlay();
+    }
+    dispatch(hidePlayer());
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        const {dx, dy} = gestureState;
+        return Math.abs(dx) > 10 || Math.abs(dy) > 10;
+      },
+      onPanResponderGrant: () => {},
+      onPanResponderMove: () => {},
+      onPanResponderRelease: (evt, gestureState) => {
+        const {dx, dy, vx, vy} = gestureState;
+        const swipeThreshold = 50;
+        const velocityThreshold = 0.5;
+
+        const isSwipe =
+          Math.abs(dx) > swipeThreshold ||
+          Math.abs(dy) > swipeThreshold ||
+          Math.abs(vx) > velocityThreshold ||
+          Math.abs(vy) > velocityThreshold;
+
+        if (isSwipe) {
+          handleSwipeClose();
+        } else {
+          toggleFullPlayer();
+        }
+      },
+      onPanResponderTerminationRequest: () => true,
+    }),
+  ).current;
+  if (!currentSong || !showGlobalPlayer) {
+    return null;
+  }
 
   return (
     <>
@@ -140,17 +174,16 @@ const GlobalPlayer = () => {
             </TouchableOpacity>
 
             {/* iOS-specific player implementation */}
-            <TouchableOpacity
+            <View
               style={styles.iosFlatPlayerContainer}
-              activeOpacity={0.9}
-              onPress={toggleFullPlayer}>
+              {...panResponder.panHandlers}>
               {/* Background gradient with no gaps */}
               <LinearGradient
-                colors={['#FE954A', '#FC6C14']}
+                colors={['#FF6F02', '#FF7E85']}
                 start={{x: 0, y: 0}}
                 end={{x: 0, y: 1}}
                 style={styles.iosBackgroundGradient}
-                locations={[0, 0.8]}
+                locations={[0, 0.9]}
               />
 
               {/* Song thumbnail */}
@@ -207,14 +240,11 @@ const GlobalPlayer = () => {
                   ]}
                 />
               </View>
-            </TouchableOpacity>
+            </View>
           </>
         ) : (
           // Android implementation
-          <TouchableOpacity
-            style={styles.playerContainer}
-            activeOpacity={0.9}
-            onPress={toggleFullPlayer}>
+          <View style={styles.playerContainer} {...panResponder.panHandlers}>
             <LinearGradient
               colors={['#FE954A', '#FC6C14']}
               start={{x: 0, y: 0}}
@@ -280,7 +310,7 @@ const GlobalPlayer = () => {
                 ]}
               />
             </View>
-          </TouchableOpacity>
+          </View>
         )}
       </Animated.View>
 
@@ -352,11 +382,7 @@ const GlobalPlayer = () => {
               <TouchableOpacity
                 onPress={handlePlayPause}
                 style={styles.fullPlayerPlayPauseButton}>
-                <LinearGradient
-                  colors={['#FE954A', '#FC6C14']}
-                  start={{x: 0, y: 0}}
-                  end={{x: 1, y: 1}}
-                  style={styles.playPauseGradient}>
+                <View style={styles.playPauseGradient}>
                   <Image
                     source={
                       isPlaying
@@ -366,7 +392,7 @@ const GlobalPlayer = () => {
                     style={styles.fullPlayerPlayPauseIcon}
                     resizeMode="contain"
                   />
-                </LinearGradient>
+                </View>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -439,6 +465,8 @@ const GlobalPlayer = () => {
         onError={error => {
           console.error('Video playback error:', error);
           console.log('Attempted to play URI:', currentSong.uri);
+          console.log('Current song data:', currentSong);
+          console.log('Error details:', JSON.stringify(error, null, 2));
         }}
         onPlaybackStalled={() => console.log('Playback stalled')}
         onPlaybackRateChange={rate =>
@@ -458,24 +486,23 @@ const GlobalPlayer = () => {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 110 : 100,
+    bottom: Platform.OS === 'ios' ? 120 : 110,
     left: 0,
     right: 0,
     backgroundColor: 'transparent',
-    borderRadius: 8,
-    elevation: 10, // Android only
+    // borderRadius: 8,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: -2},
     shadowOpacity: 0.2,
     shadowRadius: 8,
     zIndex: 1,
-    marginHorizontal: Platform.OS === 'ios' ? 0 : 0, // Changed from 2 to 0 for iOS
+    marginHorizontal: Platform.OS === 'ios' ? 0 : 0,
   },
   gradientContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
   },
@@ -493,23 +520,22 @@ const styles = StyleSheet.create({
   },
   iosFlatPlayerContainer: {
     width: '100%',
-    height: 82, // Fixed height to prevent layout shifts
+    height: 82,
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 8,
-    overflow: 'hidden', // Critical to prevent gradient from leaking
+    overflow: 'hidden',
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    position: 'relative', // Ensure absolute positioning works correctly
+    position: 'relative',
   },
   iosBackgroundGradient: {
     position: 'absolute',
-    top: -1, // Slightly overflow to cover any sub-pixel gaps
-    left: -1,
-    right: -1,
-    bottom: -1,
+    top: 0, // Slightly overflow to cover any sub-pixel gaps
+    left: 0,
+    right: 0,
+    bottom: 0,
     borderRadius: 0, // No rounding needed as it's inside the container
   },
   iosMiniProgressBarContainer: {
@@ -542,22 +568,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    color: '#FFFFFF',
+    color: '#000',
     fontSize: 14,
     fontWeight: '700',
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
   },
   artist: {
-    color: '#EEEEEE',
+    color: '#000',
     fontSize: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
     textShadowOffset: {width: 1, height: 1},
     textShadowRadius: 2,
   },
   timeText: {
-    color: '#EEEEEE',
+    color: '#000',
     fontSize: 10,
     marginTop: 2,
   },
@@ -567,7 +593,7 @@ const styles = StyleSheet.create({
   },
   playPauseButton: {
     padding: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    // backgroundColor: 'rgba(255, 255, 255, 0.2)',
     borderRadius: 20,
     marginHorizontal: 5,
     justifyContent: 'center',
@@ -576,9 +602,8 @@ const styles = StyleSheet.create({
     height: 40,
   },
   playPauseIcon: {
-    width: 24,
-    height: 24,
-    tintColor: '#FFFFFF',
+    width: 40,
+    height: 40,
   },
   closePlayerButton: {
     position: 'absolute',
@@ -771,9 +796,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   fullPlayerPlayPauseIcon: {
-    width: Platform.OS === 'ios' ? 36 : 40,
-    height: Platform.OS === 'ios' ? 36 : 40,
-    tintColor: '#121212',
+    width: Platform.OS === 'ios' ? 76 : 80,
+    height: Platform.OS === 'ios' ? 76 : 80,
+    // tintColor: '#121212',
     marginLeft: Platform.OS === 'ios' ? 0 : 2, // Small adjustment for Android play icon
   },
   queueContainer: {

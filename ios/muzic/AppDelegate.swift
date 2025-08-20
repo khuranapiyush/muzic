@@ -4,12 +4,15 @@ import React_RCTAppDelegate
 import ReactAppDependencyProvider
 import FirebaseCore
 import FirebaseAnalytics
+import UserNotifications
+import MoEngageMessaging
 import FBSDKCoreKit
+import RNBranch
 // import RNSplashScreen
 // import FacebookCore
 
 @main
-class AppDelegate: RCTAppDelegate {
+class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
   override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     // Initialize Firebase first
     FirebaseApp.configure()
@@ -17,8 +20,11 @@ class AppDelegate: RCTAppDelegate {
     // Log a test event to verify Firebase Analytics is working
     Analytics.logEvent("app_initialized", parameters: [
       "source": "native_initialization",
-      "timestamp": NSDate().timeIntervalSince1970
+      "timestamp": NSDate().timeIntervalSince1970,
+      "app_name": "Muzic"
     ])
+    
+    // MoEngage is initialized by the React Native bridge; we only handle APNs permission here
     
     // Initialize Facebook SDK
     FBSDKCoreKit.ApplicationDelegate.shared.application(
@@ -26,26 +32,70 @@ class AppDelegate: RCTAppDelegate {
       didFinishLaunchingWithOptions: launchOptions
     )
     
+    // Register for APNs permission
+    UNUserNotificationCenter.current().delegate = self
+    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+      DispatchQueue.main.async {
+        UIApplication.shared.registerForRemoteNotifications()
+      }
+    }
+
     // Initialize React Native
     self.moduleName = "muzic"
     self.dependencyProvider = RCTAppDependencyProvider()
 
-    // Pass Firebase and Facebook as initialized to React Native
+    // Pass initialization status to React Native
     self.initialProps = [
       "firebaseInitialized": true,
-      "facebookInitialized": true
+      "facebookInitialized": true,
+      "moengageReady": true,
+      "appName": "Muzic"
     ]
 
     // Call super to complete React Native initialization
     let success = super.application(application, didFinishLaunchingWithOptions: launchOptions)
     
+    // Initialize Branch session (keys are now configured in Info.plist / Build Settings)
+    // RNBranch.useTestInstance() // Uncomment while testing with Test keys
+    RNBranch.initSession(launchOptions: launchOptions, isReferrable: true)
+
     // Initialize splash screen AFTER React initialization
     // RNSplashScreen.show()
     
     // Log successful initialization
-    print("⭐️ Application successfully initialized")
+    print("⭐️ Muzic application successfully initialized with Firebase, Facebook, and MoEngage support")
     
     return success
+  }
+
+  // Forward APNs token to MoEngage
+  override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    print("📬 APNs token registered: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
+    MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)
+  }
+
+  // Handle APNs registration failure (optional)
+  override func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+    print("❌ APNs registration failed: \(error.localizedDescription)")
+    MoEngageSDKMessaging.sharedInstance.didFailToRegisterForPush()
+  }
+
+  // Foreground push display handling via MoEngage
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              willPresent notification: UNNotification,
+                              withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center,
+                                                               willPresent: notification)
+    completionHandler([.alert, .badge, .sound])
+  }
+
+  // Push click handling via MoEngage
+  func userNotificationCenter(_ center: UNUserNotificationCenter,
+                              didReceive response: UNNotificationResponse,
+                              withCompletionHandler completionHandler: @escaping () -> Void) {
+    MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center,
+                                                               didReceive: response)
+    completionHandler()
   }
 
   override func sourceURL(for bridge: RCTBridge) -> URL? {
@@ -62,6 +112,11 @@ class AppDelegate: RCTAppDelegate {
   
   // URL handler for Facebook SDK and other deep links
   override func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    // Give Branch a chance to handle deep link URLs first
+    if RNBranch.application(app, open: url, options: options) {
+      return true
+    }
+
     // Handle Facebook URL scheme
     let fbHandled = FBSDKCoreKit.ApplicationDelegate.shared.application(
       app,
@@ -76,5 +131,13 @@ class AppDelegate: RCTAppDelegate {
     
     // Call super for other URL scheme handlers (like Google Sign-In)
     return super.application(app, open: url, options: options)
+  }
+
+  // Handle Universal Links via Branch (pre-iOS 13 or when not using SceneDelegate)
+  override func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+    if RNBranch.continue(userActivity) {
+      return true
+    }
+    return false
   }
 }

@@ -12,11 +12,9 @@ import {
 import fetcher from '../../../../dataProvider';
 import config from 'react-native-config';
 import {useSelector} from 'react-redux';
-import {getAuthToken} from '../../../../utils/authUtils';
 
 const {width} = Dimensions.get('window');
-// const ITEM_WIDTH = (width - 48 - 16) / 4; // Account for padding and gap
-const GENRE_ITEM_WIDTH = (width - 48 - 32) / 5; // For larger screens
+const GENRE_ITEM_WIDTH = (width - 48 - 32) / 5;
 
 const GenreSelectionScreen = ({
   onGenreSelect,
@@ -30,7 +28,6 @@ const GenreSelectionScreen = ({
   const [selectedSingerType, setSelectedSingerType] = useState(null);
   const authState = useSelector(state => state.auth);
 
-  // Reset selections when resetSelections changes
   useEffect(() => {
     if (resetSelections) {
       setSelectedGenre(null);
@@ -41,29 +38,20 @@ const GenreSelectionScreen = ({
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Get the current auth token
-        const token = await getAuthToken();
-
-        const headers = {
-          'Content-Type': 'application/json',
-        };
-
-        // Add authorization header if token exists
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-
-        // Fetch genres
+        // These endpoints are public; avoid attaching auth and token validation
         const genresResponse = await fetcher.get(`${API_BASE_URL}/v1/genres`, {
-          headers,
+          headers: {'Content-Type': 'application/json'},
+          skipTokenValidation: true,
+          skipAuthHeader: true,
         });
         setGenreList(genresResponse.data.data);
 
-        // Fetch filters
         const filtersResponse = await fetcher.get(
           `${API_BASE_URL}/v1/filters`,
           {
-            headers,
+            headers: {'Content-Type': 'application/json'},
+            skipTokenValidation: true,
+            skipAuthHeader: true,
           },
         );
         setFilterList(filtersResponse.data.data);
@@ -75,50 +63,31 @@ const GenreSelectionScreen = ({
     fetchData();
   }, [API_BASE_URL, authState]);
 
-  // const CheckMarkIcon = () => (
-  //   <View style={styles.checkmark}>
-  //     <Svg
-  //       width={16}
-  //       height={16}
-  //       viewBox="0 0 24 24"
-  //       stroke="white"
-  //       strokeWidth={2}>
-  //       <Path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-  //     </Svg>
-  //   </View>
-  // );
-
-  // Handle genre selection and notify parent component
   const handleGenreSelect = (genreId, genreName) => {
     const newSelectedGenre = selectedGenre === genreId ? null : genreId;
     setSelectedGenre(newSelectedGenre);
 
-    // Find the selected genre name if a genre is selected
     let selectedGenreName = null;
     if (newSelectedGenre && genreList) {
       const genre = genreList.find(item => item._id === newSelectedGenre);
       selectedGenreName = genre ? genre.name.toLowerCase() : null;
     }
 
-    // Notify parent component with the genre name
     if (onGenreSelect) {
       onGenreSelect(selectedGenreName);
     }
   };
 
-  // Handle singer type selection and notify parent component
   const handleSingerSelect = (singerId, singerName) => {
     const newSelectedSinger = selectedSingerType === singerId ? null : singerId;
     setSelectedSingerType(newSelectedSinger);
 
-    // Find the selected singer type if a singer is selected
     let selectedVoiceType = null;
     if (newSelectedSinger && filterList) {
       const singer = filterList.find(item => item._id === newSelectedSinger);
       selectedVoiceType = singer ? singer.name.toLowerCase() : null;
     }
 
-    // Notify parent component with the voice type
     if (onVoiceSelect) {
       onVoiceSelect(selectedVoiceType);
     }
@@ -182,11 +151,10 @@ const GenreSelectionScreen = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* <ScrollView style={styles.scrollView}> */}
       <View style={styles.content}>
         {/* Genre Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Genre</Text>
+          <Text style={styles.sectionTitle}>Select Genre</Text>
           <View style={styles.genreGrid}>
             {genreList?.map(item => (
               <GenreItem key={item._id} item={item} />
@@ -206,7 +174,6 @@ const GenreSelectionScreen = ({
           </View>
         </View>
       </View>
-      {/* </ScrollView> */}
     </SafeAreaView>
   );
 };
@@ -214,23 +181,23 @@ const GenreSelectionScreen = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: 'transparent',
   },
   scrollView: {
     flex: 1,
   },
   content: {
-    paddingVertical: 5,
+    paddingVertical: 0,
     paddingHorizontal: 16,
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 16,
     lineHeight: 24,
-    fontWeight: '600',
-    color: '#FDF5E6',
+    fontWeight: '700',
+    color: '#F2F2F2',
     marginBottom: 16,
   },
   genreGrid: {
@@ -272,13 +239,17 @@ const styles = StyleSheet.create({
     transform: [{scale: 1.05}],
   },
   itemText: {
+    color: '#B0B0B0',
+    fontFamily: 'Inter',
+    fontWeight: '500',
     fontSize: 14,
-    color: '#fff',
     textAlign: 'center',
     lineHeight: 21,
+    textTransform: 'capitalize',
+    marginRight: 8,
   },
   selectedText: {
-    color: '#FD893A', // purple-500
+    color: '#FD893A',
   },
   checkmark: {
     position: 'absolute',

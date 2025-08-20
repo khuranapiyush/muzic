@@ -28,6 +28,7 @@ prepare_react_native_project!
 setup_permissions(['Microphone'])
 
 target 'muzic' do
+  source 'https://cdn.cocoapods.org/'
   config = use_native_modules!
 
   use_react_native!(
@@ -41,6 +42,9 @@ target 'muzic' do
   pod 'FirebaseAnalytics', :modular_headers => true
   pod 'FirebaseCore', :modular_headers => true
   pod 'FirebaseCoreInternal', :modular_headers => true
+  
+  # MoEngage iOS SDK is provided via the React Native plugin (ReactNativeMoEngage)
+  # Do not add the core pod directly to avoid conflicts
   
   # Facebook SDK 
   pod 'FBSDKCoreKit'
@@ -80,6 +84,10 @@ target 'muzic' do
         
         # Disable strict validation of modules
         config.build_settings['VALIDATE_WORKSPACE'] = 'NO'
+
+        # Ensure Swift module stability to fix MoEngage modular import issues
+        config.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        config.build_settings['SWIFT_VERSION'] = '5.0'
         
         # Fix specific build paths on M1/M2 chips
         if target.name == 'React-Core'

@@ -22,8 +22,11 @@ import useMusicPlayer from '../../hooks/useMusicPlayer';
 import appImages from '../../resource/images';
 import facebookEvents from '../../utils/facebookEvents';
 import analyticsUtils from '../../utils/analytics';
+import GradientBackground from '../../components/common/GradientBackground';
+import ROUTE_NAME from '../../navigator/config/routeName';
+import {useNavigation} from '@react-navigation/native';
+import {Platform} from 'react-native';
 
-// Add helper function to clean song titles
 const cleanSongTitle = title => {
   if (!title) return 'Untitled Song';
   return title.replace(/"/g, '').trim();
@@ -39,13 +42,6 @@ const SongCard = ({
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
-  const {isPlaying: globalIsPlaying} = useMusicPlayer('HomeScreen');
-
-  // Truncate title to prevent text overflow
-  const truncatedTitle =
-    cleanSongTitle(title).length > 18
-      ? `${cleanSongTitle(title).slice(0, 18)}...`
-      : cleanSongTitle(title);
 
   return (
     <TouchableOpacity
@@ -56,52 +52,56 @@ const SongCard = ({
           source={imageUrl ? {uri: imageUrl} : appImages.songPlaceHolder}
           style={styles.thumbnailImage}
         />
-        <View style={[styles.playButton, isPlaying && styles.playButtonActive]}>
+        <View style={[styles.playButton]}>
           <Image
             source={
-              isPlaying && globalIsPlaying
-                ? appImages.playerPauseIcon
-                : appImages.playerPlayIcon
+              isPlaying ? appImages.playerPauseIcon : appImages.playerPlayIcon
             }
             style={[styles.playPauseIcon, !isPlaying && {marginLeft: 4}]}
           />
         </View>
       </View>
       <LinearGradient
-        colors={['#18181B', '#3C3129']}
+        colors={['#18181B', '#1E1E1E']}
         start={{x: 0, y: 0}}
         end={{x: 0, y: 1}}
         locations={[0.35, 1]}
         style={styles.gradient}>
         <View style={styles.contentContainer}>
-          <Text style={styles.songTitle} numberOfLines={1} ellipsizeMode="tail">
-            {truncatedTitle}
+          <Text style={styles.songTitle} numberOfLines={2} ellipsizeMode="tail">
+            {cleanSongTitle(title)}
           </Text>
-          <Text style={styles.duration}>{formatTime(duration)}</Text>
-          {/* <Text style={styles.duration}>{formatDate(createdAt)}</Text> */}
+          <Text style={styles.duration}>{formatTime(duration)} mins</Text>
         </View>
       </LinearGradient>
     </TouchableOpacity>
   );
 };
 
-const SectionHeader = ({title}) => {
+const SectionHeader = ({title, onShowAllPress}) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
   return (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
+      <TouchableOpacity
+        style={styles.moreContainer}
+        onPress={onShowAllPress}
+        activeOpacity={0.7}>
+        <Text style={styles.showMoreText}>Show All</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
-// Song Section Component
 const SongSection = ({
   title,
   data,
   onSongPress,
-  currentSongId,
+  currentSong,
+  isPlaying,
   isListLoading,
+  onShowAllPress,
 }) => {
   const {mode} = useTheme();
   const styles = getStyles(mode);
@@ -109,7 +109,7 @@ const SongSection = ({
   if (isListLoading) {
     return (
       <View style={styles.sectionContainer}>
-        <SectionHeader title={title} />
+        <SectionHeader title={title} onShowAllPress={onShowAllPress} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FFB680" />
         </View>
@@ -123,7 +123,7 @@ const SongSection = ({
 
   return (
     <View style={styles.sectionContainer}>
-      <SectionHeader title={title} />
+      <SectionHeader title={title} onShowAllPress={onShowAllPress} />
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -136,7 +136,13 @@ const SongSection = ({
             audioUrl={item.audioUrl}
             imageUrl={item.imageUrl}
             onPress={() => onSongPress(item)}
-            isPlaying={currentSongId === item.audioUrl}
+            isPlaying={
+              isPlaying &&
+              currentSong &&
+              (currentSong.audioUrl === item.audioUrl ||
+                currentSong.uri === item.audioUrl ||
+                currentSong.id === item.audioUrl)
+            }
             createdAt={item.createdAt}
           />
         )}
@@ -148,28 +154,27 @@ const SongSection = ({
 
 export default function HomeScreen() {
   const {API_BASE_URL} = config;
-  const [audioList, setAudioList] = useState([]);
+  const [newSongList, setNewSongList] = useState([]);
   const [trendingList, setTrendingList] = useState([]);
   const [refreshing, setRefreshing] = useState(false);
   const {mode} = useTheme();
   const styles = getStyles(mode);
+  const navigation = useNavigation();
 
-  // Use our custom music player hook
-  const {play, currentSong, togglePlayPause} = useMusicPlayer('HomeScreen');
+  const {play, currentSong, isPlaying, togglePlayPause} =
+    useMusicPlayer('HomeScreen');
 
-  // Fetch audio list mutation
   const {mutate: fetchAudioList, isLoading: isListLoading} = useMutation(
     () => fetcher.get(`${API_BASE_URL}/v1/audio-list`),
     {
       onSuccess: response => {
         if (response) {
-          setAudioList(response.data.data.slice(0, 10));
-          setTrendingList(
-            response.data.data.slice(
-              response.data.data.length - 10,
-              response.data.data.length,
-            ),
+          setNewSongList(
+            response.data.data
+              .slice(response.data.data.length - 10, response.data.data.length)
+              .reverse(),
           );
+          setTrendingList(response.data.data.slice(0, 10));
         }
       },
       onError: error => {
@@ -182,12 +187,10 @@ export default function HomeScreen() {
     fetchAudioList();
   }, [fetchAudioList]);
 
-  // Handle pull-to-refresh
   const onRefresh = useCallback(async () => {
     try {
       setRefreshing(true);
 
-      // Call the mutation to fetch fresh data
       await fetchAudioList();
     } catch (error) {
       console.error('Error refreshing data:', error);
@@ -200,10 +203,8 @@ export default function HomeScreen() {
     }
   }, [fetchAudioList]);
 
-  // Handle song press
   const handleSongPress = useCallback(
     song => {
-      // Track song play event with analytics
       analyticsUtils.trackCustomEvent('song_played', {
         song_id: song.audioUrl,
         song_title: song.title || 'Unknown Song',
@@ -211,14 +212,14 @@ export default function HomeScreen() {
         timestamp: new Date().toISOString(),
       });
 
-      // Track song play event with Facebook SDK
-      facebookEvents.logSongPlay(
-        song.audioUrl, // Using audioUrl as the song ID
-        song.title || 'Unknown Song',
-      );
+      facebookEvents.logSongPlay(song.audioUrl, song.title || 'Unknown Song');
 
-      // If this is the current song, just toggle play/pause
-      if (currentSong && currentSong.audioUrl === song.audioUrl) {
+      if (
+        currentSong &&
+        (currentSong.audioUrl === song.audioUrl ||
+          currentSong.uri === song.audioUrl ||
+          currentSong.id === song.audioUrl)
+      ) {
         togglePlayPause();
         return;
       }
@@ -229,42 +230,61 @@ export default function HomeScreen() {
     [play, currentSong, togglePlayPause],
   );
 
+  const handleShowAllPress = useCallback(
+    (sectionType, sectionTitle) => {
+      navigation.navigate(ROUTE_NAME.TrendingSongs, {
+        sectionType,
+        sectionTitle,
+      });
+    },
+    [navigation],
+  );
+
   const sections = [
     {
       title: 'Trending Songs',
       data: trendingList,
+      sectionType: 'trending',
     },
     {
       title: 'New Songs',
-      data: audioList,
+      data: newSongList,
+      sectionType: 'new',
     },
   ];
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#F4A460']}
-            tintColor="#F4A460"
-            title="Refreshing..."
-            titleColor="#F4A460"
-          />
-        }>
-        {sections.map((section, index) => (
-          <SongSection
-            key={index}
-            title={section.title}
-            data={section.data}
-            onSongPress={song => handleSongPress(song)}
-            currentSongId={currentSong?.audioUrl}
-            isListLoading={isListLoading}
-          />
-        ))}
-      </ScrollView>
+    <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
+      <GradientBackground>
+        <ScrollView
+          style={[styles.content, {backgroundColor: 'transparent'}]}
+          contentContainerStyle={{paddingTop: Platform.OS === 'ios' ? 50 : 80}}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#F4A460']}
+              tintColor="#F4A460"
+              title="Refreshing..."
+              titleColor="#F4A460"
+            />
+          }>
+          {sections.map((section, index) => (
+            <SongSection
+              key={index}
+              title={section.title}
+              data={section.data}
+              onSongPress={song => handleSongPress(song)}
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              isListLoading={isListLoading}
+              onShowAllPress={() =>
+                handleShowAllPress(section.sectionType, section.title)
+              }
+            />
+          ))}
+        </ScrollView>
+      </GradientBackground>
     </SafeAreaView>
   );
 }

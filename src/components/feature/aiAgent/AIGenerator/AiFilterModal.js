@@ -1,15 +1,15 @@
-import React, { useState, useEffect } from 'react'
-import { SafeAreaView, ScrollView, TouchableOpacity } from 'react-native'
-import Modal from 'react-native-modal'
-import { screenHeight } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './AIGenerator.styles'
-import { useTheme } from '@react-navigation/native'
-import { Image } from 'react-native'
-import appImages from '../../../../resource/images'
-import Colors from '../../../common/Colors'
-import CButton from '../../../common/core/Button'
+import React, {useState, useEffect} from 'react';
+import {SafeAreaView, ScrollView, TouchableOpacity} from 'react-native';
+import Modal from 'react-native-modal';
+import {screenHeight} from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './AIGenerator.styles';
+import {useTheme} from '@react-navigation/native';
+import {Image} from 'react-native';
+import appImages from '../../../../resource/images';
+import Colors from '../../../common/Colors';
+import CButton from '../../../common/core/Button';
 
 const AiFilterModal = ({
   isVisible,
@@ -17,29 +17,29 @@ const AiFilterModal = ({
   filterTypeData,
   filterValue,
   setFilterValue,
-  modalHeading
+  modalHeading,
 }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const {mode} = useTheme();
+  const styles = getStyles(mode);
 
   const [selectedOptions, setSelectedOptions] = useState(
-    filterValue || filterTypeData[0]
-  )
+    filterValue || filterTypeData[0],
+  );
 
   useEffect(() => {
     if (filterValue) {
-      setSelectedOptions(filterValue)
+      setSelectedOptions(filterValue);
     }
-  }, [filterValue])
+  }, [filterValue]);
 
   const handleFilterSelection = item => {
-    setSelectedOptions(item)
-  }
+    setSelectedOptions(item);
+  };
 
   const handleFilterSubmit = item => {
-    setFilterValue(item?.filterValue)
-    onClose()
-  }
+    setFilterValue(item?.filterValue);
+    onClose();
+  };
 
   return (
     <Modal
@@ -49,7 +49,7 @@ const AiFilterModal = ({
       onBackButtonPress={onClose}
       swipeDirection={null}
       propagateSwipe
-      style={{ ...styles.modal }}
+      style={{...styles.modal}}
       animationIn="slideInUp"
       animationOut="slideOutDown"
       backdropOpacity={0.5}
@@ -57,7 +57,7 @@ const AiFilterModal = ({
       <SafeAreaView
         style={{
           ...styles.modalContainer,
-          height: screenHeight * 0.5
+          height: screenHeight * 0.5,
         }}>
         <CView style={styles.modalContent}>
           <CText size={'largeBold'} style={styles.headingContainer}>
@@ -74,7 +74,7 @@ const AiFilterModal = ({
                 style={styles.filterTextContainer}>
                 <CText
                   size={'medium'}
-                  style={{ color: Colors[mode].textLightGray }}>
+                  style={{color: Colors[mode].textLightGray}}>
                   {item?.filterValue}
                 </CText>
                 <Image
@@ -95,13 +95,13 @@ const AiFilterModal = ({
               text={'Done'}
               isGradientButton
               onPress={() => handleFilterSubmit(selectedOptions)}
-              customStyles={{ buttonTextStyles: styles.submitButton }}
+              customStyles={{buttonTextStyles: styles.submitButton}}
             />
           </CView>
         </CView>
       </SafeAreaView>
     </Modal>
-  )
-}
+  );
+};
 
-export default AiFilterModal
+export default AiFilterModal;

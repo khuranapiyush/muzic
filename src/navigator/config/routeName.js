@@ -5,6 +5,7 @@ const screenRoutes = {
   RewardHistory: 'RewardHistory',
   LeaderBoard: 'LeaderBoard',
   Login: 'Login',
+  PhoneInput: 'PhoneInput',
   VerifyOtp: 'VerifyOtp',
   Community: 'Community',
   MarketPlace: 'MarketPlace',
@@ -50,6 +51,8 @@ const screenRoutes = {
   SubscriptionScreen: 'SubscriptionScreen',
   PrivacyPolicy: 'PrivacyPolicy',
   TermsAndConditions: 'TermsAndConditions',
+  TrendingSongs: 'TrendingSongs',
+  AllRecordings: 'AllRecordings',
 };
 
 const stacks = {

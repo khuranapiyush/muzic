@@ -162,6 +162,11 @@ const appImages = {
   songPlaceHolder: require('../../../assets/images/icons/songPlaceHolder.jpeg'),
   termsAndConditionsIcon: require('../../../assets/images/icons/terms.png'),
   privacyPolicyIcon: require('../../../assets/images/icons/privacy.png'),
+  recordingCardIcon: require('../../../assets/images/icons/recordingCardIcon.png'),
+  grainyBg: require('../../../assets/images/icons/grainyBg.png'),
+  newMicIcon: require('../../../assets/images/icons/newMicIcon.png'),
+  soundIcon: require('../../../assets/images/icons/sound.png'),
+  microphoneIcon: require('../../../assets/images/icons/microphone.png'),
 };
 
 export default appImages;
