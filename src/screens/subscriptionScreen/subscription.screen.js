@@ -22,7 +22,12 @@ import facebookEvents from '../../utils/facebookEvents';
 import analyticsUtils from '../../utils/analytics';
 import {getPlatformProductIds} from '../../api/config';
 import moEngageService from '../../services/moengageService';
-import {BranchEvent} from 'react-native-branch';
+import {
+  trackBranchPurchase,
+  trackBranchPurchaseInitiation,
+  trackBranchEvent,
+} from '../../utils/branchUtils';
+import {trackMoEngageEvent} from '../../utils/moengageUtils';
 
 const API_URL = config.API_BASE_URL;
 
@@ -41,19 +46,6 @@ const PRICE_MULTIPLIERS = {
   payment_100: 1.5,
   payment_200: 1.9,
   payment_300: 9.3,
-};
-
-const calculateIOSDiscount = productId => {
-  const baseMultiplier = PRICE_MULTIPLIERS['payment_101']; // Base price multiplier
-  const productMultiplier = PRICE_MULTIPLIERS[productId];
-
-  if (!productMultiplier || !baseMultiplier) return 0;
-
-  const effectiveDiscount = (
-    (1 - baseMultiplier / productMultiplier) *
-    100
-  ).toFixed(0);
-  return parseInt(effectiveDiscount, 10);
 };
 
 // Modify the product formatting for iOS
@@ -148,7 +140,7 @@ const createPendingPayment = async (productId, amount, token) => {
   }
 };
 
-const processPurchase = async (purchase, token) => {
+const processPurchase = async (purchase, token, authState) => {
   try {
     if (!token) {
       throw new Error('Authentication token not found');
@@ -239,19 +231,23 @@ const processPurchase = async (purchase, token) => {
               purchase.productId,
             );
 
-            moEngageService.trackPurchase({
+            // Enhanced MoEngage purchase tracking
+            await trackMoEngageEvent('Credits_Purchased', {
               amount: amount,
               currency: resultData.currency,
-              productId: purchase.productId,
-              transactionId: purchase?.transactionId,
+              product_id: purchase.productId,
+              transaction_id: purchase?.transactionId,
               platform: 'ios',
+              purchase_method: 'in_app_purchase',
             });
 
-            new BranchEvent(BranchEvent.Purchase, {
+            // Track purchase with Branch using enhanced utility
+            await trackBranchPurchase({
               revenue: amount,
               currency: resultData.currency,
               product_id: purchase.productId,
-            }).logEvent();
+              platform: 'ios',
+            });
           } catch (fbError) {
             // Silent fallback
           }
@@ -320,19 +316,23 @@ const processPurchase = async (purchase, token) => {
               purchase.productId,
             );
 
-            moEngageService.trackPurchase({
+            // Enhanced MoEngage purchase tracking
+            await trackMoEngageEvent('Credits_Purchased', {
               amount: amount,
               currency: resultData.currency,
-              productId: purchase.productId,
-              transactionId: purchase?.orderId || purchase?.transactionId,
+              product_id: purchase.productId,
+              transaction_id: purchase?.orderId || purchase?.transactionId,
               platform: 'android',
+              purchase_method: 'in_app_purchase',
             });
 
-            new BranchEvent(BranchEvent.Purchase, {
+            // Track purchase with Branch using enhanced utility
+            await trackBranchPurchase({
               revenue: amount,
               currency: resultData.currency,
               product_id: purchase.productId,
-            }).logEvent();
+              platform: 'android',
+            });
           }
         } catch (fbError) {
           // Silent fallback
@@ -349,11 +349,11 @@ const processPurchase = async (purchase, token) => {
         product_id: purchase?.productId,
         reason: err?.message,
       });
-      new BranchEvent('PURCHASE_FAILED', {
+      await trackBranchEvent('PURCHASE_FAILED', {
         stage: 'processing',
         product_id: purchase?.productId,
         reason: err?.message,
-      }).logEvent();
+      });
       analyticsUtils.trackCustomEvent('purchase_failed', {
         stage: 'processing',
         product_id: purchase?.productId,
@@ -438,21 +438,9 @@ const getAmountFromProductId = productId => {
       }
     }
 
-    // Fallback to hardcoded map for backward compatibility
-    if (productId === 'payment_100') return 29;
-    if (productId === 'payment_101') return 29;
-    if (productId === 'payment_200') return 59;
-    if (productId === 'payment_201') return 59;
-    if (productId === 'payment_300') return 99;
-    if (productId === 'payment_301') return 99;
-    if (productId === 'payment_500') return 99;
-    if (productId === 'premium_pack') return 99;
-
-    // If all else fails, extract number from product ID if possible
     const matches = productId.match(/(\d+)/);
     if (matches && matches[1]) {
       const credits = parseInt(matches[1], 10);
-      // Apply a simple pricing formula based on credits
       return Math.round(credits * 0.29);
     }
 
@@ -473,32 +461,13 @@ const requestPurchase = async (
   countryCode,
 ) => {
   try {
-    console.log(`Requesting purchase for ${productId}`);
-    console.log(
-      'Available products for purchase:',
-      availableProducts?.map(p => p.productId).join(', ') || 'None',
-    );
-
     // For Android, we need to explicitly fetch products first
     if (Platform.OS === 'android') {
-      console.log('Android platform detected, fetching products first...');
       try {
         // Fetch custom products data
         const fetchedProducts = await fetchPlayStoreProducts(
           accessToken,
           countryCode,
-        );
-
-        console.log(
-          'Fetched products from Play Store:',
-          fetchedProducts.length > 0
-            ? fetchedProducts
-                .map(p => {
-                  console.log(p, 'p');
-                  return p.productId;
-                })
-                .join(', ')
-            : 'No products found',
         );
 
         // Extract product IDs from the fetched products to pass to RNIap
@@ -566,9 +535,7 @@ const requestPurchase = async (
         platform: Platform.OS,
         source: 'subscription_screen',
       });
-      new BranchEvent(BranchEvent.InitiatePurchase, {
-        product_id: productId,
-      }).logEvent();
+      await trackBranchPurchaseInitiation(productId);
     } catch (e) {}
 
     // Use different methods for Android vs iOS
@@ -603,12 +570,12 @@ const requestPurchase = async (
         reason: err?.message,
         code: err?.code,
       });
-      new BranchEvent('PURCHASE_FAILED', {
+      await trackBranchEvent('PURCHASE_FAILED', {
         stage: 'initiation',
         product_id: productId,
         reason: err?.message,
         code: err?.code,
-      }).logEvent();
+      });
       analyticsUtils.trackCustomEvent('purchase_failed', {
         stage: 'initiation',
         product_id: productId,
@@ -1253,7 +1220,6 @@ const getUserCountryCode = async () => {
   }
 };
 
-// Generic pricing helper (mirrors PromoBanner)
 const calculatePricing = product => {
   if (!product || !product.productId) {
     return null;
@@ -1263,7 +1229,7 @@ const calculatePricing = product => {
 
   const priceString = product.price || product.localizedPrice || '0';
   const match = priceString.match(/([0-9]+([.,][0-9]+)?)/);
-  const basePrice = match ? parseFloat(match[1].replace(',', '.')) : 0;
+  const basePrice = match ? parseFloat(match[0].replace(',', '.')) : 0;
 
   const originalPriceNumeric = basePrice * multiplier;
 
@@ -1276,12 +1242,11 @@ const calculatePricing = product => {
 
   const localizedPrice = product.localizedPrice || priceString;
 
-  // Build original price string following locale formatting
   let formattedOriginalPrice = `${originalPriceNumeric.toFixed(2)}`;
   if (match) {
     formattedOriginalPrice = localizedPrice.replace(
-      match[1],
-      originalPriceNumeric.toFixed(2),
+      match[0],
+      originalPriceNumeric,
     );
   }
 
@@ -1309,11 +1274,6 @@ const fetchPlayStoreProducts = async (
     // Fetch product IDs dynamically from backend
     const productIds = await getPlatformProductIds('android');
 
-    console.log(
-      `Subscription: Fetched ${productIds.length} Android product IDs:`,
-      productIds,
-    );
-
     if (productIds.length === 0) {
       console.warn(
         'Subscription: No Android product IDs received from backend',
@@ -1327,14 +1287,11 @@ const fetchPlayStoreProducts = async (
       p => p && p.productId && (p.price || p.localizedPrice),
     );
 
-    console.log(
-      `Subscription: Found ${validProducts.length} valid Android products from store`,
-    );
-
     // Map products to UI-friendly shape with discount info
     const mapped = validProducts.map(prod => {
       const pricing = calculatePricing(prod) || {};
 
+      console.log(pricing.formattedOriginalPrice, 'pricing');
       return {
         productId: prod.productId,
         sku: prod.productId,
@@ -1612,9 +1569,6 @@ const SubscriptionScreen = () => {
         if (directProducts && directProducts.length > 0) {
           setProducts(directProducts);
           global.availableProducts = directProducts;
-          console.log(
-            `Loaded ${directProducts.length} products from Play Store`,
-          );
         }
       } else {
         console.log('Refreshing iOS products from App Store Connect...');
@@ -1630,7 +1584,6 @@ const SubscriptionScreen = () => {
 
             // Fetch product IDs dynamically from backend
             const productIds = await getPlatformProductIds('ios');
-            console.log('Requesting products with IDs:', productIds);
 
             if (productIds.length === 0) {
               console.warn(
@@ -1647,35 +1600,10 @@ const SubscriptionScreen = () => {
             // Single call to fetch products - no separate calls for subscriptions and one-time purchases
             const products = await RNIap.getProducts({
               skus: productIds,
-              forceRestoreFromAppStore: true, // Force fetch from App Store Connect
+              forceRestoreFromAppStore: true,
             });
 
-            // Detailed logging for diagnostic purposes
-            console.log('===== PRODUCT FETCH RESULTS =====');
-            console.log(products);
-            console.log(`Total products found: ${products?.length || 0}`);
-
             if (products && products.length > 0) {
-              console.log('PRODUCT DETAILS FROM STORE:');
-              products.forEach((product, index) => {
-                console.log(`Product ${index + 1}:`);
-                console.log(`- Product ID: ${product.productId}`);
-                console.log(`- Title: ${product.title}`);
-                console.log(`- Description: ${product.description}`);
-                console.log(`- Price: ${product.price}`);
-                console.log(`- Currency: ${product.currency}`);
-
-                // Check for App Store specific fields
-                if (product.introductoryPrice) {
-                  console.log(
-                    '- Has introductory price: YES (App Store Connect feature)',
-                  );
-                }
-
-                // Log all properties for debugging
-                console.log('- All properties:', JSON.stringify(product));
-              });
-
               // Process the products with iOS discounts
               const formattedProducts = products.map(product => {
                 formatIOSProduct(product, userCountry);
@@ -1685,7 +1613,6 @@ const SubscriptionScreen = () => {
                 };
               });
 
-              console.log('Formatted products:', formattedProducts);
               setProducts(formattedProducts);
               global.availableProducts = formattedProducts;
 
@@ -1701,7 +1628,6 @@ const SubscriptionScreen = () => {
 
               // Try a clean reconnection approach
               try {
-                console.log('Attempting clean reconnection to App Store');
                 await RNIap.endConnection();
                 await new Promise(resolve => setTimeout(resolve, 500)); // Add delay
                 await RNIap.initConnection();
@@ -1712,24 +1638,7 @@ const SubscriptionScreen = () => {
                   forceRestoreFromAppStore: true,
                 });
 
-                console.log('===== RETRY FETCH RESULTS =====');
-                console.log(
-                  `Total products found on retry: ${
-                    retryProducts?.length || 0
-                  }`,
-                );
-
                 if (retryProducts && retryProducts.length > 0) {
-                  console.log('RETRY PRODUCT DETAILS:');
-                  retryProducts.forEach((product, index) => {
-                    console.log(`Product ${index + 1}:`);
-                    console.log(`- Product ID: ${product.productId}`);
-                    console.log(`- Title: ${product.title}`);
-                    console.log(`- Description: ${product.description}`);
-                    console.log(`- Price: ${product.price}`);
-                  });
-
-                  console.log('Successfully fetched products on retry attempt');
                   setProducts(retryProducts);
                   global.availableProducts = retryProducts;
                   setSelectedProductId(retryProducts[0].productId);
@@ -1771,27 +1680,11 @@ const SubscriptionScreen = () => {
             const directProducts = await fetchDirectPlayStoreProducts();
 
             if (directProducts && directProducts.length > 0) {
-              console.log(
-                'Successfully fetched products from Google Play API:',
-                directProducts,
-              );
               setProducts(directProducts);
               global.availableProducts = directProducts;
 
-              // Sort products by price
               const sortedProducts = sortProductsByPrice(directProducts);
 
-              // Log sorted products for verification
-              console.log(
-                'Android products sorted by price (lowest to highest):',
-              );
-              sortedProducts.forEach((product, idx) => {
-                console.log(
-                  `${idx + 1}. ${product.productId}: ${product.price}`,
-                );
-              });
-
-              // Set the lowest price product as default
               if (sortedProducts.length > 0) {
                 const lowestPriceProduct = sortedProducts[0];
                 setSelectedProductId(lowestPriceProduct.productId);
@@ -1803,21 +1696,10 @@ const SubscriptionScreen = () => {
             console.error('Error in direct Play Store fetch:', directError);
           }
         }
-        // Fall back to RNIap if direct fetch fails
-        console.log('Using RNIap to fetch products');
 
-        // Fetch all available products without hardcoding IDs
         try {
-          console.log('Fetching available subscriptions2...');
-
-          // Fetch product IDs dynamically from backend
           const platform = Platform.OS === 'ios' ? 'ios' : 'android';
           const dynamicProductIds = await getPlatformProductIds(platform);
-
-          console.log(
-            `Subscription: Fetched ${dynamicProductIds.length} ${platform} product IDs for RNIap fallback:`,
-            dynamicProductIds,
-          );
 
           if (dynamicProductIds.length === 0) {
             console.warn(
@@ -1829,15 +1711,10 @@ const SubscriptionScreen = () => {
           const oneTimeProducts = await RNIap.getProducts({
             skus: dynamicProductIds,
           });
-          console.log('Available subscriptions:', oneTimeProducts);
 
-          // console.log('Available one-time products:', oneTimeProducts);
-
-          // Combine both types of products
           const allProducts = [...oneTimeProducts];
 
           if (allProducts.length > 0) {
-            console.log('All available products:', allProducts);
             setProducts(allProducts);
 
             // Store products globally for amount calculations
@@ -1998,12 +1875,6 @@ const SubscriptionScreen = () => {
       const countryCode = await getUserCountryCode();
       setUserCountry(countryCode);
 
-      // Get the package name from config
-      const packageName = config.GOOGLE_PLAY_PACKAGE_NAME;
-
-      // For demonstration, we'd get the access token from your backend
-      // Here we use the auth token, but in production you'd use a dedicated token
-      // with Google Play API permissions
       const accessToken = authState.accessToken;
 
       if (!accessToken) {
@@ -2016,6 +1887,7 @@ const SubscriptionScreen = () => {
         countryCode,
       );
 
+      console.log(playStoreProducts, 'playStoreProducts');
       return playStoreProducts;
     } catch (error) {
       console.error('Error in fetchDirectPlayStoreProducts:', error);
@@ -2090,6 +1962,7 @@ const SubscriptionScreen = () => {
               const processResult = await processPurchase(
                 existingPurchase,
                 authState.accessToken,
+                authState,
               );
               console.log('Existing purchase processed');
 
@@ -2271,7 +2144,7 @@ const SubscriptionScreen = () => {
         setPurchasePending(false);
       }
     },
-    [authState.accessToken, addCredits, updateUserCredits, refreshCredits],
+    [authState, addCredits, updateUserCredits, refreshCredits],
   );
 
   // Add a new function to validate Apple receipt using the new endpoint
@@ -2469,6 +2342,7 @@ const SubscriptionScreen = () => {
                 const processResult = await processPurchase(
                   purchase,
                   authState.accessToken,
+                  authState,
                 );
                 console.log(
                   'Purchase processed with server, result:',
@@ -2771,7 +2645,7 @@ const SubscriptionScreen = () => {
       purchaseErrorSubscription,
     };
   }, [
-    authState.accessToken,
+    authState,
     handleExistingPurchase,
     addCredits,
     updateUserCredits,
@@ -3327,10 +3201,6 @@ const SubscriptionScreen = () => {
               }
             }
 
-            // Request the purchase from App Store
-            console.log(
-              `Requesting purchase from App Store for product: ${productId}`,
-            );
             try {
               // Make sure we have a valid SKU/product ID
               if (!productId) {
@@ -3411,11 +3281,7 @@ const SubscriptionScreen = () => {
               // to be cleared by the listener when the transaction completes
               clearTimeout(timeoutId);
             } catch (iosError) {
-              // More detailed error logging to help with debugging
               console.error('iOS purchase request error:', iosError);
-              console.error('Error code:', iosError.code);
-              console.error('Error message:', iosError.message);
-              console.error('Error details:', JSON.stringify(iosError));
 
               clearTimeout(timeoutId);
 
@@ -3423,9 +3289,6 @@ const SubscriptionScreen = () => {
                 iosError.code === 'E_CONNECTION_CLOSED' ||
                 iosError.code === 'E_NOT_PREPARED'
               ) {
-                console.log(
-                  'Connection issue detected, attempting to reconnect...',
-                );
                 setConnectionState('disconnected');
                 iapInitialized = false;
 
@@ -3597,19 +3460,7 @@ const SubscriptionScreen = () => {
       );
     }
 
-    // Sort products by price (lowest to highest)
     const sortedProducts = sortProductsByPrice(products);
-
-    // Log sorted products for verification
-    if (Platform.OS === 'ios') {
-      sortedProducts.forEach((product, idx) => {
-        console.log(
-          `${idx + 1}. ${product.productId}: Original: ${
-            product.localizedOriginalPrice
-          }, Discounted: ${product.localizedPrice}`,
-        );
-      });
-    }
 
     return (
       <View style={styles.plansContainer}>
@@ -3729,6 +3580,7 @@ const SubscriptionScreen = () => {
                 const processResult = await processPurchase(
                   purchase,
                   authState.accessToken,
+                  authState,
                 );
 
                 // If valid, process the credit update
@@ -3774,6 +3626,7 @@ const SubscriptionScreen = () => {
   }, [
     iosPurchaseCompleted,
     currentIosPurchase,
+    authState,
     authState.accessToken,
     navigation,
     refreshCredits,

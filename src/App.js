@@ -32,11 +32,19 @@ import analyticsUtils from './utils/analytics';
 import tagManagerUtils from './utils/tagManager';
 import facebookEvents from './utils/facebookEvents';
 import {initializeFirebase} from './utils/firebase';
-import messaging from '@react-native-firebase/messaging';
+import {getApp} from '@react-native-firebase/app';
+import {
+  getMessaging,
+  requestPermission,
+  getToken,
+} from '@react-native-firebase/messaging';
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import moEngageService from './services/moengageService';
 import useMoEngageUser from './hooks/useMoEngageUser';
 import branch, {BranchEvent} from 'react-native-branch';
+
+import ErrorBoundary from './components/common/ErrorBoundary';
+import {initializePushNotificationHandlers} from './utils/pushNotificationHandler';
 
 // Default credit settings in case API fails
 const DEFAULT_CREDIT_SETTINGS = {
@@ -132,9 +140,13 @@ const AppContent = () => {
           }
         } else {
           // iOS permission via Messaging API
-          await messaging().requestPermission();
+          const app = getApp();
+          const messagingInstance = getMessaging(app);
+          await requestPermission(messagingInstance);
         }
-        const fcmToken = await messaging().getToken();
+        const app = getApp();
+        const messagingInstance = getMessaging(app);
+        const fcmToken = await getToken(messagingInstance);
         console.log('[App] FCM token:', fcmToken);
       } catch (e) {
         console.warn(
@@ -192,6 +204,22 @@ const AppContent = () => {
         }
       } catch (moeError) {
         console.warn('❌ MoEngage initialization failed:', moeError.message);
+      }
+
+      // Initialize Push Notification Handlers (CRITICAL FOR PUSH NOTIFICATIONS)
+      try {
+        console.log('🔔 Initializing push notification handlers...');
+        const pushResult = await initializePushNotificationHandlers();
+        if (pushResult) {
+          console.log('✅ Push notification handlers initialized successfully');
+        } else {
+          console.warn('⚠️ Push notification handlers initialization failed');
+        }
+      } catch (pushError) {
+        console.warn(
+          '❌ Push notification initialization failed:',
+          pushError.message,
+        );
       }
 
       // Hide splash screen after all initialization is complete
@@ -341,13 +369,15 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <Provider store={store}>
-      <QueryClientProvider client={queryClient}>
-        <PersistGate loading={null} persistor={persistor}>
-          <AppContent />
-        </PersistGate>
-      </QueryClientProvider>
-    </Provider>
+    <ErrorBoundary>
+      <Provider store={store}>
+        <QueryClientProvider client={queryClient}>
+          <PersistGate loading={null} persistor={persistor}>
+            <AppContent />
+          </PersistGate>
+        </QueryClientProvider>
+      </Provider>
+    </ErrorBoundary>
   );
 };
 

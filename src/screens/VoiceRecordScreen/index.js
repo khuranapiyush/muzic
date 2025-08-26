@@ -15,6 +15,8 @@ import {
   ImageBackground,
   Modal,
   TextInput,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import LinearGradient from 'react-native-linear-gradient';
@@ -1236,68 +1238,74 @@ const VoiceRecordScreen = ({navigation}) => {
         visible={showNamingModal}
         presentationStyle={'overFullScreen'}
         onRequestClose={handleCancelSave}>
-        <View style={styles.bottomSheetBackdrop}>
-          <TouchableWithoutFeedback onPress={handleCancelSave}>
-            <View style={styles.bottomSheetOverlay} />
-          </TouchableWithoutFeedback>
-          <View style={styles.namingBottomSheetContainer}>
-            <View style={styles.dragHandle} />
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={{flex: 1}}>
+          <View style={styles.bottomSheetBackdrop}>
+            <TouchableWithoutFeedback onPress={handleCancelSave}>
+              <View style={styles.bottomSheetOverlay} />
+            </TouchableWithoutFeedback>
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+              <View style={styles.namingBottomSheetContainer}>
+                <View style={styles.dragHandle} />
 
-            <View style={styles.bottomSheetHeader}>
-              <CText style={styles.bottomSheetTitle}>
-                Name Your Recording 🎵
-              </CText>
-              <CText style={styles.bottomSheetSubtitle}>
-                Give your recording a memorable name
-              </CText>
-            </View>
-
-            <View style={styles.namingInputContainer}>
-              <CText style={styles.inputLabel}>Recording Name</CText>
-              <TextInput
-                style={styles.nameInput}
-                value={tempRecordingName}
-                onChangeText={setTempRecordingName}
-                placeholder="Enter recording name..."
-                placeholderTextColor="#666"
-                maxLength={50}
-                autoFocus={true}
-                selectTextOnFocus={true}
-              />
-              <CText style={styles.characterCount}>
-                {tempRecordingName.length}/50
-              </CText>
-            </View>
-
-            <View style={styles.namingButtonContainer}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={handleCancelSave}>
-                <CText style={styles.cancelButtonText}>Cancel</CText>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.saveButton,
-                  !tempRecordingName.trim() && styles.saveButtonDisabled,
-                ]}
-                onPress={handleSaveRecording}
-                disabled={!tempRecordingName.trim() || isUploading}>
-                <LinearGradient
-                  colors={
-                    !tempRecordingName.trim()
-                      ? ['#666', '#666']
-                      : ['#FE954A', '#FF6B35']
-                  }
-                  style={styles.saveButtonGradient}>
-                  <CText style={styles.saveButtonText}>
-                    {isUploading ? 'Saving...' : 'Save Recording'}
+                <View style={styles.bottomSheetHeader}>
+                  <CText style={styles.bottomSheetTitle}>
+                    Name Your Recording 🎵
                   </CText>
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
+                  <CText style={styles.bottomSheetSubtitle}>
+                    Give your recording a memorable name
+                  </CText>
+                </View>
+
+                <View style={styles.namingInputContainer}>
+                  <CText style={styles.inputLabel}>Recording Name</CText>
+                  <TextInput
+                    style={styles.nameInput}
+                    value={tempRecordingName}
+                    onChangeText={setTempRecordingName}
+                    placeholder="Enter recording name..."
+                    placeholderTextColor="#666"
+                    maxLength={50}
+                    autoFocus={true}
+                    selectTextOnFocus={true}
+                  />
+                  <CText style={styles.characterCount}>
+                    {tempRecordingName.length}/50
+                  </CText>
+                </View>
+
+                <View style={styles.namingButtonContainer}>
+                  <TouchableOpacity
+                    style={styles.cancelButton}
+                    onPress={handleCancelSave}>
+                    <CText style={styles.cancelButtonText}>Cancel</CText>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[
+                      styles.saveButton,
+                      !tempRecordingName.trim() && styles.saveButtonDisabled,
+                    ]}
+                    onPress={handleSaveRecording}
+                    disabled={!tempRecordingName.trim() || isUploading}>
+                    <LinearGradient
+                      colors={
+                        !tempRecordingName.trim()
+                          ? ['#666', '#666']
+                          : ['#FE954A', '#FF6B35']
+                      }
+                      style={styles.saveButtonGradient}>
+                      <CText style={styles.saveButtonText}>
+                        {isUploading ? 'Saving...' : 'Save Recording'}
+                      </CText>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );

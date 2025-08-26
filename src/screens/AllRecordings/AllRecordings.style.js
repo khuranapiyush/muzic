@@ -10,7 +10,7 @@ const getStyles = mode =>
     },
     content: {
       flex: 1,
-      paddingTop: Platform.OS === 'ios' ? 50 : 80,
+      paddingTop: Platform.OS === 'ios' ? 10 : 80,
     },
     header: {
       flexDirection: 'row',
@@ -23,6 +23,9 @@ const getStyles = mode =>
     backArrowIcon: {
       paddingVertical: 8,
       paddingHorizontal: 12,
+      width: 40,
+      height: 40,
+      tintColor: '#FFF',
     },
     backButtonText: {
       color: '#F4A460',
@@ -54,18 +57,19 @@ const getStyles = mode =>
       paddingBottom: 100,
     },
     recordingCard: {
+      marginHorizontal: 10,
       marginBottom: 12,
       borderRadius: 16,
       overflow: 'hidden',
     },
     cardGradient: {
-      paddingHorizontal: 16,
-      paddingVertical: 16,
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
     },
     recordingInfo: {
+      paddingHorizontal: 10,
+      paddingVertical: 8,
       flexDirection: 'row',
       alignItems: 'center',
       flex: 1,

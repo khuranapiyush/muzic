@@ -170,9 +170,15 @@ const AppNavigator = () => {
     // Track navigation state in Redux store
     try {
       const navigationTracker = require('../utils/navigationTracker').default;
-      navigationTracker.handleNavigationStateChange(state);
+      if (navigationTracker && navigationTracker.handleNavigationStateChange) {
+        navigationTracker.handleNavigationStateChange(state);
+      }
     } catch (error) {
-      console.warn('Failed to track navigation in Redux:', error);
+      console.warn(
+        'Failed to track navigation in Redux:',
+        error?.message || error,
+      );
+      // Don't re-throw the error to prevent app crashes
     }
 
     // Get current route name

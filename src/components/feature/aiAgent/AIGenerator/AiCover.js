@@ -41,11 +41,12 @@ import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
 import moEngageService from '../../../../services/moengageService';
-import {BranchEvent} from 'react-native-branch';
+
+import {trackBranchAIEvent} from '../../../../utils/branchUtils';
 import appImages from '../../../../resource/images';
 import {getAuthToken} from '../../../../utils/authUtils';
 import {useMutation} from '@tanstack/react-query';
-import { KeyboardAvoidingView } from 'react-native';
+import {KeyboardAvoidingView} from 'react-native';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48 - 32) / 3;
@@ -178,7 +179,13 @@ const CoverCreationScreen = () => {
       // We'll set the song ID after successful generation
 
       try {
-        console.log(link, 'link');
+        // Validate authentication token before making the API call
+        const currentToken = await getAuthToken();
+        if (!currentToken) {
+          throw new Error(
+            'Authentication token is missing or invalid. Please log in again.',
+          );
+        }
 
         // Format request data
         const requestData = {
@@ -213,7 +220,6 @@ const CoverCreationScreen = () => {
         // Make the API request to the url-to-voice endpoint
         const apiUrl = `${config.API_BASE_URL}/v1/integration/url-to-voice`;
 
-        console.log(requestData, 'requestData');
         fetcher
           .post(apiUrl, requestData, {
             headers: {
@@ -221,7 +227,7 @@ const CoverCreationScreen = () => {
             },
             // No timeout specified - allows unlimited time for AI voice conversion processing
           })
-          .then(response => {
+          .then(async response => {
             // Check if the response is successful and contains expected data
             if (!response.data) {
               throw new Error('Invalid response from server');
@@ -265,10 +271,10 @@ const CoverCreationScreen = () => {
                 voice_id: requestData.voiceModelId,
               });
 
-              new BranchEvent('AI_COVER_GENERATED', {
+              await trackBranchAIEvent('AI_COVER_GENERATED', {
                 song_id: response.data._id || 'unknown',
                 voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
-              }).logEvent();
+              });
             } catch (error) {
               // Silent error handling
             }
@@ -363,12 +369,19 @@ const CoverCreationScreen = () => {
 
   const {mutate: fetchUserRecordings} = useMutation(
     useCallback(async () => {
-      // Get the current auth token
+      // Get the current auth token with validation
       const token = await getAuthToken();
+
+      if (!token) {
+        console.warn(
+          'fetchUserRecordings: No valid token available, skipping request',
+        );
+        throw new Error('Authentication token is missing or invalid');
+      }
 
       const headers = {
         'Content-Type': 'application/json',
-        ...(token && {Authorization: `Bearer ${token}`}),
+        Authorization: `Bearer ${token}`,
       };
 
       setIsLoadingRecordings(true);
@@ -397,7 +410,15 @@ const CoverCreationScreen = () => {
       },
       onError: error => {
         console.error('Failed to fetch user recordings:', error);
-        if (isRefreshing) {
+        setIsLoadingRecordings(false); // Ensure loading state is cleared
+
+        // Handle different error types
+        if (error.message && error.message.includes('Authentication token')) {
+          console.warn(
+            'Authentication error while fetching recordings - user may need to re-login',
+          );
+          // Don't show alert for auth errors to avoid annoying the user
+        } else if (isRefreshing) {
           Alert.alert('Error', 'Failed to fetch your voice recordings');
         }
         return [];
@@ -458,6 +479,7 @@ const CoverCreationScreen = () => {
     refreshCredits,
     userId,
     isRefreshing,
+    fetchUserRecordings,
   ]);
 
   const getVoiceSamples = useCallback(

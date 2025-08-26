@@ -99,9 +99,11 @@ export const isTokenExpired = (token, bufferSeconds = 60) => {
       tokenString.split('.').length !== 3
     ) {
       console.warn(
-        'Invalid token format:',
+        'isTokenExpired - Invalid token format:',
         typeof tokenString,
-        tokenString ? 'has content' : 'empty',
+        tokenString && typeof tokenString === 'string'
+          ? `Preview: ${tokenString.substring(0, 50)}...`
+          : 'empty',
       );
       return true; // Treat as expired
     }
@@ -285,26 +287,28 @@ export const getAuthToken = async () => {
         );
 
         if (authData && authData.accessToken) {
-          try {
-            // Parse the token correctly - handle both string and JSON formats
-            if (
-              authData.accessToken.startsWith('"') &&
-              authData.accessToken.endsWith('"')
-            ) {
-              token = authData.accessToken.replace(/^"|"$/g, '');
-            } else {
-              token = JSON.parse(authData.accessToken);
+          // Redux Persist stores data as JSON strings, so we need to handle the format carefully
+          let rawToken = authData.accessToken;
+
+          // If the token is stored as a JSON string (wrapped in quotes), unwrap it
+          if (
+            typeof rawToken === 'string' &&
+            rawToken.startsWith('"') &&
+            rawToken.endsWith('"')
+          ) {
+            try {
+              rawToken = JSON.parse(rawToken);
+            } catch {
+              // If JSON.parse fails, just remove the quotes manually
+              rawToken = rawToken.slice(1, -1);
             }
-            console.log(
-              'getAuthToken - parsed from AsyncStorage:',
-              token ? 'success' : 'failed',
-            );
-          } catch (parseError) {
-            console.error(
-              'getAuthToken - Error parsing token from AsyncStorage:',
-              parseError,
-            );
           }
+
+          token = rawToken;
+          console.log(
+            'getAuthToken - extracted from AsyncStorage:',
+            token ? 'success' : 'failed',
+          );
         }
       } catch (storageError) {
         console.error(
@@ -339,9 +343,20 @@ export const getAuthToken = async () => {
       }
     }
 
-    // Validate string token format
-    if (typeof token === 'string' && token.split('.').length === 3) {
-      return token;
+    // Validate string token format (must be JWT with exactly 3 parts)
+    if (typeof token === 'string') {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        return token;
+      } else {
+        console.warn(
+          'getAuthToken - Invalid JWT token format. Expected 3 parts, got:',
+          parts.length,
+          'Token preview:',
+          token.substring(0, 50) + '...',
+        );
+        return null;
+      }
     }
 
     console.warn(

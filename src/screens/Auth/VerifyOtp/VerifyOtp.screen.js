@@ -20,7 +20,9 @@ import {setUser} from '../../../stores/slices/user';
 import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
 import moEngageService from '../../../services/moengageService';
-import branch, {BranchEvent} from 'react-native-branch';
+import branch from 'react-native-branch';
+import {trackBranchRegistration} from '../../../utils/branchUtils';
+import {trackMoEngageUserRegistration} from '../../../utils/moengageUtils';
 
 const VerifyOtpScreen = ({route}) => {
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,7 @@ const VerifyOtpScreen = ({route}) => {
   });
 
   const {mutate: verifyOtpApi} = useMutation(data => authVerifyOtp(data), {
-    onSuccess: res => {
+    onSuccess: async res => {
       // Track OTP verification success
       analyticsUtils.trackOtpVerificationSuccess({
         method: 'sms',
@@ -108,30 +110,27 @@ const VerifyOtpScreen = ({route}) => {
         CurrentSourceName: loginSource.loginPhoneSource,
       });
 
-      // Track signup/login completion (MoEngage + Branch)
+      // Track signup/login completion (Enhanced MoEngage + Branch)
       try {
+        // Use enhanced MoEngage tracking
+        await trackMoEngageUserRegistration(res?.data, 'phone_otp');
+
+        // Set Branch identity
         const userId = String(
           res?.data?.user?.id || res?.data?.user?._id || res?.data?.id || '',
         );
         if (userId) {
-          moEngageService.trackUserRegistration(userId, {
-            method: 'phone_otp',
-            phone_country_code: countryCode,
-          });
-          moEngageService.trackUserLogin(userId, {
-            method: 'phone_otp',
-            phone_country_code: countryCode,
-          });
           try {
             branch.setIdentity(userId);
           } catch (_) {}
         }
-        new BranchEvent(BranchEvent.CompleteRegistration, {
-          method: 'phone_otp',
+
+        // Track Branch registration
+        await trackBranchRegistration('phone_otp', {
           country_code: countryCode,
-        }).logEvent();
+        });
       } catch (e) {
-        // no-op
+        console.warn('Registration tracking failed:', e);
       }
 
       // Navigate to home screen

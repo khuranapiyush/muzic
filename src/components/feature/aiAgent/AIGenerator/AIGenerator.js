@@ -42,7 +42,7 @@ import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
 import moEngageService from '../../../../services/moengageService';
-import {BranchEvent} from 'react-native-branch';
+import {trackBranchAIEvent} from '../../../../utils/branchUtils';
 import {getNavigationDetails} from '../../../../utils/navigationUtils';
 
 const AIGenerator = ({pageHeading}) => {
@@ -141,7 +141,7 @@ const AIGenerator = ({pageHeading}) => {
     params =>
       generateSongMutation(params.promptText, params.genre, params.voice),
     {
-      onSuccess: data => {
+      onSuccess: async data => {
         if (!data?.errorCode) {
           setResponse(data);
           setGeneratedListResponse(data);
@@ -200,10 +200,10 @@ const AIGenerator = ({pageHeading}) => {
               voice: data.voice || 'Not specified',
             });
 
-            new BranchEvent('AI_SONG_GENERATED', {
+            await trackBranchAIEvent('AI_SONG_GENERATED', {
               song_id: data._id || 'unknown',
               title: data.title || 'Untitled',
-            }).logEvent();
+            });
           } catch (error) {
             // Silent error handling
           }
@@ -386,13 +386,12 @@ const AIGenerator = ({pageHeading}) => {
   const {showGlobalPlayer} = useSelector(state => state.player);
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{flex: 1}}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <SafeAreaView
-          style={{...styles.flatList, backgroundColor: 'transparent'}}>
-          <GradientBackground>
+    <SafeAreaView style={{flex: 1}}>
+      <GradientBackground>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={{flex: 1}}>
+          <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <CView style={[styles.flatList, {backgroundColor: 'transparent'}]}>
               <ScrollView
                 style={styles.scrollContainer}
@@ -461,36 +460,115 @@ const AIGenerator = ({pageHeading}) => {
                 </TouchableOpacity>
               </CView>
             </CView>
-            {authState.isLoggedIn && (
-              <PromoModal visible={modalVisible} onClose={handleCloseModal} />
-            )}
+          </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
 
-            {/* Bottom Sheet Notification */}
-            <Modal
-              animationType="slide"
-              transparent={true}
-              visible={showBottomSheet}
-              onRequestClose={() => setShowBottomSheet(false)}
-              onBackdropPress={() => setShowBottomSheet(false)}
-              onBackButtonPress={() => setShowBottomSheet(false)}
-              swipeDirection={['down']}
-              propagateSwipe
-              animationIn="slideInUp"
-              animationOut="slideOutDown"
-              backdropOpacity={0.5}
-              avoidKeyboard={true}>
-              <View style={styles.bottomSheetContainer}>
+        {authState.isLoggedIn && (
+          <PromoModal visible={modalVisible} onClose={handleCloseModal} />
+        )}
+
+        {/* Bottom Sheet Notification */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showBottomSheet}
+          onRequestClose={() => setShowBottomSheet(false)}
+          onBackdropPress={() => setShowBottomSheet(false)}
+          onBackButtonPress={() => setShowBottomSheet(false)}
+          swipeDirection={['down']}
+          propagateSwipe
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.5}
+          avoidKeyboard={true}>
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetContent}>
+              <CText size="largeBold" style={styles.bottomSheetTitle}>
+                Song Generation Started
+              </CText>
+              <CText style={styles.bottomSheetText}>
+                Your song will be generated in 10 mins. Come back and check in
+                the library.
+              </CText>
+              <TouchableOpacity
+                style={styles.bottomSheetButton}
+                onPress={() => setShowBottomSheet(false)}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Insufficient Credits Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showInsufficientCreditsModal}
+          onRequestClose={() => setShowInsufficientCreditsModal(false)}
+          onBackdropPress={() => setShowInsufficientCreditsModal(false)}
+          onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
+          swipeDirection={['down']}
+          propagateSwipe
+          animationIn="slideInUp"
+          animationOut="slideOutDown"
+          backdropOpacity={0.5}
+          avoidKeyboard={true}>
+          <View style={styles.bottomSheetContainer}>
+            <View style={styles.bottomSheetContent}>
+              <CText size="largeBold" style={styles.bottomSheetTitle}>
+                Insufficient Credits
+              </CText>
+              <CText style={styles.bottomSheetText}>
+                Please buy some credits to generate song
+              </CText>
+              <TouchableOpacity
+                style={styles.bottomSheetButton}
+                onPress={() => {
+                  setShowInsufficientCreditsModal(false);
+                  navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                }}>
+                <LinearGradient
+                  colors={['#F4A460', '#DEB887']}
+                  start={{x: 0, y: 0}}
+                  end={{x: 1, y: 1}}
+                  style={styles.gradient}>
+                  <CText style={styles.bottomSheetButtonText}>
+                    Buy Credits
+                  </CText>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Validation Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={showValidationModal}
+          onRequestClose={() => setShowValidationModal(false)}
+          onBackdropPress={() => setShowValidationModal(false)}
+          onBackButtonPress={() => setShowValidationModal(false)}>
+          <TouchableWithoutFeedback
+            onPress={() => setShowValidationModal(false)}>
+            <View style={styles.bottomSheetContainer}>
+              <TouchableWithoutFeedback>
                 <View style={styles.bottomSheetContent}>
                   <CText size="largeBold" style={styles.bottomSheetTitle}>
-                    Song Generation Started
+                    Missing Prompt
                   </CText>
                   <CText style={styles.bottomSheetText}>
-                    Your song will be generated in 10 mins. Come back and check
-                    in the library.
+                    Please add a prompt for song creation
                   </CText>
                   <TouchableOpacity
                     style={styles.bottomSheetButton}
-                    onPress={() => setShowBottomSheet(false)}>
+                    onPress={() => setShowValidationModal(false)}>
                     <LinearGradient
                       colors={['#F4A460', '#DEB887']}
                       start={{x: 0, y: 0}}
@@ -500,92 +578,12 @@ const AIGenerator = ({pageHeading}) => {
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
-              </View>
-            </Modal>
-
-            {/* Insufficient Credits Modal */}
-            <Modal
-              animationType="slide"
-              transparent={true}
-              visible={showInsufficientCreditsModal}
-              onRequestClose={() => setShowInsufficientCreditsModal(false)}
-              onBackdropPress={() => setShowInsufficientCreditsModal(false)}
-              onBackButtonPress={() => setShowInsufficientCreditsModal(false)}
-              swipeDirection={['down']}
-              propagateSwipe
-              animationIn="slideInUp"
-              animationOut="slideOutDown"
-              backdropOpacity={0.5}
-              avoidKeyboard={true}>
-              <View style={styles.bottomSheetContainer}>
-                <View style={styles.bottomSheetContent}>
-                  <CText size="largeBold" style={styles.bottomSheetTitle}>
-                    Insufficient Credits
-                  </CText>
-                  <CText style={styles.bottomSheetText}>
-                    Please buy some credits to generate song
-                  </CText>
-                  <TouchableOpacity
-                    style={styles.bottomSheetButton}
-                    onPress={() => {
-                      setShowInsufficientCreditsModal(false);
-                      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-                    }}>
-                    <LinearGradient
-                      colors={['#F4A460', '#DEB887']}
-                      start={{x: 0, y: 0}}
-                      end={{x: 1, y: 1}}
-                      style={styles.gradient}>
-                      <CText style={styles.bottomSheetButtonText}>
-                        Buy Credits
-                      </CText>
-                    </LinearGradient>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </Modal>
-
-            {/* Validation Modal */}
-            <Modal
-              animationType="slide"
-              transparent={true}
-              visible={showValidationModal}
-              onRequestClose={() => setShowValidationModal(false)}
-              onBackdropPress={() => setShowValidationModal(false)}
-              onBackButtonPress={() => setShowValidationModal(false)}>
-              <TouchableWithoutFeedback
-                onPress={() => setShowValidationModal(false)}>
-                <View style={styles.bottomSheetContainer}>
-                  <TouchableWithoutFeedback>
-                    <View style={styles.bottomSheetContent}>
-                      <CText size="largeBold" style={styles.bottomSheetTitle}>
-                        Missing Prompt
-                      </CText>
-                      <CText style={styles.bottomSheetText}>
-                        Please add a prompt for song creation
-                      </CText>
-                      <TouchableOpacity
-                        style={styles.bottomSheetButton}
-                        onPress={() => setShowValidationModal(false)}>
-                        <LinearGradient
-                          colors={['#F4A460', '#DEB887']}
-                          start={{x: 0, y: 0}}
-                          end={{x: 1, y: 1}}
-                          style={styles.gradient}>
-                          <CText style={styles.bottomSheetButtonText}>
-                            Got it
-                          </CText>
-                        </LinearGradient>
-                      </TouchableOpacity>
-                    </View>
-                  </TouchableWithoutFeedback>
-                </View>
               </TouchableWithoutFeedback>
-            </Modal>
-          </GradientBackground>
-        </SafeAreaView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      </GradientBackground>
+    </SafeAreaView>
   );
 };
 

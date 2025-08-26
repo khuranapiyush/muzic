@@ -24,7 +24,9 @@ import facebookEvents from '../../../utils/facebookEvents';
 import {store} from '../../../stores';
 import useMoEngageUser from '../../../hooks/useMoEngageUser';
 import moEngageService from '../../../services/moengageService';
-import branch, {BranchEvent} from 'react-native-branch';
+import branch from 'react-native-branch';
+import {trackBranchLogin} from '../../../utils/branchUtils';
+import {trackMoEngageUserLogin} from '../../../utils/moengageUtils';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -174,7 +176,7 @@ const LoginScreen = () => {
   };
 
   const {mutate: googleLoginApi} = useMutation(data => authGoogleLogin(data), {
-    onSuccess: res => {
+    onSuccess: async res => {
       try {
         console.log('Google login API successful, processing response');
 
@@ -213,23 +215,23 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Track login (MoEngage + Branch)
+        // Track login (Enhanced MoEngage + Branch)
         try {
+          // Use enhanced MoEngage tracking
+          await trackMoEngageUserLogin(res?.data, 'google');
+
+          // Set Branch identity
           const trackedUserId = String(
             res?.data?.user?.id || res?.data?.user?._id || '',
           );
           if (trackedUserId) {
-            moEngageService.trackUserLogin(trackedUserId, {
-              method: 'google',
-              email: res?.data?.user?.email,
-            });
             try {
               branch.setIdentity(trackedUserId);
             } catch (_) {}
           }
-          new BranchEvent(BranchEvent.Login, {
-            method: 'google',
-          }).logEvent();
+
+          // Track Branch login
+          await trackBranchLogin('google');
         } catch (error) {
           console.warn('Login tracking failed:', error);
         }
@@ -273,7 +275,7 @@ const LoginScreen = () => {
   });
 
   const {mutate: appleLoginApi} = useMutation(data => authAppleLogin(data), {
-    onSuccess: res => {
+    onSuccess: async res => {
       try {
         console.log('Apple login API successful, processing response');
 
@@ -312,23 +314,23 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
-        // Track login (MoEngage + Branch)
+        // Track login (Enhanced MoEngage + Branch)
         try {
+          // Use enhanced MoEngage tracking
+          await trackMoEngageUserLogin(res?.data, 'apple');
+
+          // Set Branch identity
           const trackedUserId = String(
             res?.data?.user?.id || res?.data?.user?._id || '',
           );
           if (trackedUserId) {
-            moEngageService.trackUserLogin(trackedUserId, {
-              method: 'apple',
-              email: res?.data?.user?.email,
-            });
             try {
               branch.setIdentity(trackedUserId);
             } catch (_) {}
           }
-          new BranchEvent(BranchEvent.Login, {
-            method: 'apple',
-          }).logEvent();
+
+          // Track Branch login
+          await trackBranchLogin('apple');
         } catch (error) {
           console.warn('Login tracking failed:', error);
         }

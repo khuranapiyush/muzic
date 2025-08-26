@@ -25,7 +25,6 @@ import appImages from '../../../resource/images';
 import Slider from '@react-native-community/slider';
 import LinearGradient from 'react-native-linear-gradient';
 import {hidePlayer} from '../../../stores/slices/player';
-import useCurrentPage from '../../../hooks/useCurrentPage';
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -39,9 +38,8 @@ const GlobalPlayer = () => {
     progress,
     duration,
     showGlobalPlayer,
+    currentPage,
   } = useSelector(state => state.player);
-
-  const {currentPage} = useCurrentPage();
 
   const [isFullPlayer, setIsFullPlayer] = useState(false);
   const videoRef = useRef(null);
@@ -161,7 +159,7 @@ const GlobalPlayer = () => {
           styles.container,
           {
             bottom:
-              currentPage !== 'MainStack'
+              currentPage.currentPage !== 'MainStack'
                 ? 20
                 : Platform.OS === 'ios'
                 ? 120
@@ -221,7 +219,7 @@ const GlobalPlayer = () => {
                 <Text style={styles.artist} numberOfLines={1}>
                   {currentSong.artist}
                 </Text>
-                <Text style={styles.timeText}>
+                <Text style={styles.timeTextMini}>
                   {formatTime(progress)} / {formatTime(duration)}
                 </Text>
               </View>
@@ -597,9 +595,14 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   timeText: {
-    color: '#000',
+    color: '#FFF',
     fontSize: 10,
     marginTop: 2,
+  },
+  timeTextMini: {
+    color: '#000',
+    fontSize: 10,
+    marginTop: 0,
   },
   controls: {
     flexDirection: 'row',
