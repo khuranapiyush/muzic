@@ -67,9 +67,20 @@ export const logUserRegistration = (registrationMethod = 'email') => {
  */
 export const logPurchase = (amount, currency, contentId) => {
   try {
-    AppEventsLogger.logPurchase(amount, currency, {
-      content_id: contentId,
-    });
+    // Validate parameters to prevent NullPointerException
+    if (!amount || typeof amount !== 'number' || amount <= 0) {
+      console.warn('Invalid amount for Facebook purchase event:', amount);
+      return;
+    }
+
+    if (!currency || typeof currency !== 'string') {
+      console.warn('Invalid currency for Facebook purchase event:', currency);
+      return;
+    }
+
+    const parameters = contentId ? {content_id: contentId} : {};
+
+    AppEventsLogger.logPurchase(amount, currency, parameters);
     console.log(`Facebook purchase event logged: ${amount} ${currency}`);
   } catch (error) {
     console.error('Error logging Facebook purchase event:', error);

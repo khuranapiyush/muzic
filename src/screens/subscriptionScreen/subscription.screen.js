@@ -246,6 +246,7 @@ const processPurchase = async (purchase, token, authState) => {
               revenue: amount,
               currency: resultData.currency,
               product_id: purchase.productId,
+              transaction_id: purchase?.transactionId,
               platform: 'ios',
             });
           } catch (fbError) {
@@ -331,6 +332,7 @@ const processPurchase = async (purchase, token, authState) => {
               revenue: amount,
               currency: resultData.currency,
               product_id: purchase.productId,
+              transaction_id: purchase?.orderId || purchase?.transactionId,
               platform: 'android',
             });
           }

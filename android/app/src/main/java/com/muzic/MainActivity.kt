@@ -25,13 +25,28 @@ class MainActivity : ReactActivity() {
         // coloring the background, status bar, and navigation bar
         setTheme(R.style.AppTheme)
         
-        // Keep the splash screen visible while we fetch data
-        SplashScreen.show(this, R.style.SplashTheme, true)
-        
-        // Hide the status bar
-        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
-        
-        super.onCreate(savedInstanceState)
+        try {
+            // Keep the splash screen visible while we fetch data
+            SplashScreen.show(this, R.style.SplashTheme, true)
+            
+            // Hide the status bar
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN
+            
+            super.onCreate(savedInstanceState)
+        } catch (e: Exception) {
+            // Log the error but continue with app initialization
+            android.util.Log.e("MainActivity", "Error in onCreate: ${e.message}", e)
+            
+            // Try to continue with basic initialization
+            try {
+                super.onCreate(savedInstanceState)
+            } catch (fallbackError: Exception) {
+                android.util.Log.e("MainActivity", "Fallback onCreate failed: ${fallbackError.message}", fallbackError)
+                // If even basic initialization fails, we may need to restart
+                finishAndRemoveTask()
+                return
+            }
+        }
         
         // Initialize Firebase Analytics
         try {

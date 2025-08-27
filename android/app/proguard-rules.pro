@@ -121,3 +121,42 @@
 # Branch.io
 -keep class io.branch.** { *; }
 -dontwarn io.branch.**
+
+# Facebook SDK - Fix logPurchase and ImageMetaData crashes
+-keep class com.facebook.** { *; }
+-keep interface com.facebook.** { *; }
+-dontwarn com.facebook.**
+
+# Facebook Image Utils - Prevent NoClassDefFoundError
+-keep class com.facebook.imageutils.** { *; }
+-keep class com.facebook.imagepipeline.** { *; }
+-keep class com.facebook.drawee.** { *; }
+-keep class com.facebook.fresco.** { *; }
+
+# Facebook App Events Logger - Prevent NullPointerException
+-keep class com.facebook.appevents.** { *; }
+-keep class com.facebook.reactnative.androidsdk.** { *; }
+
+# React Native FBSDK Next
+-keep class com.facebook.reactnative.** { *; }
+-keep class com.facebook.FacebookSdk { *; }
+
+# Fragment classes - Fix InstantiationException
+-keep class androidx.fragment.** { *; }
+-keep interface androidx.fragment.** { *; }
+-dontwarn androidx.fragment.**
+
+# AndroidX Fragment support
+-keep class * extends androidx.fragment.app.Fragment
+-keep class * extends androidx.fragment.app.DialogFragment
+-keepclassmembers class * extends androidx.fragment.app.Fragment {
+    public <init>(...);
+}
+
+# React Native Fragment integration
+-keep class com.facebook.react.ReactFragment { *; }
+-keep class com.facebook.react.ReactRootView { *; }
+
+# Emoji2 support (mentioned in crash)
+-keep class androidx.emoji2.** { *; }
+-dontwarn androidx.emoji2.**

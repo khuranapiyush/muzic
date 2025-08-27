@@ -54,8 +54,15 @@ class MainApplication : Application(), ReactApplication {
     }
     
     // Initialize Branch auto instance
-    RNBranchModule.getAutoInstance(this)
-    RNBranchModule.enableLogging() // Remove or disable in production
+    try {
+      RNBranchModule.getAutoInstance(this)
+      RNBranchModule.enableLogging() // Remove or disable in production
+      
+      android.util.Log.d("BranchInit", "Branch initialized successfully")
+    } catch (e: Exception) {
+      android.util.Log.e("BranchInit", "Error initializing Branch: ${e.message}", e)
+      // Don't let Branch initialization failure block app startup
+    }
     
     // Initialize Firebase
     try {

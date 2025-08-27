@@ -5,6 +5,9 @@ module.exports = {
       'react-native-reanimated/plugin',
       {
         relativeSourceLocation: true,
+        // Add these options to prevent C++ crashes
+        globals: ['__scanCppObjects'],
+        processNestedWorklets: true,
       },
     ],
   ],

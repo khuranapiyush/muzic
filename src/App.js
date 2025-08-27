@@ -42,6 +42,10 @@ import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import moEngageService from './services/moengageService';
 import useMoEngageUser from './hooks/useMoEngageUser';
 import branch, {BranchEvent} from 'react-native-branch';
+import {
+  configureBranchTimeouts,
+  initializeBranchWithRetry,
+} from './utils/branchUtils';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import {initializePushNotificationHandlers} from './utils/pushNotificationHandler';
@@ -191,16 +195,29 @@ const AppContent = () => {
         dispatch(setLoading(false));
       }
 
-      // Initialize MoEngage using modernized service
+      // Initialize MoEngage using modernized service with retry logic
       try {
-        const moengageInitialized = moEngageService.initialize();
+        console.log('🚀 Starting MoEngage initialization...');
+
+        // Reset any previous failed attempts
+        moEngageService.resetInitializationState();
+
+        // Try to initialize with retry logic
+        const moengageInitialized = await moEngageService.initializeWithRetry(
+          3,
+          1500,
+        );
         if (moengageInitialized) {
           console.log('✅ MoEngage initialized successfully for Muzic app');
 
-          // Track app open event
-          moEngageService.trackAppOpen();
+          // Track app open event after a short delay
+          setTimeout(() => {
+            moEngageService.trackAppOpen();
+          }, 500);
         } else {
-          console.warn('⚠️ MoEngage initialization returned false');
+          console.warn(
+            '⚠️ MoEngage initialization failed after retries, continuing without MoEngage',
+          );
         }
       } catch (moeError) {
         console.warn('❌ MoEngage initialization failed:', moeError.message);
@@ -286,60 +303,132 @@ const AppContent = () => {
   }, [isUserIdentified, currentUserId]);
 
   useEffect(() => {
-    // Track app opened event using MoEngage service
-    try {
-      // This will be called after initialization, so service should be ready
-      setTimeout(() => {
-        moEngageService.trackAppOpen();
-      }, 2000); // Small delay to ensure initialization is complete
-    } catch (moeError) {
-      console.warn('MoEngage event tracking failed:', moeError.message);
-    }
+    // Initialize Branch with timeout configuration - but don't block app startup
+    const initBranch = async () => {
+      try {
+        // Add a short delay to ensure native modules are ready
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        configureBranchTimeouts();
+        const branchInitialized = await initializeBranchWithRetry(2, 3000); // Reduce retries for faster startup
+        if (branchInitialized) {
+          console.log('✅ Branch initialization completed successfully');
+        } else {
+          console.warn(
+            '⚠️ Branch initialization failed, continuing without Branch features',
+          );
+        }
+      } catch (error) {
+        console.error('🚨 Branch initialization error:', error);
+        // Don't let Branch errors crash the app
+      }
+    };
+
+    // Don't await Branch initialization - let it happen in background
+    initBranch();
+
+    // MoEngage tracking is now handled in the main initialization above
+    // No need for duplicate tracking calls
   }, []);
 
   const appThemeProviderValue = useMemo(() => ({theme, updateTheme}), [theme]);
 
-  // Branch deep link subscription
+  // Branch deep link subscription with enhanced error handling
   useEffect(() => {
-    const unsubscribe = branch.subscribe({
-      onOpenStart: ({uri, cachedInitialEvent}) => {
-        console.log('Branch opening:', uri, 'cached?', cachedInitialEvent);
-      },
-      onOpenComplete: ({error, params, uri}) => {
-        if (error) {
-          console.error('Branch open error', error);
-          return;
-        }
-        try {
-          const productId = params?.product_id || params?.['product_id'];
-          if (productId) {
-            // TODO: wire navigation to product screen
-            console.log('Branch product_id:', productId, 'from', uri);
-          }
+    let subscriptionActive = true;
+    let unsubscribe = null;
 
-          // Track install / open attribution once per session
-          const isFirstOpen = params?.['+is_first_session'];
-          const clickedBranchLink = params?.['+clicked_branch_link'];
-          if (isFirstOpen) {
+    const setupBranchSubscription = async () => {
+      // Wait a bit for Branch to be potentially initialized
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      if (!subscriptionActive) return;
+
+      try {
+        console.log('🔗 Setting up Branch subscription...');
+
+        unsubscribe = branch.subscribe({
+          onOpenStart: ({uri, cachedInitialEvent}) => {
+            console.log(
+              '🌟 Branch opening:',
+              uri,
+              'cached?',
+              cachedInitialEvent,
+            );
+          },
+          onOpenComplete: ({error, params, uri}) => {
+            if (error) {
+              console.error('❌ Branch open error:', error);
+
+              // Don't retry subscription on errors - just log them
+              // The native initialization should handle retries
+              return;
+            }
+
+            console.log('✅ Branch opened successfully:', params);
+
             try {
-              const attribution = {
-                channel: params?.['~channel'],
-                campaign: params?.['~campaign'],
-                feature: params?.['~feature'],
-                tags: params?.['~tags'],
-                ad_set: params?.ad_set || params?.['$3p'],
-                clicked_branch_link: clickedBranchLink,
-              };
-              new BranchEvent('INSTALL_ATTRIBUTED', attribution).logEvent();
-              moEngageService.trackEvent('Install_Attribution', attribution);
-            } catch (e) {}
-          }
-        } catch (e) {
-          // no-op
+              const productId = params?.product_id || params?.['product_id'];
+              if (productId) {
+                console.log('🎵 Branch product_id:', productId, 'from', uri);
+              }
+
+              // Track install / open attribution once per session
+              const isFirstOpen = params?.['+is_first_session'];
+              const clickedBranchLink = params?.['+clicked_branch_link'];
+              if (isFirstOpen) {
+                try {
+                  const attribution = {
+                    channel: params?.['~channel'],
+                    campaign: params?.['~campaign'],
+                    feature: params?.['~feature'],
+                    tags: params?.['~tags'],
+                    ad_set: params?.ad_set || params?.['$3p'],
+                    clicked_branch_link: clickedBranchLink,
+                  };
+                  new BranchEvent('INSTALL_ATTRIBUTED', attribution).logEvent();
+                  moEngageService.trackEvent(
+                    'Install_Attribution',
+                    attribution,
+                  );
+                  console.log('📊 Branch attribution tracked:', attribution);
+                } catch (attributionError) {
+                  console.warn(
+                    '⚠️ Branch attribution tracking failed:',
+                    attributionError.message,
+                  );
+                }
+              }
+            } catch (processingError) {
+              console.warn(
+                '⚠️ Branch parameter processing failed:',
+                processingError.message,
+              );
+            }
+          },
+        });
+
+        console.log('✅ Branch subscription established');
+      } catch (subscriptionError) {
+        console.error('🚨 Branch subscription failed:', subscriptionError);
+        // Don't retry - the subscription might work on next app launch
+      }
+    };
+
+    // Setup subscription with a delay
+    setupBranchSubscription();
+
+    return () => {
+      subscriptionActive = false;
+      if (unsubscribe && typeof unsubscribe === 'function') {
+        try {
+          unsubscribe();
+          console.log('🔗 Branch subscription cleaned up');
+        } catch (error) {
+          console.warn('⚠️ Branch unsubscribe error:', error);
         }
-      },
-    });
-    return () => unsubscribe && unsubscribe();
+      }
+    };
   }, []);
 
   // If app initialization failed, show error screen

@@ -60,6 +60,14 @@
       <!-- Optional test key -->
       <meta-data android:name="io.branch.sdk.BranchKey.test"
           android:value="key_test_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
+      
+      <!-- Branch timeout configuration -->
+      <meta-data android:name="io.branch.sdk.NetworkTimeout"
+          android:value="30000" />
+      <meta-data android:name="io.branch.sdk.RetryCount"
+          android:value="3" />
+      <meta-data android:name="io.branch.sdk.RetryInterval"
+          android:value="2000" />
 
       <!-- MoEngage Configuration -->
       <meta-data android:name="moengage_app_id" 

@@ -42,6 +42,7 @@ let serviceState = {
   isInitialized: false,
   lastUserIdTracked: null,
   initializationAttempts: 0,
+  lastInitializationAttempt: 0,
 };
 
 const APP_ID = getMoEngageAppId();
@@ -119,10 +120,25 @@ const onInAppDismissed = data => {
 };
 
 /**
- * Initialize MoEngage SDK
+ * Initialize MoEngage SDK with better error handling and timing
  */
 const initialize = () => {
   try {
+    // Check if already initialized successfully
+    if (serviceState.isInitialized) {
+      console.log('✅ MoEngage: Already initialized, skipping...');
+      return true;
+    }
+
+    // Prevent too frequent initialization attempts (minimum 2 seconds between attempts)
+    const now = Date.now();
+    if (now - serviceState.lastInitializationAttempt < 2000) {
+      console.log('⏰ MoEngage: Too soon for another initialization attempt');
+      return false;
+    }
+
+    serviceState.lastInitializationAttempt = now;
+
     if (!ReactMoE) {
       console.log(
         '⚠️ MoEngage: ReactMoE not available, skipping initialization',
@@ -130,23 +146,36 @@ const initialize = () => {
       return false;
     }
 
-    if (serviceState.initializationAttempts >= 3) {
+    if (serviceState.initializationAttempts >= 5) {
+      // Increased from 3 to 5
       console.log('⚠️ MoEngage: Maximum initialization attempts reached');
       return false;
     }
 
     serviceState.initializationAttempts++;
+    console.log(
+      `🔄 MoEngage: Initialization attempt ${serviceState.initializationAttempts}/5`,
+    );
 
     if (APP_ID) {
+      // Check if ReactMoE.initialize is available
+      if (typeof ReactMoE.initialize !== 'function') {
+        console.log(
+          '⚠️ MoEngage: initialize method not available, available methods:',
+          Object.keys(ReactMoE),
+        );
+        return false;
+      }
+
       ReactMoE.initialize(APP_ID);
       serviceState.isInitialized = true;
       console.log('✅ MoEngage initialized successfully with App ID:', APP_ID);
 
       // Initialize event listeners
-      initializeEventListeners();
-
-      // Set basic app attributes
-      setBasicAttributes();
+      setTimeout(() => {
+        initializeEventListeners();
+        setBasicAttributes();
+      }, 100); // Small delay to ensure initialization is complete
 
       return true;
     } else {
@@ -154,15 +183,52 @@ const initialize = () => {
         '⚠️ MoEngage App ID not configured. Please check moEngageConfig.js',
       );
       serviceState.isInitialized = false;
-      initializeEventListeners();
       return false;
     }
   } catch (error) {
-    console.log('❌ MoEngage initialization error:', error);
+    console.log('❌ MoEngage initialization error:', error.message);
     serviceState.isInitialized = false;
-    initializeEventListeners();
+
+    // Don't immediately fail - try again on next call
+    if (serviceState.initializationAttempts < 5) {
+      console.log('🔄 MoEngage: Will retry on next call');
+    }
+
     return false;
   }
+};
+
+/**
+ * Reset initialization state (for debugging purposes)
+ */
+const resetInitializationState = () => {
+  serviceState.initializationAttempts = 0;
+  serviceState.isInitialized = false;
+  serviceState.lastInitializationAttempt = 0;
+  console.log('🔄 MoEngage: Initialization state reset');
+};
+
+/**
+ * Try to initialize MoEngage with retry logic
+ */
+const initializeWithRetry = async (maxRetries = 3, delay = 2000) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    console.log(`🔄 MoEngage: Retry attempt ${attempt}/${maxRetries}`);
+
+    const result = initialize();
+    if (result) {
+      console.log('✅ MoEngage: Initialization successful');
+      return true;
+    }
+
+    if (attempt < maxRetries) {
+      console.log(`⏰ MoEngage: Waiting ${delay}ms before next attempt`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+
+  console.log('❌ MoEngage: All retry attempts failed');
+  return false;
 };
 
 /**
@@ -633,13 +699,15 @@ const getServiceState = () => {
   };
 };
 
-// Initialize the service when module loads
-initialize();
+// Don't auto-initialize when module loads - let the app control it
+// initialize();
 
 // Export all functions as a modern service object
 const moEngageService = {
   // Core functions
   initialize,
+  initializeWithRetry,
+  resetInitializationState,
   setUserId,
   setUserAttributes,
   trackEvent,
