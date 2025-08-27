@@ -69,7 +69,7 @@ const CustomDrawerComponent = props => {
       <Divider customStyle={styles.dividerStyle} />
       <DrawerContentScrollView
         {...props}
-        contentContainerStyle={{paddingTop: 0}}>
+        contentContainerStyle={{paddingTop: 0, flex: 1}}>
         {!isGuest && !!isLoggedIn && <DrawerFooter />}
       </DrawerContentScrollView>
     </SafeAreaView>
