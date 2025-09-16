@@ -27,10 +27,12 @@ import LinearGradient from 'react-native-linear-gradient';
 import PromoModal from './PromoBanner';
 import {useSelector, useDispatch} from 'react-redux';
 import fetcher from '../../../../dataProvider';
-import {useNavigationState, useTheme} from '@react-navigation/native';
-import {getAuthToken} from '../../../../utils/authUtils';
+import {useTheme} from '@react-navigation/native';
+// Removed direct token usage; interceptor handles Authorization
+import {checkAndRefreshTokens} from '../../../../utils/authUtils';
 import GradientBackground from '../../../common/GradientBackground';
 import useCredits from '../../../../hooks/useCredits';
+import LanguagePicker from './LanguagePicker';
 import {
   setGeneratingSong,
   setGeneratingSongId,
@@ -43,7 +45,7 @@ import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
 import moEngageService from '../../../../services/moengageService';
 import {trackBranchAIEvent} from '../../../../utils/branchUtils';
-import {getNavigationDetails} from '../../../../utils/navigationUtils';
+// import {getNavigationDetails} from '../../../../utils/navigationUtils';
 
 const AIGenerator = ({pageHeading}) => {
   const dispatch = useDispatch();
@@ -53,24 +55,24 @@ const AIGenerator = ({pageHeading}) => {
   const {mode} = useTheme();
   const {showToaster} = useToaster();
   const styles = getStyles(mode);
-  const [response, setResponse] = useState(null);
-  const [videoGenerating, setVideoGenerating] = useState({
+  const [, setResponseData] = useState(null);
+  const [videoGenerating] = useState({
     status: 'COMPLETED',
     isGenerated: true,
   });
   const [errorMessage, setErrorMessage] = useState('');
   const [generatedListResponse, setGeneratedListResponse] = useState(null);
-  const [prompt, setPrompt] = useState('');
+  const [, setPrompt] = useState('');
   const [showBottomSheet, setShowBottomSheet] = useState(false);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedVoice, setSelectedVoice] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [resetSelections, setResetSelections] = useState(false);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] =
     useState(false);
   const [showValidationModal, setShowValidationModal] = useState(false);
 
-  const navigationState = useNavigationState(state => state);
-  const {currentPage} = getNavigationDetails(navigationState);
+  // Removed unused navigationState/currentPage
   const {control, getValues, reset} = useForm({
     criteriaMode: 'all',
     mode: 'all',
@@ -86,10 +88,17 @@ const AIGenerator = ({pageHeading}) => {
     };
   }, [reset]);
 
-  const generateSongMutation = async (promptText, genreValue, voiceValue) => {
+  const generateSongMutation = async (
+    promptText,
+    genreValue,
+    voiceValue,
+    languageValue,
+  ) => {
     // Use the provided values or fall back to state if not provided
     const genreToUse = genreValue !== undefined ? genreValue : selectedGenre;
     const voiceToUse = voiceValue !== undefined ? voiceValue : selectedVoice;
+    const languageToUse =
+      languageValue !== undefined ? languageValue : selectedLanguage;
 
     const formattedPrompt = promptText.trim();
 
@@ -112,18 +121,17 @@ const AIGenerator = ({pageHeading}) => {
       requestPayload.voice = voiceToUse.trim();
     }
 
-    // Get auth token
-    const token = await getAuthToken();
+    // Add language if selected
+    if (languageToUse && languageToUse.trim() !== '') {
+      requestPayload.language = languageToUse.trim();
+    }
 
+    // Allow interceptor to attach/refresh Authorization automatically
     const headers = {
       'Content-Type': 'application/json',
     };
 
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetcher.post(
+    const apiResponse = await fetcher.post(
       `${API_BASE_URL}/v1/generate-song`,
       requestPayload,
       {
@@ -132,18 +140,23 @@ const AIGenerator = ({pageHeading}) => {
       },
     );
 
-    return response.data;
+    return apiResponse.data;
   };
 
   // Inside useMutation
   const {mutate: generateSong} = useMutation(
     // Pass the params directly to the mutation function
     params =>
-      generateSongMutation(params.promptText, params.genre, params.voice),
+      generateSongMutation(
+        params.promptText,
+        params.genre,
+        params.voice,
+        params.language,
+      ),
     {
       onSuccess: async data => {
         if (!data?.errorCode) {
-          setResponse(data);
+          setResponseData(data);
           setGeneratedListResponse(data);
           setErrorMessage('');
 
@@ -173,6 +186,7 @@ const AIGenerator = ({pageHeading}) => {
             singer: data.singer || 'Unknown',
             genre: data.genre || 'Not specified',
             voice: data.voice || 'Not specified',
+            language: data.language || selectedLanguage || 'English',
             timestamp: Date.now(),
           });
 
@@ -188,6 +202,7 @@ const AIGenerator = ({pageHeading}) => {
               singer: data.singer || 'Unknown',
               genre: data.genre || 'Not specified',
               voice: data.voice || 'Not specified',
+              language: data.language || selectedLanguage || 'English',
               timestamp: Date.now(),
             });
 
@@ -198,6 +213,7 @@ const AIGenerator = ({pageHeading}) => {
               title: data.title || 'Untitled',
               genre: data.genre || 'Not specified',
               voice: data.voice || 'Not specified',
+              language: data.language || selectedLanguage || 'English',
             });
 
             await trackBranchAIEvent('AI_SONG_GENERATED', {
@@ -279,6 +295,7 @@ const AIGenerator = ({pageHeading}) => {
       prompt_length: promptText.trim().length,
       genre: selectedGenre || 'not_selected',
       voice: selectedVoice || 'not_selected',
+      language: selectedLanguage || 'English',
       timestamp: Date.now(),
     });
 
@@ -288,6 +305,7 @@ const AIGenerator = ({pageHeading}) => {
         screen: 'ai_generator',
         genre: selectedGenre || 'not_selected',
         voice: selectedVoice || 'not_selected',
+        language: selectedLanguage || 'English',
       });
     } catch (error) {
       // Silent error handling
@@ -303,6 +321,14 @@ const AIGenerator = ({pageHeading}) => {
     // Store current selections before showing UI changes
     const genreToSend = selectedGenre;
     const voiceToSend = selectedVoice;
+    const languageToSend = selectedLanguage;
+
+    // Ensure authentication is valid before proceeding
+    const authOk = await checkAndRefreshTokens();
+    if (!authOk) {
+      setErrorMessage('Please log in to generate a song');
+      return;
+    }
 
     // Show the bottom sheet immediately to inform the user
     setShowBottomSheet(true);
@@ -329,6 +355,7 @@ const AIGenerator = ({pageHeading}) => {
         promptText: promptText,
         genre: genreToSend,
         voice: voiceToSend,
+        language: languageToSend,
       });
       // Don't set generating state here - it's already set above and will be cleared in onSuccess/onError
     } catch (error) {
@@ -405,22 +432,42 @@ const AIGenerator = ({pageHeading}) => {
                   <CText size="largeBold" style={styles.promptHeading}>
                     Description
                   </CText>
-                  <TextInputFC
-                    control={control}
-                    name={'promptText'}
-                    autoComplete={'off'}
-                    autoCorrect={false}
-                    placeholder={getRenderDetail(pageHeading).placeholderText}
-                    multiline={true}
-                    numberOfLines={5}
-                    placeholderTextColor={Colors[mode].textLightGray}
-                    customStyles={styles.inputContainerStyles}
-                    style={{
-                      color: Colors[mode].textLightGray,
-                      textAlignVertical: 'top',
-                    }}
-                    onChangeText={handleInputChange}
-                  />
+                  <View
+                    style={{position: 'relative', width: '100%', height: 180}}>
+                    <TextInputFC
+                      control={control}
+                      name={'promptText'}
+                      autoComplete={'off'}
+                      autoCorrect={false}
+                      placeholder={getRenderDetail(pageHeading).placeholderText}
+                      multiline={true}
+                      numberOfLines={5}
+                      placeholderTextColor={Colors[mode].textLightGray}
+                      customStyles={styles.inputContainerStyles}
+                      style={{
+                        color: Colors[mode].textLightGray,
+                        textAlignVertical: 'top',
+                      }}
+                      onChangeText={handleInputChange}
+                    />
+                    <LanguagePicker
+                      value={selectedLanguage}
+                      onChange={setSelectedLanguage}
+                      labelPrefix={'Lang: '}
+                      triggerStyle={{
+                        position: 'absolute',
+                        bottom: 20,
+                        left: 10,
+                        backgroundColor: '#2A2A2A',
+                        borderRadius: 16,
+                        paddingVertical: 6,
+                        paddingHorizontal: 10,
+                        borderWidth: 1,
+                        borderColor: '#403F3F',
+                      }}
+                      textStyle={{color: '#E5E7EB', fontWeight: '600'}}
+                    />
+                  </View>
                   {errorMessage ? (
                     <CText style={styles.errorText}>{errorMessage}</CText>
                   ) : null}
@@ -528,19 +575,21 @@ const AIGenerator = ({pageHeading}) => {
                 Please buy some credits to generate song
               </CText>
               <TouchableOpacity
-                style={styles.bottomSheetButton}
+                style={styles.createButton}
+                activeOpacity={0.8}
                 onPress={() => {
                   setShowInsufficientCreditsModal(false);
                   navigation.navigate(ROUTE_NAME.SubscriptionScreen);
                 }}>
                 <LinearGradient
-                  colors={['#F4A460', '#DEB887']}
+                  colors={[
+                    'rgba(255, 255, 255, 0.20)',
+                    'rgba(255, 255, 255, 0.40)',
+                  ]}
                   start={{x: 0, y: 0}}
                   end={{x: 1, y: 1}}
                   style={styles.gradient}>
-                  <CText style={styles.bottomSheetButtonText}>
-                    Buy Credits
-                  </CText>
+                  <CText style={[styles.createButtonText]}>Buy Credits</CText>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -567,14 +616,18 @@ const AIGenerator = ({pageHeading}) => {
                     Please add a prompt for song creation
                   </CText>
                   <TouchableOpacity
-                    style={styles.bottomSheetButton}
+                    style={styles.createButton}
+                    activeOpacity={0.8}
                     onPress={() => setShowValidationModal(false)}>
                     <LinearGradient
-                      colors={['#F4A460', '#DEB887']}
+                      colors={[
+                        'rgba(255, 255, 255, 0.20)',
+                        'rgba(255, 255, 255, 0.40)',
+                      ]}
                       start={{x: 0, y: 0}}
                       end={{x: 1, y: 1}}
                       style={styles.gradient}>
-                      <CText style={styles.bottomSheetButtonText}>Got it</CText>
+                      <CText style={[styles.createButtonText]}>Got it</CText>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>

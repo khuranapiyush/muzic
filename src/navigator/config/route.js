@@ -15,6 +15,9 @@ const VoiceRecordScreen = React.lazy(() =>
 const SubscriptionScreen = React.lazy(() =>
   import('../../screens/subscriptionScreen/subscription.screen'),
 );
+const RecurringSubscriptionScreen = React.lazy(() =>
+  import('../../screens/subscriptionScreen/RecurringSubscription.screen'),
+);
 const AuthStackNavigator = React.lazy(() => import('../AuthStackNavigator'));
 const PrivacyPolicyScreen = React.lazy(() =>
   import('../../screens/PrivacyPolicy/PrivacyPolicy.screen'),
@@ -93,6 +96,14 @@ export const appStackRoutes = [
     name: ROUTE_NAME.SubscriptionScreen,
     component: withSuspense(SubscriptionScreen),
     key: ROUTE_NAME.SubscriptionScreen,
+    options: {
+      headerShown: false,
+    },
+  },
+  {
+    name: ROUTE_NAME.RecurringSubscriptionScreen,
+    component: withSuspense(RecurringSubscriptionScreen),
+    key: ROUTE_NAME.RecurringSubscriptionScreen,
     options: {
       headerShown: false,
     },

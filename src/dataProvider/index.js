@@ -10,7 +10,6 @@ import {
 import {
   isTokenExpired,
   refreshAccessToken,
-  checkAndRefreshTokens,
   logoutUser,
 } from '../utils/authUtils';
 import {store} from '../stores';
@@ -76,6 +75,7 @@ const fetcher = {
           ? token.access
           : token;
 
+      console.log('tokenValue', tokenValue);
       // Update token in axios instances with the proper string value
       if (typeof tokenValue === 'string') {
         fanTvInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
@@ -309,8 +309,43 @@ export const addAuthInterceptor = async () => {
       console.log(`Adding auth headers to request: ${req.url}`);
 
       try {
-        // If Authorization already set by caller, do not override
+        // If Authorization is already set, validate/refresh if it's a Bearer token
         if (req.headers && req.headers.Authorization) {
+          const authHeader = String(req.headers.Authorization);
+          const isBearer = authHeader.startsWith('Bearer ');
+
+          // Leave non-bearer headers untouched
+          if (!isBearer) {
+            return req;
+          }
+
+          const headerToken = authHeader.slice('Bearer '.length);
+
+          try {
+            const state = store.getState();
+            const refreshToken = state?.auth?.refreshToken;
+            const tokenInvalid = !headerToken || isTokenExpired(headerToken);
+
+            // If header token invalid
+            if (tokenInvalid) {
+              if (refreshToken) {
+                // Try to refresh and overwrite header
+                const newAccess = await refreshAccessToken();
+                if (newAccess) {
+                  req.headers.Authorization = `Bearer ${newAccess}`;
+                } else {
+                  delete req.headers.Authorization;
+                }
+              } else {
+                // No refresh token available - drop invalid header to avoid malformed JWT errors
+                delete req.headers.Authorization;
+              }
+            }
+          } catch (_) {
+            // On any error, drop the invalid header so request proceeds unauthenticated
+            delete req.headers.Authorization;
+          }
+
           return req;
         }
 
@@ -351,16 +386,24 @@ export const addAuthInterceptor = async () => {
             }
           }
 
-          // Set the Authorization header if we have a valid token
+          // Set the Authorization header only if the token looks like a valid JWT
           if (accessToken) {
-            // Handle accessToken as object with access property
             const tokenValue =
               typeof accessToken === 'object' && accessToken.access
                 ? accessToken.access
                 : accessToken;
 
-            req.headers.Authorization = `Bearer ${tokenValue}`;
-            console.log('Interceptor: Auth header set successfully');
+            if (
+              typeof tokenValue === 'string' &&
+              tokenValue.split('.').length === 3
+            ) {
+              req.headers.Authorization = `Bearer ${tokenValue}`;
+              console.log('Interceptor: Auth header set successfully');
+            } else {
+              console.warn(
+                'Interceptor: Skipping auth header due to invalid token format',
+              );
+            }
           } else {
             console.warn('Interceptor: No valid token available for request');
           }

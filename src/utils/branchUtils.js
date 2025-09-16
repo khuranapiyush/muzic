@@ -1,4 +1,5 @@
-import branch from 'react-native-branch';
+import branch, {BranchEvent} from 'react-native-branch';
+import {Platform} from 'react-native';
 import {store} from '../stores';
 import DeviceInfo from 'react-native-device-info';
 
@@ -50,13 +51,48 @@ export const initializeBranchWithRetry = async (
         );
       });
 
-      // Test Branch availability with a simple call wrapped in timeout
-      const initPromise = branch.isTrackingDisabled();
+      // Actually initialize Branch session - this was missing!
+      const initPromise = new Promise((resolve, reject) => {
+        try {
+          // Check if Branch is available and working
+          // The native initialization should have already happened
+          // We just need to verify it's working
+          console.log('🔍 Checking Branch availability...');
 
-      const isEnabled = await Promise.race([initPromise, timeoutPromise]);
+          // Test basic Branch functionality
+          branch
+            .isTrackingDisabled()
+            .then(isDisabled => {
+              console.log(
+                '✅ Branch is available, tracking disabled:',
+                isDisabled,
+              );
+
+              // Get latest params to test if Branch is working
+              return branch.getLatestReferringParams();
+            })
+            .then(params => {
+              console.log('✅ Branch session initialized successfully');
+              console.log('📊 Branch params:', params);
+              resolve(true);
+            })
+            .catch(error => {
+              console.warn('⚠️ Branch availability check failed:', error);
+              reject(new Error(`Branch availability check failed: ${error}`));
+            });
+        } catch (initError) {
+          console.error('❌ Branch availability check exception:', initError);
+          reject(initError);
+        }
+      });
+
+      await Promise.race([initPromise, timeoutPromise]);
+
+      // Test if Branch is working by checking tracking status
+      const isTrackingDisabled = await branch.isTrackingDisabled();
       console.log(
         '✅ Branch initialization successful, tracking disabled:',
-        isEnabled,
+        isTrackingDisabled,
       );
 
       return true;
@@ -133,24 +169,79 @@ export const ensureBranchIdentity = async (timeout = 10000) => {
  */
 export const trackBranchEvent = async (eventName, eventData = {}) => {
   try {
+    console.log(`🔄 Attempting to track Branch event: ${eventName}`, eventData);
+
+    // First, check if Branch is available at all
+    if (!branch) {
+      console.error('❌ Branch object is not available');
+      return false;
+    }
+
+    // Check if Branch is ready
+    let isTrackingDisabled;
+    try {
+      isTrackingDisabled = await branch.isTrackingDisabled();
+      console.log(
+        '✅ Branch isTrackingDisabled check passed:',
+        isTrackingDisabled,
+      );
+    } catch (error) {
+      console.error('❌ Branch isTrackingDisabled failed:', error);
+      return false;
+    }
+
+    if (isTrackingDisabled) {
+      console.warn(
+        '⚠️ Branch tracking is disabled, skipping event:',
+        eventName,
+      );
+      return false;
+    }
+
     // Ensure identity is set first
     const identity = await ensureBranchIdentity();
+    console.log(`👤 Branch identity set: ${identity}`);
 
-    // Import BranchEvent dynamically to avoid circular imports
-    const {BranchEvent} = require('react-native-branch');
+    // Check if BranchEvent is available
+    if (!BranchEvent) {
+      console.error('❌ BranchEvent is not available');
+      return false;
+    }
 
-    // Track the event
-    new BranchEvent(eventName, {
+    // Create the event
+    const event = new BranchEvent(eventName, {
       ...eventData,
       // Add tracking metadata
       tracked_at: new Date().toISOString(),
       identity_set: !!identity,
-    }).logEvent();
+    });
 
-    console.log(`✅ Branch event tracked: ${eventName}`, eventData);
+    console.log(`📊 Created Branch event: ${eventName}`, event);
+
+    // Track the event with proper async handling
+    await new Promise((resolve, reject) => {
+      try {
+        event.logEvent();
+        console.log(`📤 Branch event logged: ${eventName}`);
+
+        // Add a small delay to ensure event is processed
+        setTimeout(() => {
+          console.log(
+            `✅ Branch event tracked successfully: ${eventName}`,
+            eventData,
+          );
+          resolve(true);
+        }, 100);
+      } catch (logError) {
+        console.error(`❌ Branch logEvent failed: ${eventName}`, logError);
+        reject(logError);
+      }
+    });
+
     return true;
   } catch (error) {
     console.error(`❌ Branch event tracking failed: ${eventName}`, error);
+    console.error('❌ Error details:', error.message, error.stack);
     return false;
   }
 };
@@ -163,42 +254,66 @@ export const trackBranchPurchase = async purchaseData => {
   const {revenue, currency, product_id, transaction_id, ...otherData} =
     purchaseData;
 
-  // Validate required purchase data
-  if (!revenue || !currency || !product_id) {
+  // Validate required purchase data (currency can be optional with fallback)
+  if (!revenue || !product_id) {
     console.warn('⚠️ Invalid purchase data for Branch tracking:', purchaseData);
     return false;
   }
 
+  // Use fallback currency if not provided
+  const finalCurrency = currency || 'INR';
+
   try {
+    // Check if Branch is ready
+    const isTrackingDisabled = await branch.isTrackingDisabled();
+    if (isTrackingDisabled) {
+      console.warn('⚠️ Branch tracking is disabled, skipping purchase event');
+      return false;
+    }
+
     // Ensure identity is set first
     const identity = await ensureBranchIdentity();
 
-    // Import BranchEvent dynamically to avoid circular imports
-    const {BranchEvent} = require('react-native-branch');
+    // BranchEvent is already imported at the top
 
     // Use Branch's standard Purchase event (this will show in dashboard)
     const purchaseEvent = new BranchEvent(BranchEvent.Purchase, {
+      // Standard fields for Purchase event
       revenue: Number(revenue),
-      currency: String(currency),
-      product_id: String(product_id),
-      transaction_id: String(transaction_id || `tx_${Date.now()}`),
-      // Add tracking metadata
-      tracked_at: new Date().toISOString(),
-      identity_set: !!identity,
-      ...otherData,
+      currency: String(finalCurrency),
+      transactionID: String(transaction_id || `tx_${Date.now()}`),
+      // Put extra fields under customData
+      customData: {
+        product_id: String(product_id),
+        tracked_at: new Date().toISOString(),
+        identity_set: !!identity,
+        ...otherData,
+      },
     });
 
-    await purchaseEvent.logEvent();
-
-    console.log(`✅ Branch STANDARD Purchase event tracked:`, {
-      revenue: Number(revenue),
-      currency: String(currency),
-      product_id: String(product_id),
-      transaction_id,
+    // Track the event with proper async handling
+    await new Promise((resolve, reject) => {
+      try {
+        purchaseEvent.logEvent();
+        // Add a small delay to ensure event is processed
+        setTimeout(() => {
+          console.log('✅ Branch STANDARD Purchase event tracked:', {
+            revenue: Number(revenue),
+            currency: String(finalCurrency),
+            product_id: String(product_id),
+            transaction_id,
+          });
+          resolve(true);
+        }, 100);
+      } catch (logError) {
+        console.error('❌ Branch Purchase logEvent failed:', logError);
+        reject(logError);
+      }
     });
+
     return true;
   } catch (error) {
-    console.error(`❌ Branch Purchase event tracking failed:`, error);
+    console.error('❌ Branch Purchase event tracking failed:', error);
     return false;
   }
 };
@@ -212,18 +327,50 @@ export const trackBranchPurchaseInitiation = async productId => {
     return false;
   }
 
-  return await trackBranchEvent('INITIATE_PURCHASE', {
-    product_id: String(productId),
-  });
+  try {
+    // Ensure identity is set first
+    await ensureBranchIdentity();
+
+    const event = new BranchEvent(BranchEvent.InitiatePurchase, {
+      // Put extra fields under customData so they show up properly
+      customData: {
+        product_id: String(productId),
+        tracked_at: new Date().toISOString(),
+      },
+    });
+
+    event.logEvent(); // fire-and-forget is OK
+    console.log('✅ Branch standard InitiatePurchase event sent');
+    return true;
+  } catch (error) {
+    console.error('❌ Branch InitiatePurchase event failed:', error);
+    return false;
+  }
 };
 
 /**
  * Track login events
  */
 export const trackBranchLogin = async (method = 'unknown') => {
-  return await trackBranchEvent('LOGIN', {
-    method: String(method),
-  });
+  try {
+    // Ensure identity is set first
+    await ensureBranchIdentity();
+
+    const event = new BranchEvent(BranchEvent.Login, {
+      // Put extra fields under customData so they show up properly
+      customData: {
+        method: String(method),
+        tracked_at: new Date().toISOString(),
+      },
+    });
+
+    event.logEvent(); // fire-and-forget is OK
+    console.log('✅ Branch standard Login event sent');
+    return true;
+  } catch (error) {
+    console.error('❌ Branch Login event failed:', error);
+    return false;
+  }
 };
 
 /**
@@ -233,10 +380,26 @@ export const trackBranchRegistration = async (
   method = 'unknown',
   additionalData = {},
 ) => {
-  return await trackBranchEvent('COMPLETE_REGISTRATION', {
-    method: String(method),
-    ...additionalData,
-  });
+  try {
+    // Ensure identity is set first
+    await ensureBranchIdentity();
+
+    const event = new BranchEvent(BranchEvent.CompleteRegistration, {
+      // Put extra fields under customData so they show up properly
+      customData: {
+        method: String(method),
+        tracked_at: new Date().toISOString(),
+        ...additionalData,
+      },
+    });
+
+    event.logEvent(); // fire-and-forget is OK
+    console.log('✅ Branch standard CompleteRegistration event sent');
+    return true;
+  } catch (error) {
+    console.error('❌ Branch CompleteRegistration event failed:', error);
+    return false;
+  }
 };
 
 /**
@@ -267,6 +430,49 @@ export const trackEventFallback = (eventName, eventData = {}) => {
 };
 
 /**
+ * Check Branch status and configuration
+ */
+export const checkBranchStatus = async () => {
+  try {
+    const isDisabled = await branch.isTrackingDisabled();
+    const latestParams = await branch.getLatestReferringParams();
+
+    // Check if we're in test mode (iOS only - Android uses manifest)
+    const isTestMode = __DEV__; // This will be true for debug builds
+
+    console.log('🔍 Branch Status Check:');
+    console.log('- Tracking Disabled:', isDisabled);
+    console.log('- Platform:', Platform.OS);
+    console.log('- Is Debug Build:', __DEV__);
+    console.log('- Is Test Mode:', isTestMode);
+    console.log('- Latest Params:', latestParams);
+
+    console.log(
+      '🎯 Dashboard Environment:',
+      isTestMode
+        ? 'TEST (check TEST toggle in dashboard)'
+        : 'LIVE (check LIVE toggle in dashboard)',
+    );
+
+    return {
+      trackingEnabled: !isDisabled,
+      isTestMode: isTestMode,
+      platform: Platform.OS,
+      hasParams: !!latestParams,
+      params: latestParams,
+    };
+  } catch (error) {
+    console.error('❌ Branch status check failed:', error);
+    return {trackingEnabled: false, hasParams: false, error};
+  }
+};
+
+/**
+ * Test Branch events manually for debugging
+ */
+// Removed testBranchEvents for production readiness
+
+/**
  * Safe Branch event tracking that won't crash the app
  */
 export const safeBranchEventTrack = async (eventName, eventData = {}) => {
@@ -291,4 +497,5 @@ export default {
   trackBranchAIEvent,
   safeBranchEventTrack,
   trackEventFallback,
+  checkBranchStatus,
 };

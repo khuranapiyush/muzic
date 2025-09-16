@@ -54,12 +54,9 @@
         android:value="@string/default_web_client_id" />
       </activity>
       
-      <!-- Branch keys (use env via react-native-config) -->
+      <!-- Branch keys: set live key for production -->
       <meta-data android:name="io.branch.sdk.BranchKey"
           android:value="key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
-      <!-- Optional test key -->
-      <meta-data android:name="io.branch.sdk.BranchKey.test"
-          android:value="key_test_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
       
       <!-- Branch timeout configuration -->
       <meta-data android:name="io.branch.sdk.NetworkTimeout"

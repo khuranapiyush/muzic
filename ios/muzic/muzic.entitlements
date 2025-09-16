@@ -8,12 +8,13 @@
 	<array>
 		<string>Default</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:makemysong.app.link</string>
+		<string>applinks:makemysong-alternate.app.link</string>
+		<string>applinks:makemysong-test-app.link</string>
+	</array>
 	<key>com.apple.security.assets.music.read-write</key>
 	<true/>
-    <key>com.apple.developer.associated-domains</key>
-    <array>
-        <string>applinks:makemysong.app.link</string>
-        <string>applinks:makemysong-alternate.app.link</string>
-    </array>
 </dict>
 </plist>

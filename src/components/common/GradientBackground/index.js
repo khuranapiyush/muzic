@@ -1,3 +1,4 @@
+import {SCREEN_HEIGHT, SCREEN_WIDTH} from '@gorhom/bottom-sheet';
 import React from 'react';
 import {Platform} from 'react-native';
 import {StyleSheet, View} from 'react-native';
@@ -39,14 +40,13 @@ const GradientBackground = ({
 
 const styles = StyleSheet.create({
   gradient: {
-    height: '100%',
-    width: '100%',
+    height: SCREEN_HEIGHT,
+    width: SCREEN_WIDTH,
     position: 'absolute',
-    top: Platform.OS === 'ios' ? -200 : -300,
     left: 0,
     right: 0,
     bottom: 0,
-    opacity: 0.7,
+    opacity: 0.75,
   },
   gradientOverlay: {
     flex: 1,

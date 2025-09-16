@@ -50,7 +50,7 @@
       "internalID" : "6744959581",
       "localizations" : [
         {
-          "description" : "🎵 3560 credits 🕓 365 Songs/Al Covers",
+          "description" : "🎵 3650 credits 🕓 365 Songs/Al Covers",
           "displayName" : "Ultra Pro Plan",
           "locale" : "en_US"
         }
@@ -64,7 +64,7 @@
     "_applicationInternalID" : "6744594688",
     "_developerTeamID" : "GS32LP39L5",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 770212729.66735399,
+    "_lastSynchronizedDate" : 779630749.27035499,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
@@ -116,7 +116,117 @@
     ]
   },
   "subscriptionGroups" : [
+    {
+      "id" : "21669648",
+      "localizations" : [
 
+      ],
+      "name" : "basic_subscription_plan",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "18.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6752375973",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "🎵 50 credits 🕓 5 Songs/Al Covers",
+              "displayName" : "Base Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subplan_1",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Base Plan",
+          "subscriptionGroupID" : "21669648",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "21673080",
+      "localizations" : [
+
+      ],
+      "name" : "pro_subscription_plan",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "59.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6752488759",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "🎵 250 credits 🕓 25 Songs/Al Covers",
+              "displayName" : "Pro Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subplan_2",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Pro Sub Plan",
+          "subscriptionGroupID" : "21673080",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    },
+    {
+      "id" : "21779666",
+      "localizations" : [
+
+      ],
+      "name" : "ultra_pro_subscription_plan",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "149.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "6752488938",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "🎵 3650 credits 🕓 365 Songs/Al Covers",
+              "displayName" : "Ultra Pro Plan",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "subplan_3",
+          "recurringSubscriptionPeriod" : "P3M",
+          "referenceName" : "Ultra Pro Sub Plan",
+          "subscriptionGroupID" : "21779666",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
   ],
   "version" : {
     "major" : 4,

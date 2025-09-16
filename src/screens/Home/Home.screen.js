@@ -242,12 +242,12 @@ export default function HomeScreen() {
 
   const sections = [
     {
-      title: 'Trending Songs',
+      title: 'New Songs',
       data: trendingList,
       sectionType: 'trending',
     },
     {
-      title: 'New Songs',
+      title: 'Trending Songs',
       data: newSongList,
       sectionType: 'new',
     },

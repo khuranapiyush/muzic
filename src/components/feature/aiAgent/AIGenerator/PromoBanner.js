@@ -16,6 +16,7 @@ import {useNavigation} from '@react-navigation/native';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import * as RNIap from 'react-native-iap';
 import {getDefaultProductId} from '../../../../api/config';
+import CText from '../../../common/core/Text';
 
 const PRICE_MULTIPLIERS = {
   payment_101: 1.5,
@@ -225,7 +226,7 @@ const PromoModal = ({visible, onClose}) => {
                     Auto renewable. Cancel anytime.
                   </Text> */}
 
-                  <TouchableOpacity
+                  {/* <TouchableOpacity
                     style={styles.createButton}
                     activeOpacity={0.8}
                     onPress={() => {
@@ -238,6 +239,24 @@ const PromoModal = ({visible, onClose}) => {
                       end={{x: 1, y: 1}}
                       style={styles.buttonGradient}>
                       <Text style={styles.createButtonText}>Continue</Text>
+                    </LinearGradient>
+                  </TouchableOpacity> */}
+                  <TouchableOpacity
+                    style={styles.createButton}
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      onClose();
+                      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                    }}>
+                    <LinearGradient
+                      colors={[
+                        'rgba(255, 255, 255, 0.20)',
+                        'rgba(255, 255, 255, 0.40)',
+                      ]}
+                      start={{x: 0, y: 0}}
+                      end={{x: 1, y: 1}}
+                      style={styles.gradient}>
+                      <CText style={[styles.createButtonText]}>Continue</CText>
                     </LinearGradient>
                   </TouchableOpacity>
                 </View>
@@ -381,19 +400,30 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   createButton: {
-    width: Platform.OS === 'ios' ? '90%' : '95%',
-    height: 55,
-    borderRadius: 28,
+    width: '100%',
+    height: 56,
     overflow: 'hidden',
+    borderRadius: 100,
+    borderWidth: 4,
+    borderColor: '#A84D0C',
+    backgroundColor: '#FC6C14',
+  },
+  gradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 100,
     borderWidth: 1,
-    borderColor: '#C87D48',
+    borderColor: '#FFF',
+    borderStyle: 'solid',
+    backgroundColor: '#FC6C14',
+    boxShadow: '0 0 14px 0 #FFDBC5 inset',
   },
   createButtonText: {
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: Platform.OS === 'ios' ? 5 : 0,
+    ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
   buttonGradient: {
     flex: 1,

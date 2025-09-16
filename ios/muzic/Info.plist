@@ -31,7 +31,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.0.0</string>
+	<string>3.1.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -87,18 +87,6 @@
 	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>branch_key</key>
-	<dict>
-		<key>live</key>
-		<string>key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs</string>
-		<key>test</key>
-		<string>key_test_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs</string>
-	</dict>
-	<key>branch_universal_link_domains</key>
-	<array>
-		<string>makemysong.app.link</string>
-		<string>makemysong-alternate.app.link</string>
-	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>MoEngage</key>
@@ -117,10 +105,10 @@
 	<string>MakeMySong needs camera access to allow you to take profile pictures and upload images for content creation</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>MakeMySong needs microphone access to record your voice for creating voice notes and audio content</string>
-	<key>NSUserNotificationsUsageDescription</key>
-	<string>This app uses notifications to keep you updated with new music and features</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>MakeMySong needs access to your photo library to allow you to select images for your profile and content creation</string>
+	<key>NSUserNotificationsUsageDescription</key>
+	<string>This app uses notifications to keep you updated with new music and features</string>
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
 	<true/>
 	<key>UIBackgroundModes</key>
@@ -142,5 +130,19 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+	<key>branch_key</key>
+	<dict>
+		<key>live</key>
+		<string>key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs</string>
+		<key>test</key>
+		<string>key_test_fFEbRe11MkOoXafiI3CermfnqCkMa9zS</string>
+	</dict>
+	<key>branch_use_test_key</key>
+	<false/>
+	<key>branch_universal_link_domains</key>
+	<array>
+		<string>makemysong.app.link</string>
+		<string>makemysong-alternate.app.link</string>
+	</array>
 </dict>
 </plist>

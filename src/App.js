@@ -45,6 +45,7 @@ import branch, {BranchEvent} from 'react-native-branch';
 import {
   configureBranchTimeouts,
   initializeBranchWithRetry,
+  checkBranchStatus,
 } from './utils/branchUtils';
 
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -313,6 +314,11 @@ const AppContent = () => {
         const branchInitialized = await initializeBranchWithRetry(2, 3000); // Reduce retries for faster startup
         if (branchInitialized) {
           console.log('✅ Branch initialization completed successfully');
+
+          // Check Branch status and environment
+          await checkBranchStatus();
+
+          // No test event calls in production builds
         } else {
           console.warn(
             '⚠️ Branch initialization failed, continuing without Branch features',
@@ -340,7 +346,7 @@ const AppContent = () => {
 
     const setupBranchSubscription = async () => {
       // Wait a bit for Branch to be potentially initialized
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
 
       if (!subscriptionActive) return;
 

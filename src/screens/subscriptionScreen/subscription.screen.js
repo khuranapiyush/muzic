@@ -217,24 +217,21 @@ const processPurchase = async (purchase, token, authState) => {
         if (resultData.status === 'SUCCESS' && amount) {
           try {
             // Track purchase with analytics
+            const currency = resultData.currency || 'INR'; // Fallback to INR for Indian app
             analyticsUtils.trackCustomEvent('purchase_completed', {
               product_id: purchase.productId,
               amount: amount,
-              currency: resultData.currency,
+              currency: currency,
               platform: 'ios',
               timestamp: new Date().toISOString(),
             });
 
-            facebookEvents.logPurchase(
-              amount,
-              resultData.currency,
-              purchase.productId,
-            );
+            facebookEvents.logPurchase(amount, currency, purchase.productId);
 
             // Enhanced MoEngage purchase tracking
             await trackMoEngageEvent('Credits_Purchased', {
               amount: amount,
-              currency: resultData.currency,
+              currency: currency,
               product_id: purchase.productId,
               transaction_id: purchase?.transactionId,
               platform: 'ios',
@@ -244,7 +241,7 @@ const processPurchase = async (purchase, token, authState) => {
             // Track purchase with Branch using enhanced utility
             await trackBranchPurchase({
               revenue: amount,
-              currency: resultData.currency,
+              currency: currency,
               product_id: purchase.productId,
               transaction_id: purchase?.transactionId,
               platform: 'ios',
@@ -303,24 +300,21 @@ const processPurchase = async (purchase, token, authState) => {
           const amount = getAmountFromProductId(purchase.productId);
           if (amount) {
             // Track purchase with analytics
+            const currency = resultData.currency || 'INR'; // Fallback to INR for Indian app
             analyticsUtils.trackCustomEvent('purchase_completed', {
               product_id: purchase.productId,
               amount: amount,
-              currency: resultData.currency,
+              currency: currency,
               platform: 'android',
               timestamp: new Date().toISOString(),
             });
 
-            facebookEvents.logPurchase(
-              amount,
-              resultData.currency,
-              purchase.productId,
-            );
+            facebookEvents.logPurchase(amount, currency, purchase.productId);
 
             // Enhanced MoEngage purchase tracking
             await trackMoEngageEvent('Credits_Purchased', {
               amount: amount,
-              currency: resultData.currency,
+              currency: currency,
               product_id: purchase.productId,
               transaction_id: purchase?.orderId || purchase?.transactionId,
               platform: 'android',
@@ -330,7 +324,7 @@ const processPurchase = async (purchase, token, authState) => {
             // Track purchase with Branch using enhanced utility
             await trackBranchPurchase({
               revenue: amount,
-              currency: resultData.currency,
+              currency: currency,
               product_id: purchase.productId,
               transaction_id: purchase?.orderId || purchase?.transactionId,
               platform: 'android',
@@ -1380,7 +1374,6 @@ const PlanCard = ({
   discount,
   discountedPrice,
   currency,
-  currencySymbol,
 }) => {
   const hasDiscount = !!(discount && discountedPrice && originalPrice);
 
@@ -1425,7 +1418,7 @@ const PlanCard = ({
                 style={styles.planPrice}
                 numberOfLines={1}
                 ellipsizeMode="tail">
-                {currency} {discountedPrice}
+                {currency} {originalPrice}
               </Text>
             </View>
           ) : (
@@ -2936,7 +2929,10 @@ const SubscriptionScreen = () => {
 
           // Fetch product IDs dynamically from backend
           const platform = Platform.OS === 'ios' ? 'ios' : 'android';
-          const oneTimeProductIds = await getPlatformProductIds(platform);
+          const oneTimeProductIds = await getPlatformProductIds(
+            platform,
+            'oneTime',
+          );
 
           console.log(
             `Subscription: Fetched ${oneTimeProductIds.length} ${platform} product IDs for one-time products:`,

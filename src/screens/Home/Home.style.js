@@ -56,7 +56,7 @@ const getStyles = theme => {
       lineHeight: 24,
       paddingVertical: 5,
       fontFamily: 'Inter',
-      letterSpacing: -0.8,
+      letterSpacing: -0.2,
       textTransform: 'capitalize',
     },
     songCard: {
@@ -244,6 +244,7 @@ const getStyles = theme => {
       alignSelf: 'center',
       alignItems: 'center',
       justifyContent: 'center',
+      tintColor: '#FEB680',
     },
     sectionContainer: {
       marginBottom: 20,
@@ -261,7 +262,7 @@ const getStyles = theme => {
       // height: 198,
     },
     showMoreText: {
-      color: '#FFD5A9',
+      color: '#FFB680',
       fontFamily: 'Inter',
       fontSize: 12,
       fontWeight: 500,

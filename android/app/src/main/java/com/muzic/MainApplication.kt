@@ -56,7 +56,7 @@ class MainApplication : Application(), ReactApplication {
     // Initialize Branch auto instance
     try {
       RNBranchModule.getAutoInstance(this)
-      RNBranchModule.enableLogging() // Remove or disable in production
+      RNBranchModule.enableLogging()
       
       android.util.Log.d("BranchInit", "Branch initialized successfully")
     } catch (e: Exception) {

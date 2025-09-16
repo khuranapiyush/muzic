@@ -621,6 +621,7 @@ const styles = StyleSheet.create({
   playPauseIcon: {
     width: 40,
     height: 40,
+    tintColor: '#FEB680',
   },
   closePlayerButton: {
     position: 'absolute',

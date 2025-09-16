@@ -417,7 +417,7 @@ const getStyles = theme => {
       lineHeight: 24,
       paddingVertical: 5,
       fontFamily: 'Inter',
-      letterSpacing: -0.8,
+      letterSpacing: -0.2,
       textTransform: 'capitalize',
     },
     bottomSheetContainer: {
@@ -486,6 +486,11 @@ const getStyles = theme => {
       lineHeight: 24,
       textAlign: 'center',
       fontFamily: 'Inter',
+    },
+    playPauseIcon: {
+      width: 40,
+      height: 40,
+      tintColor: '#FEB680',
     },
   });
 };

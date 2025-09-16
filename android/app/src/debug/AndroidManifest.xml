@@ -5,5 +5,9 @@
     <application
         android:usesCleartextTraffic="true"
         tools:targetApi="28"
-        tools:ignore="GoogleAppIndexingWarning"/>
+        tools:ignore="GoogleAppIndexingWarning">
+        
+        <!-- Ensure Branch uses default key selection (LIVE unless overridden) -->
+        <!-- Removed TestMode override -->
+    </application>
 </manifest>

@@ -49,6 +49,7 @@ const screenRoutes = {
   AIHistory: 'AIHistory',
   VoiceRecord: 'VoiceRecord',
   SubscriptionScreen: 'SubscriptionScreen',
+  RecurringSubscriptionScreen: 'RecurringSubscriptionScreen',
   PrivacyPolicy: 'PrivacyPolicy',
   TermsAndConditions: 'TermsAndConditions',
   TrendingSongs: 'TrendingSongs',

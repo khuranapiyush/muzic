@@ -1,6 +1,6 @@
 import {useNavigation} from '@react-navigation/native';
 import React, {memo, useEffect} from 'react';
-import {Image, Pressable, Text, ActivityIndicator} from 'react-native';
+import {Image, Pressable, Text} from 'react-native';
 import appImages from '../../../../resource/images';
 import CView from '../../core/View';
 import getStyles from './style';
@@ -37,7 +37,7 @@ const HeaderRight = ({mode}) => {
   };
 
   const handleCreditPress = () => {
-    navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+    navigation.navigate(ROUTE_NAME.RecurringSubscriptionScreen);
   };
 
   return (

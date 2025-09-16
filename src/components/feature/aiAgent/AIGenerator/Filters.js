@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
     transform: [{scale: 1.05}],
   },
   itemText: {
-    color: '#B0B0B0',
+    color: '#FFF',
     fontFamily: 'Inter',
     fontWeight: '500',
     fontSize: 14,

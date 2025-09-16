@@ -40,6 +40,16 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
       }
     }
 
+    // Initialize Branch session BEFORE React Native (keys are configured in Info.plist)
+    
+    // Initialize Branch session with error handling
+    do {
+      RNBranch.initSession(launchOptions: launchOptions, isReferrable: true)
+      print("✅ Branch session initialized successfully in iOS")
+    } catch {
+      print("❌ Branch session initialization failed: \(error)")
+    }
+
     // Initialize React Native
     self.moduleName = "muzic"
     self.dependencyProvider = RCTAppDependencyProvider()
@@ -54,12 +64,6 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
 
     // Call super to complete React Native initialization
     let success = super.application(application, didFinishLaunchingWithOptions: launchOptions)
-    
-    // Initialize Branch session (keys are now configured in Info.plist / Build Settings)
-    // RNBranch.useTestInstance() // Uncomment while testing with Test keys
-    
-    // Initialize Branch session with error handling
-    RNBranch.initSession(launchOptions: launchOptions, isReferrable: true)
 
     // Initialize splash screen AFTER React initialization
     // RNSplashScreen.show()

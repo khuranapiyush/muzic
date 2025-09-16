@@ -369,19 +369,9 @@ const CoverCreationScreen = () => {
 
   const {mutate: fetchUserRecordings} = useMutation(
     useCallback(async () => {
-      // Get the current auth token with validation
-      const token = await getAuthToken();
-
-      if (!token) {
-        console.warn(
-          'fetchUserRecordings: No valid token available, skipping request',
-        );
-        throw new Error('Authentication token is missing or invalid');
-      }
-
+      // Allow interceptor to attach/refresh Authorization automatically
       const headers = {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       };
 
       setIsLoadingRecordings(true);
@@ -1133,7 +1123,7 @@ const styles = StyleSheet.create({
     color: '#F2F2F2',
     paddingVertical: 5,
     fontFamily: 'Inter',
-    letterSpacing: -0.8,
+    letterSpacing: -0.2,
     textTransform: 'capitalize',
   },
   inputContainer: {
@@ -1158,9 +1148,9 @@ const styles = StyleSheet.create({
   },
   pasteButton: {
     borderRadius: 20,
-    backgroundColor: '#FFD5A9',
-    boxShadow: '0 0 1px 0 rgba(255, 213, 169, 0.55)',
+    backgroundColor: '#F4A460',
     paddingHorizontal: 20,
+    boxShadow: '0 0 1px 0 #DEB887',
     paddingVertical: 10,
     marginRight: 8,
   },
