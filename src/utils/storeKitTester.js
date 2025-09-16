@@ -11,7 +11,7 @@ const TEST_PRODUCT_IDS = ['payment_101', 'payment_201', 'payment_301'];
 
 // Function to check if we're in StoreKit Test Environment
 export const isInStoreKitTestEnvironment = () => {
-  if (Platform.OS !== 'ios') return false;
+  if (Platform.OS !== 'ios') {return false;}
 
   // Check if we're in a simulator
   const isSimulator =

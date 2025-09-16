@@ -1,14 +1,14 @@
-import React from 'react'
-import { Image, Text, TouchableOpacity, View } from 'react-native'
-import getStyles from './Home.style'
-import { useTheme } from 'react-native-elements'
+import React from 'react';
+import { Image, Text, TouchableOpacity, View } from 'react-native';
+import getStyles from './Home.style';
+import { useTheme } from 'react-native-elements';
 
 const AudioPlayer = ({ currentTrack, isPlaying, onPlayPause }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   if (!currentTrack) {
-    return null
+    return null;
   }
 
   return (
@@ -26,12 +26,12 @@ const AudioPlayer = ({ currentTrack, isPlaying, onPlayPause }) => {
         <View
           style={[
             styles.pauseIcon,
-            isPlaying ? styles.pauseIconActive : styles.playIconMini
+            isPlaying ? styles.pauseIconActive : styles.playIconMini,
           ]}
         />
       </TouchableOpacity>
     </View>
-  )
-}
+  );
+};
 
-export default AudioPlayer
+export default AudioPlayer;

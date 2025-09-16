@@ -1,31 +1,31 @@
-import { useNavigation } from '@react-navigation/native'
-import React, { useCallback } from 'react'
-import { FlatList, Image, TouchableOpacity } from 'react-native'
-import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE'
-import appImages from '../../../../../../resource/images'
-import { generateTransparentColor } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './styles'
-import Colors from '../../../../../common/Colors'
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback } from 'react';
+import { FlatList, Image, TouchableOpacity } from 'react-native';
+import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE';
+import appImages from '../../../../../../resource/images';
+import { generateTransparentColor } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './styles';
+import Colors from '../../../../../common/Colors';
 
 const ViewType5 = ({ items, theme }) => {
-  const navigation = useNavigation()
-  const styles = getStyles(theme)
+  const navigation = useNavigation();
+  const styles = getStyles(theme);
 
-  const keyExtractor = useCallback((item, idx) => `list_${idx}`, [])
+  const keyExtractor = useCallback((item, idx) => `list_${idx}`, []);
 
   const handleActionBtn = useCallback(
     action => {
-      const routeConfig = ROUTE_MAPPING_BE[action]
+      const routeConfig = ROUTE_MAPPING_BE[action];
       if (!routeConfig) {
-        return
+        return;
       }
 
-      navigation.navigate(routeConfig.name, routeConfig.params)
+      navigation.navigate(routeConfig.name, routeConfig.params);
     },
     [navigation]
-  )
+  );
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -37,7 +37,7 @@ const ViewType5 = ({ items, theme }) => {
                 row
                 style={{
                   alignItems: 'center',
-                  ...(!item.value && { width: '100%' })
+                  ...(!item.value && { width: '100%' }),
                 }}>
                 {/* <CView style={styles.leftIconWrapper}>
                   {!!item.icon && (
@@ -67,7 +67,7 @@ const ViewType5 = ({ items, theme }) => {
                     <CText
                       style={{
                         ...styles.descriptionText,
-                        color: Colors[theme].textLightGray
+                        color: Colors[theme].textLightGray,
                       }}>
                       {item?.description}
                     </CText>
@@ -82,7 +82,7 @@ const ViewType5 = ({ items, theme }) => {
                       paddingRight: 16,
                       paddingTop: 8,
                       paddingBottom: 16,
-                      marginTop: 12
+                      marginTop: 12,
                     }}>
                     <Image
                       source={{ uri: item.referBannerIcon }}
@@ -92,13 +92,13 @@ const ViewType5 = ({ items, theme }) => {
                     <CView
                       style={{
                         width: '100%',
-                        paddingRight: 20
+                        paddingRight: 20,
                       }}>
                       <CView>
                         <CText
                           style={{
                             fontSize: 16,
-                            fontWeight: '600'
+                            fontWeight: '600',
                           }}>
                           {item.referBannerTitle}
                         </CText>
@@ -109,7 +109,7 @@ const ViewType5 = ({ items, theme }) => {
                           marginTop: 8,
                           fontSize: 12,
                           fontWeight: '400',
-                          lineHeight: 15
+                          lineHeight: 15,
                         }}>
                         {item.referBannerDescription}
                       </CText>
@@ -124,12 +124,12 @@ const ViewType5 = ({ items, theme }) => {
                     ...styles.valueWrapper,
                     backgroundColor: item?.valueColor
                       ? generateTransparentColor(item?.valueColor, 0.4)
-                      : '#E8E8E8'
+                      : '#E8E8E8',
                   }}>
                   <CText
                     style={{
                       ...styles.valueText,
-                      color: item.valueColor || '#000'
+                      color: item.valueColor || '#000',
                     }}>
                     {item.value}
                   </CText>
@@ -138,10 +138,10 @@ const ViewType5 = ({ items, theme }) => {
             </CView>
           </CView>
         </TouchableOpacity>
-      )
+      );
     },
     [handleActionBtn, theme]
-  )
+  );
 
   return (
     <FlatList
@@ -150,7 +150,7 @@ const ViewType5 = ({ items, theme }) => {
       renderItem={renderItem}
       showsHorizontalScrollIndicator={false}
     />
-  )
-}
+  );
+};
 
-export default ViewType5
+export default ViewType5;

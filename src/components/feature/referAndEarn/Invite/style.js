@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../common/Colors';
 
 const getStyle = theme => {
   return StyleSheet.create({
@@ -12,20 +12,20 @@ const getStyle = theme => {
       borderWidth: 1,
       backgroundColor: Colors[theme].cardBg,
       padding: 10,
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
     },
     textStyle: {
       color: '#FFF',
       alignSelf: 'center',
       width: '70%',
-      justifyContent: 'center'
+      justifyContent: 'center',
     },
     iconStyle: {
       width: 80,
-      height: 80
+      height: 80,
     },
     paddingTop20: {
-      paddingTop: 20
+      paddingTop: 20,
     },
     grayColor: { color: '#959595' },
     codeWrapper: {
@@ -34,24 +34,24 @@ const getStyle = theme => {
       borderRadius: 12,
       borderWidth: 1,
       borderColor: Colors[theme].cardBg,
-      borderStyle: 'dashed'
+      borderStyle: 'dashed',
     },
     linkStyle: {
       padding: 12,
-      color: '#FE9BF3'
+      color: '#FE9BF3',
     },
     smallIconStyle: {
       width: 20,
       height: 20,
-      tintColor: '#FFF'
+      tintColor: '#FFF',
     },
     shareIconStyle: {
       marginTop: 20,
       marginHorizontal: 20,
       width: 30,
       height: 30,
-      tintColor: '#FFF'
-    }
-  })
-}
-export default getStyle
+      tintColor: '#FFF',
+    },
+  });
+};
+export default getStyle;

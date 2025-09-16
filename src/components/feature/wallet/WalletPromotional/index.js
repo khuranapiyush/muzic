@@ -1,36 +1,36 @@
-import React from 'react'
-import { Image, ImageBackground, Pressable } from 'react-native'
-import appImages from '../../../../resource/images'
-import { screenWidth } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
-import CButton from '../../../common/core/Button'
-import RenderHtml from 'react-native-render-html'
-import Colors from '../../../common/Colors'
-import LinearGradient from 'react-native-linear-gradient'
+import React from 'react';
+import { Image, ImageBackground, Pressable } from 'react-native';
+import appImages from '../../../../resource/images';
+import { screenWidth } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
+import CButton from '../../../common/core/Button';
+import RenderHtml from 'react-native-render-html';
+import Colors from '../../../common/Colors';
+import LinearGradient from 'react-native-linear-gradient';
 
 const WalletPromotional = ({
   handleClaimNow,
   handleHowItWorks,
   theme,
-  data
+  data,
 }) => {
-  const styles = getStyles(theme)
-  const { mode } = useTheme()
+  const styles = getStyles(theme);
+  const { mode } = useTheme();
 
   const tagsStyles = {
     body: {
       fontFamily: 'Nohemi',
       color: Colors[mode].commonBlack,
       fontSize: 16,
-      fontWeight: '600'
+      fontWeight: '600',
     },
     a: {
-      color: 'green'
-    }
-  }
+      color: 'green',
+    },
+  };
 
   return (
     <LinearGradient
@@ -84,7 +84,7 @@ const WalletPromotional = ({
                     ...styles.textStyle,
                     fontSize: 20,
                     fontWeight: '700',
-                    lineHeight: 22
+                    lineHeight: 22,
                   }}
                 />
 
@@ -99,7 +99,7 @@ const WalletPromotional = ({
                       fontSize: 20,
                       fontWeight: '700',
                       lineHeight: 22,
-                      paddingHorizontal: 0
+                      paddingHorizontal: 0,
                     }}
                   />
                 )}
@@ -149,8 +149,8 @@ const WalletPromotional = ({
                     buttonTextStyles: styles.submitBtn,
                     buttonStyle: {
                       minWidth: '45%',
-                      backgroundColor: '#6B61FF'
-                    }
+                      backgroundColor: '#6B61FF',
+                    },
                   }}
                 />
               </CView>
@@ -160,7 +160,7 @@ const WalletPromotional = ({
             row
             style={{
               marginTop: 20,
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
             }}>
             <CView row style={{ paddingTop: 4 }}>
               {data?.footer?.title.map((item, i) => (
@@ -169,7 +169,7 @@ const WalletPromotional = ({
                     <RenderHtml
                       contentWidth={screenWidth}
                       source={{
-                        html: item?.text
+                        html: item?.text,
                       }}
                       tagsStyles={tagsStyles}
                     />
@@ -191,7 +191,7 @@ const WalletPromotional = ({
               style={{
                 marginTop: 5,
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
               }}>
               <CView row>
                 <Pressable onPress={handleHowItWorks}>
@@ -217,7 +217,7 @@ const WalletPromotional = ({
         </CView>
       </ImageBackground>
     </LinearGradient>
-  )
-}
+  );
+};
 
-export default WalletPromotional
+export default WalletPromotional;

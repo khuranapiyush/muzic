@@ -1,6 +1,6 @@
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import MonetizeToggle from '../../../feature/uploadContent/MonetizeToggle'
+import React from 'react';
+import { Controller } from 'react-hook-form';
+import MonetizeToggle from '../../../feature/uploadContent/MonetizeToggle';
 
 const ToggleFC = ({ control, name, rules, ...rest }) => {
   return (
@@ -15,7 +15,7 @@ const ToggleFC = ({ control, name, rules, ...rest }) => {
         />
       )}
     />
-  )
-}
+  );
+};
 
-export default ToggleFC
+export default ToggleFC;

@@ -1,19 +1,19 @@
-import React, { memo, useState } from 'react'
-import { Image, LayoutAnimation, Pressable } from 'react-native'
+import React, { memo, useState } from 'react';
+import { Image, LayoutAnimation, Pressable } from 'react-native';
 
-import getStyles from './style'
-import appImages from '../../../../../../resource/images'
-import CView from '../../../../../common/core/View'
-import CText from '../../../../../common/core/Text'
+import getStyles from './style';
+import appImages from '../../../../../../resource/images';
+import CView from '../../../../../common/core/View';
+import CText from '../../../../../common/core/Text';
 
 const FaqList = ({ item, index, mode }) => {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const styles = getStyles(mode)
+  const styles = getStyles(mode);
   const toggleExpansion = () => {
-    setIsExpanded(!isExpanded)
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-  }
+    setIsExpanded(!isExpanded);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  };
 
   return (
     <Pressable onPress={toggleExpansion}>
@@ -39,7 +39,7 @@ const FaqList = ({ item, index, mode }) => {
         )}
       </CView>
     </Pressable>
-  )
-}
+  );
+};
 
-export default memo(FaqList)
+export default memo(FaqList);

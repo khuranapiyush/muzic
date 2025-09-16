@@ -1,11 +1,11 @@
-import React from 'react'
-import { Image } from 'react-native'
-import appImages from '../../../../resource/images'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './style'
-import { numberWithComma, toFixedWithoutRound } from '../../../../utils/common'
-import CButton from '../../../common/core/Button'
+import React from 'react';
+import { Image } from 'react-native';
+import appImages from '../../../../resource/images';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './style';
+import { numberWithComma, toFixedWithoutRound } from '../../../../utils/common';
+import CButton from '../../../common/core/Button';
 
 const WalletCoinInfo = ({
   xFanTvToken,
@@ -13,9 +13,9 @@ const WalletCoinInfo = ({
   handleRedeem,
   theme,
   xFanTvTokenUnlocked,
-  isInternational
+  isInternational,
 }) => {
-  const styles = getStyles(theme)
+  const styles = getStyles(theme);
 
   return (
     <>
@@ -66,7 +66,7 @@ const WalletCoinInfo = ({
                     style={{
                       ...styles.valueTextStyle,
                       paddingTop: 5,
-                      paddingLeft: 8
+                      paddingLeft: 8,
                     }}
                   />
                 </CView>
@@ -97,7 +97,7 @@ const WalletCoinInfo = ({
         </CView>
 
         <CView>
-          {!!!isInternational && (
+          {!isInternational && (
             <CView style={styles.btnContainer}>
               <CButton
                 size="large"
@@ -108,8 +108,8 @@ const WalletCoinInfo = ({
                   buttonTextStyles: styles.submitBtn,
                   buttonStyle: {
                     minWidth: '45%',
-                    backgroundColor: '#6B61FF'
-                  }
+                    backgroundColor: '#6B61FF',
+                  },
                 }}
               />
             </CView>
@@ -135,7 +135,7 @@ const WalletCoinInfo = ({
         </CView> */}
       </CView>
     </>
-  )
-}
+  );
+};
 
-export default WalletCoinInfo
+export default WalletCoinInfo;

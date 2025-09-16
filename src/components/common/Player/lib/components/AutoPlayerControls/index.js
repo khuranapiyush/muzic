@@ -1,41 +1,41 @@
-import React from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import { useDispatch } from 'react-redux'
-import appImages from '../../../../../../resource/images'
-import { setPlayerPreferences } from '../../../../../../stores/slices/player'
-import CText from '../../../../core/Text'
-import CView from '../../../../core/View'
-import styles from './style'
+import React from 'react';
+import { Image, TouchableOpacity } from 'react-native';
+import { useDispatch } from 'react-redux';
+import appImages from '../../../../../../resource/images';
+import { setPlayerPreferences } from '../../../../../../stores/slices/player';
+import CText from '../../../../core/Text';
+import CView from '../../../../core/View';
+import styles from './style';
 
 const formatTime = seconds => {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = Math.floor(seconds % 60)
-  return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`
-}
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+};
 
 const AutoPlayerControls = ({
   playerProps,
   toggleMute,
   progress,
-  duration
+  duration,
 }) => {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
-  let remainingTime = duration - progress?.currentTime
+  let remainingTime = duration - progress?.currentTime;
 
   if (isNaN(remainingTime)) {
-    remainingTime = 0
+    remainingTime = 0;
   }
 
   const handleMute = () => {
     dispatch(
       setPlayerPreferences({
         type: 'autoPlayPlayer',
-        data: { muted: !playerProps.muted }
+        data: { muted: !playerProps.muted },
       })
-    )
-    toggleMute()
-  }
+    );
+    toggleMute();
+  };
 
   return (
     <CView pointerEvents="box-none" style={styles.controlsContainer}>
@@ -59,7 +59,7 @@ const AutoPlayerControls = ({
         </CView>
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default AutoPlayerControls
+export default AutoPlayerControls;

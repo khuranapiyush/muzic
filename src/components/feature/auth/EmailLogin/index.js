@@ -1,27 +1,27 @@
-import React from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import appImages from '../../../../resource/images'
-import CheckBoxFC from '../../../common/FormComponents/CheckBoxFC'
-import TextInputFC from '../../../common/FormComponents/TextInputFC'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
+import React from 'react';
+import { Image, TouchableOpacity } from 'react-native';
+import appImages from '../../../../resource/images';
+import CheckBoxFC from '../../../common/FormComponents/CheckBoxFC';
+import TextInputFC from '../../../common/FormComponents/TextInputFC';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
 
 const EmailLogin = ({
   handleLogin,
   control,
   isValid,
   isLoading,
-  handleModeChange: propsHandleModeChange
+  handleModeChange: propsHandleModeChange,
 }) => {
   const handleBackBtn = () => {
-    !!propsHandleModeChange && propsHandleModeChange('mobile')
-  }
+    !!propsHandleModeChange && propsHandleModeChange('mobile');
+  };
 
   const handleSignUpBtn = () => {
-    !!propsHandleModeChange && propsHandleModeChange('emailSignUp')
-  }
+    !!propsHandleModeChange && propsHandleModeChange('emailSignUp');
+  };
 
   return (
     <CView style={styles.container}>
@@ -49,8 +49,8 @@ const EmailLogin = ({
               required: 'Email is required',
               pattern: {
                 value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                message: 'Invalid email address'
-              }
+                message: 'Invalid email address',
+              },
             }}
           />
         </CView>
@@ -76,10 +76,10 @@ const EmailLogin = ({
             control={control}
             name="terms"
             customStyles={{
-              containerStyle: { padding: 0, marginLeft: 0, marginRight: 0 }
+              containerStyle: { padding: 0, marginLeft: 0, marginRight: 0 },
             }}
             rules={{
-              required: 'Please agree to terms and conditions'
+              required: 'Please agree to terms and conditions',
             }}
           />
         </CView>
@@ -111,7 +111,7 @@ const EmailLogin = ({
         </TouchableOpacity>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default EmailLogin
+export default EmailLogin;

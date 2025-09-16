@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -8,23 +8,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'flex-start',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   modalContainer: {
     backgroundColor: 'white',
     borderTopLeftRadius: 20,
-    borderTopRightRadius: 20
+    borderTopRightRadius: 20,
   },
   itemStyle: {
     marginRight: 15,
     width: '100%',
-    height: '100%'
+    height: '100%',
     // resizeMode: 'contain'
   },
   labelStyle: { alignSelf: 'center' },
   templateContainer: {
     // flex: 1
-  }
-})
+  },
+});
 
-export default styles
+export default styles;

@@ -1,69 +1,69 @@
-import { useMutation } from '@tanstack/react-query'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, FlatList, RefreshControl } from 'react-native'
-import CText from '../../../../common/core/Text'
-import CView from '../../../../common/core/View'
-import { Colors } from '../../../../common/core/colors'
-import style from './style'
-import { get } from '../../../../../utils/common'
-import OrderHistoryCard from '../UI/OrderHistoryCard'
-import { cancelOrder, fetchOrderHistory } from '../../../../../api/trade'
-import { useSelector } from 'react-redux'
-import useModal from '../../../../../hooks/useModal'
-import { useAuthUser } from '../../../../../stores/selector'
-import styles from './style'
-import CButton from '../../../../common/core/Button'
-import ROUTE_NAME from '../../../../../navigator/config/routeName'
-import { useIsFocused } from '@react-navigation/native'
-import ConfirmDialogBox from '../../../../common/Modal/ConfirmBox'
-import useToaster from '../../../../../hooks/useToaster'
+import { useMutation } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, RefreshControl } from 'react-native';
+import CText from '../../../../common/core/Text';
+import CView from '../../../../common/core/View';
+import { Colors } from '../../../../common/core/colors';
+import style from './style';
+import { get } from '../../../../../utils/common';
+import OrderHistoryCard from '../UI/OrderHistoryCard';
+import { cancelOrder, fetchOrderHistory } from '../../../../../api/trade';
+import { useSelector } from 'react-redux';
+import useModal from '../../../../../hooks/useModal';
+import { useAuthUser } from '../../../../../stores/selector';
+import styles from './style';
+import CButton from '../../../../common/core/Button';
+import ROUTE_NAME from '../../../../../navigator/config/routeName';
+import { useIsFocused } from '@react-navigation/native';
+import ConfirmDialogBox from '../../../../common/Modal/ConfirmBox';
+import useToaster from '../../../../../hooks/useToaster';
 
 const OrderHistory = () => {
-  const vdRef = useRef()
-  const { isLoggedIn } = useSelector(useAuthUser)
-  const { showModal, hideModal } = useModal()
-  const focused = useIsFocused()
+  const vdRef = useRef();
+  const { isLoggedIn } = useSelector(useAuthUser);
+  const { showModal, hideModal } = useModal();
+  const focused = useIsFocused();
 
-  const { showToaster } = useToaster()
-  const [refreshing, setRefreshing] = useState(false)
+  const { showToaster } = useToaster();
+  const [refreshing, setRefreshing] = useState(false);
   const [onEndReachedDuringMomentum, setOnEndReachedDuringMomentum] =
-    useState(false)
+    useState(false);
 
-  const [isConfirmBoxOpen, setIsConfirmBoxOpen] = useState(false)
-  const [orderId, setOrderId] = useState('')
+  const [isConfirmBoxOpen, setIsConfirmBoxOpen] = useState(false);
+  const [orderId, setOrderId] = useState('');
 
-  const [orderHistory, setOrderHistory] = useState([])
-  const [page, setPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
+  const [orderHistory, setOrderHistory] = useState([]);
+  const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
 
   const { mutate: getOrderHistory } = useMutation(
     () => fetchOrderHistory(page),
     {
       onSuccess: ({ data }) => {
-        const orders = get(data, 'data.results', [])
+        const orders = get(data, 'data.results', []);
         if (page > 1) {
-          setOrderHistory([...orderHistory, ...orders])
+          setOrderHistory([...orderHistory, ...orders]);
         } else {
-          setOrderHistory(orders)
+          setOrderHistory(orders);
         }
-        setIsLoading(false)
-        setRefreshing(false)
+        setIsLoading(false);
+        setRefreshing(false);
       },
       onError: error => {
-        setIsLoading(false)
-      }
+        setIsLoading(false);
+      },
     }
-  )
+  );
 
   useEffect(() => {
     if (focused) {
       // setPage(1)
-      setIsLoading(true)
-      getOrderHistory()
+      setIsLoading(true);
+      getOrderHistory();
     }
-  }, [getOrderHistory, page, focused])
+  }, [getOrderHistory, page, focused]);
 
-  const keyExtractor = (item, index) => item?._id + index.toString()
+  const keyExtractor = (item, index) => item?._id + index.toString();
 
   const renderItem = useCallback(
     ({ item, index }) => (
@@ -78,38 +78,38 @@ const OrderHistory = () => {
       </CView>
     ),
     [handleCancelOrderBtn]
-  )
+  );
 
   const handleReachEnd = useCallback(() => {
     if (!onEndReachedDuringMomentum) {
-      setOnEndReachedDuringMomentum(true)
-      setPage(page + 1)
+      setOnEndReachedDuringMomentum(true);
+      setPage(page + 1);
     }
-  }, [onEndReachedDuringMomentum, page])
+  }, [onEndReachedDuringMomentum, page]);
 
   const handleScrollStart = useCallback(() => {
-    setOnEndReachedDuringMomentum(false)
-  }, [])
+    setOnEndReachedDuringMomentum(false);
+  }, []);
 
   const handleLogin = useCallback(() => {
     showModal('auth', {
       isVisible: true,
       onClose: () => hideModal('auth'),
-      navigationData: { redirectToPath: ROUTE_NAME.Trade }
-    })
-  }, [hideModal, showModal])
+      navigationData: { redirectToPath: ROUTE_NAME.Trade },
+    });
+  }, [hideModal, showModal]);
 
   const handleCancelOrder = () => {
-    handleCancelOrderApi()
-  }
+    handleCancelOrderApi();
+  };
   const handleNo = () => {
-    setIsConfirmBoxOpen(false)
-  }
+    setIsConfirmBoxOpen(false);
+  };
 
   const handleCancelOrderBtn = useCallback(id => {
-    setOrderId(id)
-    setIsConfirmBoxOpen(true)
-  }, [])
+    setOrderId(id);
+    setIsConfirmBoxOpen(true);
+  }, []);
 
   const { mutate: handleCancelOrderApi } = useMutation(
     () => cancelOrder(orderId),
@@ -118,29 +118,29 @@ const OrderHistory = () => {
         showToaster({
           type: 'success',
           text1: 'Success',
-          text2: 'Order Canceled Successfully!'
-        })
-        getOrderHistory()
-        setIsConfirmBoxOpen(false)
+          text2: 'Order Canceled Successfully!',
+        });
+        getOrderHistory();
+        setIsConfirmBoxOpen(false);
       },
       onError: error => {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: error?.response?.data?.message
-        })
-        setIsConfirmBoxOpen(false)
-      }
+          text2: error?.response?.data?.message,
+        });
+        setIsConfirmBoxOpen(false);
+      },
     }
-  )
+  );
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true)
-    setPage(1)
+    setRefreshing(true);
+    setPage(1);
     setTimeout(() => {
-      getOrderHistory()
-    }, 500)
-  }, [getOrderHistory])
+      getOrderHistory();
+    }, 500);
+  }, [getOrderHistory]);
 
   return (
     <CView>
@@ -206,7 +206,7 @@ const OrderHistory = () => {
         />
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default OrderHistory
+export default OrderHistory;

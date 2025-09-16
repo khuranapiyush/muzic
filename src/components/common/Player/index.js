@@ -1,25 +1,25 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { Animated, StatusBar, TouchableWithoutFeedback } from 'react-native'
-import Orientation from 'react-native-orientation-locker'
-import Video from 'react-native-video'
-import { useDispatch, useSelector } from 'react-redux'
-import { progressEvents } from '../../../constants/event'
-import { handleVideoProgressEvent } from '../../../events/video'
-import useEvent from '../../../hooks/useEvent'
-import usePlayerTrackEvent from '../../../hooks/usePlayerTrackEvent'
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, StatusBar, TouchableWithoutFeedback } from 'react-native';
+import Orientation from 'react-native-orientation-locker';
+import Video from 'react-native-video';
+import { useDispatch, useSelector } from 'react-redux';
+import { progressEvents } from '../../../constants/event';
+import { handleVideoProgressEvent } from '../../../events/video';
+import useEvent from '../../../hooks/useEvent';
+import usePlayerTrackEvent from '../../../hooks/usePlayerTrackEvent';
 import {
   setGlobalPlayerProps,
   setPlayerFullScreen,
-  setPlayerPlayPauseState
-} from '../../../stores/slices/player'
-import CView from '../core/View'
-import AutoPlayerControls from './lib/components/AutoPlayerControls'
-import BottomControls from './lib/components/BottomControls'
-import MainControls from './lib/components/MainControls'
-import PlayerLoader from './lib/components/PlayerLoader'
-import SeekControls from './lib/components/SeekControls'
-import TopControls from './lib/components/TopControls'
-import styles from './style'
+  setPlayerPlayPauseState,
+} from '../../../stores/slices/player';
+import CView from '../core/View';
+import AutoPlayerControls from './lib/components/AutoPlayerControls';
+import BottomControls from './lib/components/BottomControls';
+import MainControls from './lib/components/MainControls';
+import PlayerLoader from './lib/components/PlayerLoader';
+import SeekControls from './lib/components/SeekControls';
+import TopControls from './lib/components/TopControls';
+import styles from './style';
 
 const defaultFanPlayerProps = {
   controls: false,
@@ -36,21 +36,21 @@ const defaultFanPlayerProps = {
       'start',
       'chapter',
       'playing',
-      'progressEvents'
+      'progressEvents',
     ],
-    interval: { secondsToCall: 5, strict: true, label: '5' }
-  }
-}
+    interval: { secondsToCall: 5, strict: true, label: '5' },
+  },
+};
 
 const getPlayerType = playerType => {
   switch (playerType) {
     case 'MainPlayer':
-      return 'MainPlayer'
+      return 'MainPlayer';
 
     case 'AutoPlayPlayer':
-      return 'AutoPlayPlayer'
+      return 'AutoPlayPlayer';
   }
-}
+};
 
 const Player = ({
   playerType = 'MainPlayer',
@@ -65,129 +65,129 @@ const Player = ({
   handleMiniPlayerClick: propsHandleMiniPlayerClick,
   handleAutoPlayPlayerClick: propsHandleAutoPlayPlayerClick,
 
-  handlePlayerDestroyed
+  handlePlayerDestroyed,
 }) => {
-  const videoRef = useRef(null)
+  const videoRef = useRef(null);
 
-  const [videoDetails, setVideoDetails] = useState(initialVideoDetails)
+  const [videoDetails, setVideoDetails] = useState(initialVideoDetails);
 
   const [playerProps, setPlayerProps] = useState(() => ({
     ...defaultFanPlayerProps,
-    ...configPlayerProps
-  }))
+    ...configPlayerProps,
+  }));
 
-  const [showControls, setShowControls] = useState(false)
+  const [showControls, setShowControls] = useState(false);
 
-  const [isPlayerBuffering, setIsPlayerBuffering] = useState(false) //
+  const [isPlayerBuffering, setIsPlayerBuffering] = useState(false); //
 
-  const [isSeeking, setIsSeeking] = useState(false)
-  const [seekValue, setSeekValue] = useState(0)
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
 
-  const [progress, setProgress] = useState({})
-  const [duration, setDuration] = useState(0)
+  const [progress, setProgress] = useState({});
+  const [duration, setDuration] = useState(0);
 
   const [videoResolution, setVideoResolution] = useState({
     initial: {
       width: 0,
-      height: 0
+      height: 0,
     },
     current: {
       width: 0,
-      height: 0
-    }
-  })
+      height: 0,
+    },
+  });
 
-  const [lastIntervalTriggered, setLastIntervalTriggered] = useState(-1)
+  const [lastIntervalTriggered, setLastIntervalTriggered] = useState(-1);
 
-  const controlsOpacity = useRef(new Animated.Value(0)).current
+  const controlsOpacity = useRef(new Animated.Value(0)).current;
 
-  const controlsTimerRef = useRef(null)
+  const controlsTimerRef = useRef(null);
 
   const { isMiniPlayer, playerPlayPauseState } = useSelector(
     state => state.player
-  )
+  );
 
-  const { watchEvent } = useSelector(state => state.watch)
+  const { watchEvent } = useSelector(state => state.watch);
 
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
 
-  const { videoEventData, defaultEventData } = useEvent()
+  const { videoEventData, defaultEventData } = useEvent();
 
   const { logPlayerEvents } = usePlayerTrackEvent({
     playerType,
     playerProps,
     duration,
     watchId,
-    videoResolution
-  })
+    videoResolution,
+  });
 
   useEffect(() => {
-    setVideoDetails(initialVideoDetails)
-  }, [initialVideoDetails])
+    setVideoDetails(initialVideoDetails);
+  }, [initialVideoDetails]);
 
   useEffect(() => {
     if (playerProps) {
-      dispatch(setGlobalPlayerProps(playerProps))
+      dispatch(setGlobalPlayerProps(playerProps));
     }
-  }, [dispatch, playerProps])
+  }, [dispatch, playerProps]);
 
   useEffect(() => {
     if (playerPlayPauseState) {
-      const aboutToPlay = playerPlayPauseState == 'play' ? true : false
-      handlePlayerPlaying(aboutToPlay)
+      const aboutToPlay = playerPlayPauseState == 'play' ? true : false;
+      handlePlayerPlaying(aboutToPlay);
 
       setPlayerProps(prev => ({
         ...prev,
-        paused: playerPlayPauseState == 'play' ? false : true
-      }))
+        paused: playerPlayPauseState == 'play' ? false : true,
+      }));
 
-      dispatch(setPlayerPlayPauseState(null))
+      dispatch(setPlayerPlayPauseState(null));
     }
-  }, [playerPlayPauseState, dispatch, handlePlayerPlaying])
+  }, [playerPlayPauseState, dispatch, handlePlayerPlaying]);
 
   const hideControls = useCallback(() => {
     Animated.timing(controlsOpacity, {
       toValue: 0,
       duration: 300,
-      useNativeDriver: false
+      useNativeDriver: false,
     }).start(() => {
-      setShowControls(false)
-    })
-  }, [controlsOpacity])
+      setShowControls(false);
+    });
+  }, [controlsOpacity]);
 
   const handleMiniPlayerClick = () => {
-    !!propsHandleMiniPlayerClick && propsHandleMiniPlayerClick()
-  }
+    !!propsHandleMiniPlayerClick && propsHandleMiniPlayerClick();
+  };
 
   const handleAutoPlayPlayerClick = () => {
-    !!propsHandleAutoPlayPlayerClick && propsHandleAutoPlayPlayerClick()
-  }
+    !!propsHandleAutoPlayPlayerClick && propsHandleAutoPlayPlayerClick();
+  };
 
   const handleVideoTap = () => {
     if (isMiniPlayer) {
-      handleMiniPlayerClick()
+      handleMiniPlayerClick();
     } else if (playerType == 'AutoPlayPlayer') {
-      handleAutoPlayPlayerClick()
+      handleAutoPlayPlayerClick();
     } else {
-      setShowControls(prev => !prev)
+      setShowControls(prev => !prev);
 
       Animated.timing(controlsOpacity, {
         toValue: showControls ? 0 : 1,
         duration: 200,
-        useNativeDriver: false
-      }).start()
+        useNativeDriver: false,
+      }).start();
     }
-  }
+  };
 
   const togglePlayPause = () => {
-    const aboutToPlay = playerProps.paused
-    handlePlayerPlaying(aboutToPlay)
+    const aboutToPlay = playerProps.paused;
+    handlePlayerPlaying(aboutToPlay);
 
     setPlayerProps(prev => ({
       ...prev,
-      paused: !prev.paused
-    }))
-  }
+      paused: !prev.paused,
+    }));
+  };
 
   const handleIntervalEvent = (data, config) => {
     logPlayerEvents({
@@ -196,10 +196,10 @@ const Player = ({
         name: data?.label,
         playerType: getPlayerType(playerType),
         mode: 'Normal',
-        videoTimeStamp: config.currentTime
-      }
-    })
-  }
+        videoTimeStamp: config.currentTime,
+      },
+    });
+  };
 
   const handleChapterEvent = (data, config) => {
     logPlayerEvents({
@@ -208,35 +208,35 @@ const Player = ({
         name: `${data?.percent}%`,
         playerType: getPlayerType(playerType),
         mode: 'Normal',
-        videoTimeStamp: config.currentTime
-      }
-    })
-  }
+        videoTimeStamp: config.currentTime,
+      },
+    });
+  };
 
   const handleProgressEvent = data => {
     handleVideoProgressEvent(data.analyticsName, {
       ...defaultEventData,
-      ...videoEventData
-    })
-  }
+      ...videoEventData,
+    });
+  };
 
   const handleInterval = currentTime => {
     if (currentTime !== 0 && currentTime !== lastIntervalTriggered) {
-      setLastIntervalTriggered(currentTime)
+      setLastIntervalTriggered(currentTime);
 
       if (playerProps?.analytics?.events?.includes('interval')) {
-        const { interval } = playerProps.analytics
+        const { interval } = playerProps.analytics;
 
         if (currentTime % interval.secondsToCall === 0) {
           const data = {
             label: interval?.label,
-            secondsToCall: interval.secondsToCall
-          }
+            secondsToCall: interval.secondsToCall,
+          };
 
           if (interval.strict) {
-            !playerProps.paused && handleIntervalEvent(data, { currentTime })
+            !playerProps.paused && handleIntervalEvent(data, { currentTime });
           } else {
-            handleIntervalEvent(data, { currentTime })
+            handleIntervalEvent(data, { currentTime });
           }
         }
       }
@@ -245,13 +245,13 @@ const Player = ({
         playerProps?.analytics?.events.includes('chapter') &&
         Object.keys(watchEvent).length
       ) {
-        const { chapter: chapterConfig } = playerProps.analytics
-        const chapterTriggers = Object.keys(chapterConfig.chapters)
+        const { chapter: chapterConfig } = playerProps.analytics;
+        const chapterTriggers = Object.keys(chapterConfig.chapters);
 
         if (chapterTriggers.includes(currentTime.toString())) {
           handleChapterEvent(chapterConfig.chapters[currentTime], {
-            currentTime
-          })
+            currentTime,
+          });
         }
       }
 
@@ -260,18 +260,18 @@ const Player = ({
         Object.keys(progressEvents).length
       ) {
         // eslint-disable-next-line no-shadow
-        const { progressEvents } = playerProps.analytics
-        const progressEventsTriggers = Object.keys(progressEvents)
+        const { progressEvents } = playerProps.analytics;
+        const progressEventsTriggers = Object.keys(progressEvents);
 
         if (progressEventsTriggers.includes(currentTime.toString())) {
-          handleProgressEvent(progressEvents[currentTime])
+          handleProgressEvent(progressEvents[currentTime]);
         }
       }
     }
-  }
+  };
 
   const handleVideoStart = () => {
-    !!propsHandleVideoStart && propsHandleVideoStart()
+    !!propsHandleVideoStart && propsHandleVideoStart();
 
     playerProps?.analytics?.events?.includes('start') &&
       logPlayerEvents({
@@ -280,21 +280,21 @@ const Player = ({
           name: 'start',
           playerType: getPlayerType(playerType),
           mode: 'Normal',
-          videoTimeStamp: videoDetails?.startTime || 0
-        }
-      })
-  }
+          videoTimeStamp: videoDetails?.startTime || 0,
+        },
+      });
+  };
 
   const handleNextPress = () => {
-    !!propsHandleNextPress && propsHandleNextPress()
-  }
+    !!propsHandleNextPress && propsHandleNextPress();
+  };
 
   const handlePreviousPress = () => {
-    !!propsHandlePreviousPress && propsHandlePreviousPress()
-  }
+    !!propsHandlePreviousPress && propsHandlePreviousPress();
+  };
 
   const handleVideoEnd = () => {
-    !!propsHandleVideoEnd && propsHandleVideoEnd()
+    !!propsHandleVideoEnd && propsHandleVideoEnd();
 
     playerProps?.analytics?.events?.includes('ended') &&
       logPlayerEvents({
@@ -303,10 +303,10 @@ const Player = ({
           name: 'ended',
           playerType: getPlayerType(playerType),
           mode: 'Normal',
-          videoTimeStamp: duration
-        }
-      })
-  }
+          videoTimeStamp: duration,
+        },
+      });
+  };
 
   const handlePlayerPlaying = useCallback(
     playing => {
@@ -318,9 +318,9 @@ const Player = ({
               name: 'playing',
               playerType: getPlayerType(playerType),
               mode: 'Normal',
-              videoTimeStamp: progress.currentTime
-            }
-          })
+              videoTimeStamp: progress.currentTime,
+            },
+          });
         }
       }
     },
@@ -328,101 +328,101 @@ const Player = ({
       logPlayerEvents,
       playerProps?.analytics?.events,
       playerType,
-      progress.currentTime
+      progress.currentTime,
     ]
-  )
+  );
 
   const toggleMute = useCallback(() => {
     setPlayerProps(prev => ({
       ...prev,
-      muted: !prev.muted
-    }))
-  }, [])
+      muted: !prev.muted,
+    }));
+  }, []);
 
   const toggleFullScreen = useCallback(() => {
-    const isFullScreen = playerProps.isFullScreen
+    const isFullScreen = playerProps.isFullScreen;
 
     if (isFullScreen) {
-      Orientation.lockToPortrait()
+      Orientation.lockToPortrait();
     } else {
-      Orientation.lockToLandscape()
+      Orientation.lockToLandscape();
     }
 
     setPlayerProps(prev => ({
       ...prev,
-      isFullScreen: !prev.isFullScreen
-    }))
+      isFullScreen: !prev.isFullScreen,
+    }));
 
-    dispatch(setPlayerFullScreen(!isFullScreen))
-  }, [dispatch, playerProps.isFullScreen])
+    dispatch(setPlayerFullScreen(!isFullScreen));
+  }, [dispatch, playerProps.isFullScreen]);
 
   const handleLoad = data => {
-    const { width, height } = data.naturalSize
-    setVideoResolution(prev => ({ ...prev, initial: { width, height } }))
-    !!propsHandleLoad && propsHandleLoad()
+    const { width, height } = data.naturalSize;
+    setVideoResolution(prev => ({ ...prev, initial: { width, height } }));
+    !!propsHandleLoad && propsHandleLoad();
 
     if (videoDetails?.startTime) {
-      handleSeek(videoDetails?.startTime)
+      handleSeek(videoDetails?.startTime);
     }
-    setDuration(videoDetails?.isLiveStream ? 1 : data.duration)
-  }
+    setDuration(videoDetails?.isLiveStream ? 1 : data.duration);
+  };
 
   const handleProgress = data => {
-    const progressWidth = (data.currentTime / duration) * 100
-    const bufferWidth = (data.playableDuration / duration) * 100
-    const currentTime = Math.trunc(data.currentTime)
+    const progressWidth = (data.currentTime / duration) * 100;
+    const bufferWidth = (data.playableDuration / duration) * 100;
+    const currentTime = Math.trunc(data.currentTime);
 
-    handleInterval(currentTime)
+    handleInterval(currentTime);
 
-    setProgress({ ...data, progressWidth, bufferWidth, currentTime })
-    setSeekValue(currentTime)
-  }
+    setProgress({ ...data, progressWidth, bufferWidth, currentTime });
+    setSeekValue(currentTime);
+  };
 
   const resetControlsTimer = useCallback(() => {
     controlsTimerRef.current = setTimeout(() => {
-      hideControls(false)
-    }, 4000)
-  }, [hideControls])
+      hideControls(false);
+    }, 4000);
+  }, [hideControls]);
 
   useEffect(() => {
     if (!playerProps.paused) {
-      resetControlsTimer()
+      resetControlsTimer();
     }
 
     return () => {
       if (controlsTimerRef.current) {
-        clearTimeout(controlsTimerRef.current)
-        controlsTimerRef.current = null
+        clearTimeout(controlsTimerRef.current);
+        controlsTimerRef.current = null;
       }
-    }
+    };
   }, [
     showControls,
     playerProps.paused,
     resetControlsTimer,
-    handlePlayerPlaying
-  ])
+    handlePlayerPlaying,
+  ]);
 
   useEffect(() => {
     Orientation.getOrientation(orientation => {
       const isFullScreen =
-        orientation === 'LANDSCAPE-LEFT' || orientation === 'LANDSCAPE-RIGHT'
+        orientation === 'LANDSCAPE-LEFT' || orientation === 'LANDSCAPE-RIGHT';
 
-      dispatch(setPlayerFullScreen(isFullScreen))
+      dispatch(setPlayerFullScreen(isFullScreen));
 
       setPlayerProps(prevProps => ({
         ...prevProps,
-        isFullScreen
-      }))
-    })
-  }, [dispatch])
+        isFullScreen,
+      }));
+    });
+  }, [dispatch]);
 
   useEffect(() => {
     if (playerProps.isFullScreen) {
-      StatusBar.setHidden(true)
+      StatusBar.setHidden(true);
     } else {
-      StatusBar.setHidden(false)
+      StatusBar.setHidden(false);
     }
-  }, [playerProps.isFullScreen])
+  }, [playerProps.isFullScreen]);
 
   useEffect(() => {
     if (Object.keys(watchEvent).length) {
@@ -432,15 +432,15 @@ const Player = ({
           ...prev.analytics,
           chapter: {
             chapters: watchEvent.reduce((acc, curr) => {
-              const triggerPoint = Math.trunc((duration * curr.percent) / 100)
+              const triggerPoint = Math.trunc((duration * curr.percent) / 100);
 
-              return { ...acc, [triggerPoint]: { ...curr, status: false } }
-            }, {})
-          }
-        }
-      }))
+              return { ...acc, [triggerPoint]: { ...curr, status: false } };
+            }, {}),
+          },
+        },
+      }));
     }
-  }, [duration, watchEvent])
+  }, [duration, watchEvent]);
 
   useEffect(() => {
     if (Object.keys(progressEvents).length) {
@@ -453,63 +453,63 @@ const Player = ({
               const triggerPoint =
                 curr.type == 'percent'
                   ? Math.trunc((duration * curr.value) / 100)
-                  : curr.value
+                  : curr.value;
 
-              return { ...acc, [triggerPoint]: { ...curr, status: false } }
-            }, {})
-          }
-        }
-      }))
+              return { ...acc, [triggerPoint]: { ...curr, status: false } };
+            }, {}),
+          },
+        },
+      }));
     }
-  }, [duration, watchEvent])
+  }, [duration, watchEvent]);
 
   const handleSeek = value => {
     if (videoRef.current) {
-      videoRef.current.seek(Math.trunc(value))
-      setSeekValue(value)
+      videoRef.current.seek(Math.trunc(value));
+      setSeekValue(value);
     }
-  }
+  };
 
   const handleSeekStart = () => {
     if (videoDetails?.isLiveStream) {
-      return
+      return;
     }
-    setIsSeeking(true)
-    setShowControls(true)
-    clearTimeout(controlsTimerRef.current)
-  }
+    setIsSeeking(true);
+    setShowControls(true);
+    clearTimeout(controlsTimerRef.current);
+  };
 
   const handleSeekMove = value => {
     if (videoDetails?.isLiveStream) {
-      return
+      return;
     }
     if (isSeeking) {
       //setIsSeeking(true)
       //handleSeek(value)
     }
-  }
+  };
 
   const handleSeekEnd = value => {
     if (videoDetails?.isLiveStream) {
-      return
+      return;
     }
-    setIsSeeking(false)
-    handleSeek(value)
-    resetControlsTimer()
-  }
+    setIsSeeking(false);
+    handleSeek(value);
+    resetControlsTimer();
+  };
 
   const handleBuffer = ({ isBuffering }) => {
-    setIsPlayerBuffering(isBuffering)
-  }
+    setIsPlayerBuffering(isBuffering);
+  };
 
   useEffect(() => {
     return () => {
-      !!handlePlayerDestroyed && handlePlayerDestroyed()
+      !!handlePlayerDestroyed && handlePlayerDestroyed();
       if (videoRef?.current) {
-        videoRef.current = null
+        videoRef.current = null;
       }
-    }
-  }, [handlePlayerDestroyed])
+    };
+  }, [handlePlayerDestroyed]);
 
   return (
     <CView
@@ -534,7 +534,7 @@ const Player = ({
             style={[
               playerProps.isFullScreen
                 ? styles.fullScreenVideo
-                : styles.backgroundVideo
+                : styles.backgroundVideo,
             ]}
           />
 
@@ -590,7 +590,7 @@ const Player = ({
         </CView>
       </TouchableWithoutFeedback>
     </CView>
-  )
-}
+  );
+};
 
-export default Player
+export default Player;

@@ -202,9 +202,9 @@ export const setupPurchaseListeners = (onPurchaseUpdate, onPurchaseError) => {
 
 // Helper function to get amount from product ID
 const getAmountFromProductId = productId => {
-  if (productId.includes('coins_100')) return 100;
-  if (productId.includes('coins_500')) return 500;
-  if (productId.includes('coins_1000')) return 1000;
+  if (productId.includes('coins_100')) {return 100;}
+  if (productId.includes('coins_500')) {return 500;}
+  if (productId.includes('coins_1000')) {return 1000;}
 
   // Extract amount from productId if it follows a pattern like "coins_XX"
   const match = productId.match(/coins_(\d+)/);

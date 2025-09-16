@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -8,13 +8,13 @@ const styles = StyleSheet.create({
     borderColor: '#DADADA',
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: '#FFF'
+    backgroundColor: '#FFF',
   },
   submitBtn: { fontWeight: '700' },
   btnContainer: {
     marginTop: 15,
-    marginBottom: 15
+    marginBottom: 15,
   },
-  happyTradingStyle: { color: '#E14084', fontWeight: '700', paddingTop: 10 }
-})
-export default styles
+  happyTradingStyle: { color: '#E14084', fontWeight: '700', paddingTop: 10 },
+});
+export default styles;

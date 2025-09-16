@@ -1,15 +1,15 @@
-import config from 'react-native-config'
-import fetcher from '../../dataProvider'
+import config from 'react-native-config';
+import fetcher from '../../dataProvider';
 
 export const fetchCommunities = async => {
-  return fetcher.get(`${config.API_URL}/v1/community`)
-}
+  return fetcher.get(`${config.API_URL}/v1/community`);
+};
 
 export const fetchMessages = async ({
   channelId,
   limit = 20,
   fromDate = null,
-  cursorType
+  cursorType,
 }) => {
   return fetcher.get(`${config.API_URL}/v1/message`, {
     params: {
@@ -17,33 +17,33 @@ export const fetchMessages = async ({
       updateLastSeen: true,
       channelId,
       fromDate,
-      cursorType
-    }
-  })
-}
+      cursorType,
+    },
+  });
+};
 
 export const gotoMessage = async ({ channelId, date }) => {
   return fetcher.get(`${config.API_URL}/v1/message/goto-message`, {
     params: {
       channelId,
-      date
-    }
-  })
-}
+      date,
+    },
+  });
+};
 
 export const joinCommunity = async ({ communityId }) => {
-  return fetcher.post(`${config.API_URL}/v1/community/${communityId}/join`)
-}
+  return fetcher.post(`${config.API_URL}/v1/community/${communityId}/join`);
+};
 
 export const deleteMessage = async messageId => {
-  return fetcher.delete(`${config.API_URL}/v1/message/${messageId}`)
-}
+  return fetcher.delete(`${config.API_URL}/v1/message/${messageId}`);
+};
 
 export const fetchCommunityUsers = async ({ communityId, userNamePrefix }) => {
   return fetcher.get(`${config.API_URL}/v1/user/get-userName-with-prefix`, {
     params: {
       communityId,
-      userNamePrefix
-    }
-  })
-}
+      userNamePrefix,
+    },
+  });
+};

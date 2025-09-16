@@ -1,21 +1,21 @@
-import React from 'react'
-import { Image, Pressable } from 'react-native'
-import appImages from '../../../../resource/images'
-import { dollarToInrWithRupeeSign } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
-import Colors from '../../../common/Colors'
+import React from 'react';
+import { Image, Pressable } from 'react-native';
+import appImages from '../../../../resource/images';
+import { dollarToInrWithRupeeSign } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
+import Colors from '../../../common/Colors';
 
 const WalletInfo = ({
   balance,
   handleWithdrawMoney,
   handleAddMoney,
   handleTradeFanCards,
-  theme
+  theme,
 }) => {
-  const styles = getStyles(theme)
+  const styles = getStyles(theme);
 
   return (
     <>
@@ -37,7 +37,7 @@ const WalletInfo = ({
               style={{
                 ...styles.textStyle,
                 paddingTop: 8,
-                color: Colors[theme].textBlack
+                color: Colors[theme].textBlack,
               }}
             />
           </CView>
@@ -102,7 +102,7 @@ const WalletInfo = ({
         </CView>
       </CView>
     </>
-  )
-}
+  );
+};
 
-export default WalletInfo
+export default WalletInfo;

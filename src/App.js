@@ -348,7 +348,7 @@ const AppContent = () => {
       // Wait a bit for Branch to be potentially initialized
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      if (!subscriptionActive) return;
+      if (!subscriptionActive) {return;}
 
       try {
         console.log('🔗 Setting up Branch subscription...');
@@ -374,7 +374,7 @@ const AppContent = () => {
             console.log('✅ Branch opened successfully:', params);
 
             try {
-              const productId = params?.product_id || params?.['product_id'];
+              const productId = params?.product_id || params?.product_id;
               if (productId) {
                 console.log('🎵 Branch product_id:', productId, 'from', uri);
               }
@@ -389,7 +389,7 @@ const AppContent = () => {
                     campaign: params?.['~campaign'],
                     feature: params?.['~feature'],
                     tags: params?.['~tags'],
-                    ad_set: params?.ad_set || params?.['$3p'],
+                    ad_set: params?.ad_set || params?.$3p,
                     clicked_branch_link: clickedBranchLink,
                   };
                   new BranchEvent('INSTALL_ATTRIBUTED', attribution).logEvent();

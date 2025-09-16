@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
   wrapper: { paddingTop: 10 },
@@ -8,19 +8,19 @@ export default StyleSheet.create({
     borderRadius: 12,
     fontSize: 14,
     padding: 15,
-    backgroundColor: '#FFF'
+    backgroundColor: '#FFF',
   },
   arrowIcon: {
     alignSelf: 'flex-end',
     width: 20,
     height: 20,
-    paddingLeft: 20
+    paddingLeft: 20,
   },
   label: {
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   inputContainer: {
-    justifyContent: 'space-between'
-  }
-})
+    justifyContent: 'space-between',
+  },
+});

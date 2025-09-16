@@ -1,6 +1,6 @@
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import InputWithChips from '../../../feature/uploadContent/InputWithChips'
+import React from 'react';
+import { Controller } from 'react-hook-form';
+import InputWithChips from '../../../feature/uploadContent/InputWithChips';
 
 const InputWithChipsFC = ({ control, name, rules, ...rest }) => {
   return (
@@ -16,7 +16,7 @@ const InputWithChipsFC = ({ control, name, rules, ...rest }) => {
         />
       )}
     />
-  )
-}
+  );
+};
 
-export default InputWithChipsFC
+export default InputWithChipsFC;

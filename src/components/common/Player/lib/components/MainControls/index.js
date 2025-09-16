@@ -1,16 +1,16 @@
-import React from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import appImages from '../../../../../../resource/images'
-import CText from '../../../../core/Text'
-import CView from '../../../../core/View'
-import styles from './style'
+import React from 'react';
+import { Image, TouchableOpacity } from 'react-native';
+import appImages from '../../../../../../resource/images';
+import CText from '../../../../core/Text';
+import CView from '../../../../core/View';
+import styles from './style';
 
 const MainControls = ({
   playerProps,
   handlePreviousPress,
   togglePlayPause,
   handleNextPress,
-  config = {}
+  config = {},
 }) => {
   return (
     <CView style={styles.mainControlsContainer}>
@@ -44,7 +44,7 @@ const MainControls = ({
         </TouchableOpacity>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default MainControls
+export default MainControls;

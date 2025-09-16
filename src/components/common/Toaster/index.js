@@ -1,10 +1,10 @@
-import React, { useState } from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import React, { useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import Toast, {
   ErrorToast,
   InfoToast,
-  SuccessToast
-} from 'react-native-toast-message'
+  SuccessToast,
+} from 'react-native-toast-message';
 
 const defaultConfig = {
   visibilityTime: 4000,
@@ -12,14 +12,14 @@ const defaultConfig = {
   bottomOffset: 100,
   position: 'bottom',
   keyboardOffset: 100,
-  text2NumberOfLines: 2
-}
+  text2NumberOfLines: 2,
+};
 
 const Toaster = ({ config }) => {
   const [toasterProps, setToasterProps] = useState(() => ({
     ...defaultConfig,
-    ...config
-  }))
+    ...config,
+  }));
 
   const toastConfig = {
     success: props => (
@@ -56,61 +56,61 @@ const Toaster = ({ config }) => {
       <View>
         <Text>{text1}</Text>
       </View>
-    )
-  }
-  return <Toast config={toastConfig} {...toasterProps} />
-}
+    ),
+  };
+  return <Toast config={toastConfig} {...toasterProps} />;
+};
 
 const styles = StyleSheet.create({
   contentContainerStyle: {
-    paddingHorizontal: 1
+    paddingHorizontal: 1,
   },
   successContainer: {
     borderLeftColor: 'green',
     paddingHorizontal: 10,
-    height: 70
+    height: 70,
   },
   successText1Style: {
     fontSize: 17,
     fontWeight: '400',
     color: 'green',
-    paddingBottom: 3
+    paddingBottom: 3,
   },
   successText2Style: {
     fontSize: 15,
-    color: 'black'
+    color: 'black',
   },
 
   errorContainer: {
     borderLeftColor: 'red',
     paddingHorizontal: 10,
-    height: 70
+    height: 70,
   },
   errorText1Style: {
     fontSize: 17,
     fontWeight: '400',
     paddingBottom: 3,
-    color: 'red'
+    color: 'red',
   },
   errorText2Style: {
     fontSize: 15,
-    color: 'black'
+    color: 'black',
   },
 
   infoContainer: {
     borderLeftColor: '#FCA510',
     paddingHorizontal: 10,
-    height: 70
+    height: 70,
   },
   infoText1Style: {
     fontSize: 17,
     fontWeight: '400',
-    color: '#FCA510'
+    color: '#FCA510',
   },
   infoText2Style: {
     fontSize: 15,
-    color: 'black'
-  }
-})
+    color: 'black',
+  },
+});
 
-export default Toaster
+export default Toaster;

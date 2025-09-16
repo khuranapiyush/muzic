@@ -28,7 +28,7 @@ import {useNavigation} from '@react-navigation/native';
 import {Platform} from 'react-native';
 
 const cleanSongTitle = title => {
-  if (!title) return 'Untitled Song';
+  if (!title) {return 'Untitled Song';}
   return title.replace(/"/g, '').trim();
 };
 

@@ -1,52 +1,52 @@
-import React, { useCallback, useState } from 'react'
-import CView from '../../common/core/View'
-import CText from '../../common/core/Text'
-import { Image, SafeAreaView, ScrollView } from 'react-native'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import React, { useCallback, useState } from 'react';
+import CView from '../../common/core/View';
+import CText from '../../common/core/Text';
+import { Image, SafeAreaView, ScrollView } from 'react-native';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   getAllAccounts,
   makeAccountActiveDeactive,
   sendOtpToVerifyBank,
-  verifyOtpToAddBank
-} from '../../../api/wallet'
-import { useSelector } from 'react-redux'
-import getStyles from './style'
-import appImages from '../../../resource/images'
-import CButton from '../../common/core/Button'
-import { useNavigation, useTheme } from '@react-navigation/native'
-import ROUTE_NAME from '../../../navigator/config/routeName'
-import MonetizeToggle from '../uploadContent/MonetizeToggle'
-import useToaster from '../../../hooks/useToaster'
-import OtpVerify from '../verification/otpVerify'
-import Colors from '../../common/Colors'
-import IdentityCheck from '../verification/identityCheck'
+  verifyOtpToAddBank,
+} from '../../../api/wallet';
+import { useSelector } from 'react-redux';
+import getStyles from './style';
+import appImages from '../../../resource/images';
+import CButton from '../../common/core/Button';
+import { useNavigation, useTheme } from '@react-navigation/native';
+import ROUTE_NAME from '../../../navigator/config/routeName';
+import MonetizeToggle from '../uploadContent/MonetizeToggle';
+import useToaster from '../../../hooks/useToaster';
+import OtpVerify from '../verification/otpVerify';
+import Colors from '../../common/Colors';
+import IdentityCheck from '../verification/identityCheck';
 
 const Settings = () => {
-  const [allAccounts, setAllAccounts] = useState([])
-  const navigation = useNavigation()
-  const { showToaster } = useToaster()
-  const { kycStatus } = useSelector(state => state.user)
+  const [allAccounts, setAllAccounts] = useState([]);
+  const navigation = useNavigation();
+  const { showToaster } = useToaster();
+  const { kycStatus } = useSelector(state => state.user);
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
-  const [selectedBank, setSelectedBank] = useState('')
+  const [selectedBank, setSelectedBank] = useState('');
 
-  const [isOtpOpen, setIsOtpOpen] = useState(false)
+  const [isOtpOpen, setIsOtpOpen] = useState(false);
 
-  const [isOtpLoading, setIsOtpLoading] = useState()
+  const [isOtpLoading, setIsOtpLoading] = useState();
 
-  const { userId } = useSelector(state => state.user)
+  const { userId } = useSelector(state => state.user);
   useQuery({
     queryKey: ['getAllAccounts'],
     queryFn: getAllAccounts.bind(this, { userId: userId }),
     refetchOnMount: true,
     enabled: !!userId,
     onSuccess: res => {
-      const data = res.data.data
-      setAllAccounts(data)
-    }
-  })
+      const data = res.data.data;
+      setAllAccounts(data);
+    },
+  });
 
   const { refetch } = useQuery({
     queryKey: ['getAllAccounts'],
@@ -54,101 +54,101 @@ const Settings = () => {
     refetchOnMount: true,
     enabled: !!userId,
     onSuccess: res => {
-      const data = res.data.data
-      setAllAccounts(data)
-    }
-  })
+      const data = res.data.data;
+      setAllAccounts(data);
+    },
+  });
 
   const { mutate: updateAccountStatus } = useMutation(
     data => makeAccountActiveDeactive(data),
     {
       onSuccess: res => {
-        refetch()
+        refetch();
         showToaster({
           type: 'success',
           text1: 'Success',
-          text2: 'Account Status updated!'
-        })
+          text2: 'Account Status updated!',
+        });
       },
       onError: error => {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: error.response.data.message
-        })
-      }
+          text2: error.response.data.message,
+        });
+      },
     }
-  )
+  );
 
   const { mutate: sendOTPApi } = useMutation(
     data => sendOtpToVerifyBank(data),
     {
       onSuccess: res => {
-        setIsOtpOpen(true)
+        setIsOtpOpen(true);
       },
       onError: err => {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: err.response.data.message
-        })
-      }
+          text2: err.response.data.message,
+        });
+      },
     }
-  )
+  );
   const { mutate: verifyOTPApi } = useMutation(
     data => verifyOtpToAddBank(data),
     {
       onSuccess: res => {
-        setIsOtpOpen(false)
-        refetch()
+        setIsOtpOpen(false);
+        refetch();
         showToaster({
           type: 'success',
           text1: 'Success',
-          text2: 'Account verified successfully!'
-        })
-        setIsOtpLoading(false)
+          text2: 'Account verified successfully!',
+        });
+        setIsOtpLoading(false);
       },
       onError: err => {
-        setIsOtpLoading(false)
+        setIsOtpLoading(false);
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: err.response.data.message
-        })
-      }
+          text2: err.response.data.message,
+        });
+      },
     }
-  )
+  );
 
   const handleAddAccount = () => {
-    navigation.navigate(ROUTE_NAME.AddAccount)
-  }
+    navigation.navigate(ROUTE_NAME.AddAccount);
+  };
 
   const handleChange = (event, item) => {
-    let bankId = item.id
-    let isActive = event
-    updateAccountStatus({ userId, bankId, isActive })
-  }
+    let bankId = item.id;
+    let isActive = event;
+    updateAccountStatus({ userId, bankId, isActive });
+  };
 
   const handleVerify = item => {
-    let bankId = item.id
-    setSelectedBank(bankId)
-    sendOTPApi({ userId, bankId })
-  }
+    let bankId = item.id;
+    setSelectedBank(bankId);
+    sendOTPApi({ userId, bankId });
+  };
 
   const handleVerifyOtp = otp => {
-    let bankId = selectedBank
-    let data = { otp: otp }
-    setIsOtpLoading(true)
-    verifyOTPApi({ userId, bankId, data })
-  }
+    let bankId = selectedBank;
+    let data = { otp: otp };
+    setIsOtpLoading(true);
+    verifyOTPApi({ userId, bankId, data });
+  };
   const resendOTP = otp => {
-    let bankId = selectedBank
-    sendOTPApi({ userId, bankId })
-  }
+    let bankId = selectedBank;
+    sendOTPApi({ userId, bankId });
+  };
 
   const onCloseOtpPopup = useCallback(() => {
-    setIsOtpOpen(false)
-  }, [])
+    setIsOtpOpen(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.wrapper}>
@@ -200,7 +200,7 @@ const Settings = () => {
                           <CText size="mediumBold">
                             {item.isActive &&
                             item.isAccNameMatchedWithPancard &&
-                            !!!item?.isRejected
+                            !item?.isRejected
                               ? '(Active)'
                               : item.isActive &&
                                 !item.isAccNameMatchedWithPancard &&
@@ -305,7 +305,7 @@ const Settings = () => {
         />
       </ScrollView>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default Settings
+export default Settings;

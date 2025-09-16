@@ -1,11 +1,11 @@
-import { Image, TouchableOpacity } from 'react-native'
-import React from 'react'
-import Modal from 'react-native-modal'
-import styles from './style'
-import CView from '../../core/View'
-import CText from '../../core/Text'
-import CButton from '../../core/Button'
-import appImages from '../../../../resource/images'
+import { Image, TouchableOpacity } from 'react-native';
+import React from 'react';
+import Modal from 'react-native-modal';
+import styles from './style';
+import CView from '../../core/View';
+import CText from '../../core/Text';
+import CButton from '../../core/Button';
+import appImages from '../../../../resource/images';
 const ConfirmDialogBox = ({
   isOpen,
   labelNo = 'NO',
@@ -13,7 +13,7 @@ const ConfirmDialogBox = ({
   handleYes,
   handleNo,
   title = 'Are you sure you want to cancel?',
-  handleClose
+  handleClose,
 }) => {
   return (
     <Modal
@@ -48,8 +48,8 @@ const ConfirmDialogBox = ({
               customStyles={{
                 buttonTextStyles: styles.submitBtn,
                 buttonStyle: {
-                  minWidth: '45%'
-                }
+                  minWidth: '45%',
+                },
               }}
             />
             <CButton
@@ -61,15 +61,15 @@ const ConfirmDialogBox = ({
               customStyles={{
                 buttonTextStyles: styles.submitBtn,
                 buttonStyle: {
-                  minWidth: '45%'
-                }
+                  minWidth: '45%',
+                },
               }}
             />
           </CView>
         </CView>
       </CView>
     </Modal>
-  )
-}
+  );
+};
 
-export default ConfirmDialogBox
+export default ConfirmDialogBox;

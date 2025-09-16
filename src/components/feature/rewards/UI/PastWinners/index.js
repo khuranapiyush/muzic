@@ -1,11 +1,11 @@
-import React from 'react'
-import AutoHeightImage from 'react-native-auto-height-image'
-import { screenWidth } from '../../../../../utils/common'
-import CText from '../../../../common/core/Text'
-import CView from '../../../../common/core/View'
-import CarouselView from '../../../home/CarouselView'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React from 'react';
+import AutoHeightImage from 'react-native-auto-height-image';
+import { screenWidth } from '../../../../../utils/common';
+import CText from '../../../../common/core/Text';
+import CView from '../../../../common/core/View';
+import CarouselView from '../../../home/CarouselView';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
 const PastWinners = ({ config }) => {
   const renderBanner = ({ item, index }) => (
@@ -14,10 +14,10 @@ const PastWinners = ({ config }) => {
       source={{ uri: item }}
       width={screenWidth - 32}
     />
-  )
+  );
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   return (
     <CView>
@@ -30,7 +30,7 @@ const PastWinners = ({ config }) => {
         autoplay={true}
       />
     </CView>
-  )
-}
+  );
+};
 
-export default PastWinners
+export default PastWinners;

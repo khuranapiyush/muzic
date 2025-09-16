@@ -1,64 +1,64 @@
-import get from 'lodash/get'
+import get from 'lodash/get';
 import React, {
   useCallback,
   useContext,
   useMemo,
   useRef,
-  useState
-} from 'react'
-import { Image, Pressable, TouchableOpacity } from 'react-native'
-import Popover from 'react-native-popover-view'
-import { useDispatch, useSelector } from 'react-redux'
-import { getAppConfig } from '../../../../constants/code'
-import { handleVideoStartHoverEvent } from '../../../../events/video'
-import useEvent from '../../../../hooks/useEvent'
-import appImages from '../../../../resource/images'
-import { setFullModePlayer } from '../../../../stores/slices/watch'
+  useState,
+} from 'react';
+import { Image, Pressable, TouchableOpacity } from 'react-native';
+import Popover from 'react-native-popover-view';
+import { useDispatch, useSelector } from 'react-redux';
+import { getAppConfig } from '../../../../constants/code';
+import { handleVideoStartHoverEvent } from '../../../../events/video';
+import useEvent from '../../../../hooks/useEvent';
+import appImages from '../../../../resource/images';
+import { setFullModePlayer } from '../../../../stores/slices/watch';
 import {
   numberFormatter,
   screenWidth,
-  timeSince
-} from '../../../../utils/common'
-import { AuthShareButton } from '../../../common/Button/ShareButton'
-import Player from '../../../common/Player'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import VideoCoinToolTip from '../UI/VideoCoinToolTip'
-import styles from './style'
-import Colors from '../../../common/Colors'
-import { ThemeContext } from '../../../../context/ThemeContext'
+  timeSince,
+} from '../../../../utils/common';
+import { AuthShareButton } from '../../../common/Button/ShareButton';
+import Player from '../../../common/Player';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import VideoCoinToolTip from '../UI/VideoCoinToolTip';
+import styles from './style';
+import Colors from '../../../common/Colors';
+import { ThemeContext } from '../../../../context/ThemeContext';
 
 const Card100 = ({ data, index }) => {
-  const dispatch = useDispatch()
+  const dispatch = useDispatch();
   const {
-    theme: { mode }
-  } = useContext(ThemeContext)
+    theme: { mode },
+  } = useContext(ThemeContext);
 
-  const videoTitle = get(data, 'items[0].title', 'Title')
-  const slug = get(data, 'items[0].slug')
-  const slugKey = get(data, 'items[0].slugKey')
-  const rewardCoin = get(data, 'items[0].rewardCoin')
-  const isLiveStream = get(data, 'items[0].isLiveStream')
+  const videoTitle = get(data, 'items[0].title', 'Title');
+  const slug = get(data, 'items[0].slug');
+  const slugKey = get(data, 'items[0].slugKey');
+  const rewardCoin = get(data, 'items[0].rewardCoin');
+  const isLiveStream = get(data, 'items[0].isLiveStream');
 
-  const imageUrl = get(data, 'items[0].background.value', null)
+  const imageUrl = get(data, 'items[0].background.value', null);
 
-  const views = get(data, 'items[0].stats.views', '0')
-  const createdAt = get(data, 'items[0].createdAt', '')
+  const views = get(data, 'items[0].stats.views', '0');
+  const createdAt = get(data, 'items[0].createdAt', '');
 
-  const chName = get(data, 'items[0].profile.name', '')
-  const chImage = get(data, 'items[0].profile.avatar', '')
+  const chName = get(data, 'items[0].profile.name', '');
+  const chImage = get(data, 'items[0].profile.avatar', '');
 
-  const { homePagePlayerProps } = useSelector(state => state.home)
-  const { isVisible: isWatchPlayerVisible } = useSelector(state => state.watch)
-  const { playerPreferences } = useSelector(state => state.player)
-  const { isShowFeature } = useSelector(state => state.app)
+  const { homePagePlayerProps } = useSelector(state => state.home);
+  const { isVisible: isWatchPlayerVisible } = useSelector(state => state.watch);
+  const { playerPreferences } = useSelector(state => state.player);
+  const { isShowFeature } = useSelector(state => state.app);
 
-  const [showPopover, setShowPopover] = useState(false)
-  const touchable = useRef()
+  const [showPopover, setShowPopover] = useState(false);
+  const touchable = useRef();
 
-  const [isPlayerPlaying, setIsPlayerPlaying] = useState(false)
+  const [isPlayerPlaying, setIsPlayerPlaying] = useState(false);
 
-  const { defaultEventData } = useEvent()
+  const { defaultEventData } = useEvent();
 
   const shouldPlayerBeVisible = useMemo(
     () =>
@@ -69,30 +69,30 @@ const Card100 = ({ data, index }) => {
       data,
       homePagePlayerProps?.data?._id,
       homePagePlayerProps?.isVisible,
-      isWatchPlayerVisible
+      isWatchPlayerVisible,
     ]
-  )
+  );
 
   const shareOptions = useMemo(
     () => ({
       title: videoTitle,
-      url: `https://fantv.in/watch/${slug}-${slugKey}`
+      url: `https://fantv.in/watch/${slug}-${slugKey}`,
     }),
     [slug, slugKey, videoTitle]
-  )
+  );
 
   const videoDetails = useMemo(() => {
     return {
-      uri: get(data, 'items[0].data')
-    }
-  }, [data])
+      uri: get(data, 'items[0].data'),
+    };
+  }, [data]);
 
   const configPlayerProps = useMemo(
     () => ({
-      muted: playerPreferences?.autoPlayPlayer?.muted
+      muted: playerPreferences?.autoPlayPlayer?.muted,
     }),
     [playerPreferences?.autoPlayPlayer?.muted]
-  )
+  );
 
   const handleCardClick = useCallback(() => {
     const videoData = {
@@ -102,30 +102,30 @@ const Card100 = ({ data, index }) => {
         eventName: 'click',
         order: index + 1,
         viewType: data.viewType,
-        type: data?.items?.[0]?.type || 'video'
-      }
-    }
+        type: data?.items?.[0]?.type || 'video',
+      },
+    };
 
     dispatch(
       setFullModePlayer({
         isVisible: true,
-        videoDetail: videoData
+        videoDetail: videoData,
       })
-    )
-  }, [data.items, data.viewType, dispatch, index])
+    );
+  }, [data.items, data.viewType, dispatch, index]);
 
   const handleAutoPlayPlayerClick = useCallback(() => {
-    handleCardClick()
-  }, [handleCardClick])
+    handleCardClick();
+  }, [handleCardClick]);
 
   const handleVideoStart = useCallback(() => {
-    setIsPlayerPlaying(true)
-    handleVideoStartHoverEvent({ ...defaultEventData })
-  }, [defaultEventData])
+    setIsPlayerPlaying(true);
+    handleVideoStartHoverEvent({ ...defaultEventData });
+  }, [defaultEventData]);
 
   const handlePlayerDestroyed = useCallback(() => {
-    setIsPlayerPlaying(false)
-  }, [])
+    setIsPlayerPlaying(false);
+  }, []);
 
   return (
     <CView style={styles.flex1}>
@@ -138,7 +138,7 @@ const Card100 = ({ data, index }) => {
                 flex: 1,
                 width: screenWidth,
                 height: screenWidth * (194 / 343),
-                opacity: isPlayerPlaying ? 0 : 1
+                opacity: isPlayerPlaying ? 0 : 1,
               }}
               resizeMode="contain"
             />
@@ -158,7 +158,7 @@ const Card100 = ({ data, index }) => {
                 flex: 1,
                 width: screenWidth,
                 height: screenWidth * (194 / 343),
-                position: 'absolute'
+                position: 'absolute',
               }}>
               {shouldPlayerBeVisible && (
                 <Player
@@ -195,7 +195,7 @@ const Card100 = ({ data, index }) => {
                         source={appImages.threeDotIcon}
                         style={{
                           ...styles.dotStyle,
-                          tintColor: Colors[mode]?.white
+                          tintColor: Colors[mode]?.white,
                         }}
                         resizeMode="contain"
                       />
@@ -209,7 +209,7 @@ const Card100 = ({ data, index }) => {
                         <AuthShareButton
                           shareOptions={shareOptions}
                           customStyles={{
-                            shareContainer: styles.shareContainer
+                            shareContainer: styles.shareContainer,
                           }}
                         />
                       </CView>
@@ -230,7 +230,7 @@ const Card100 = ({ data, index }) => {
         </Pressable>
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default Card100
+export default Card100;

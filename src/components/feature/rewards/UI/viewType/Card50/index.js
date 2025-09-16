@@ -1,21 +1,21 @@
-import React, { useCallback, useMemo, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
   Image,
   LayoutAnimation,
   Pressable,
-  TouchableOpacity
-} from 'react-native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import appImages from '../../../../../../resource/images'
-import { screenWidth } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+  TouchableOpacity,
+} from 'react-native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import appImages from '../../../../../../resource/images';
+import { screenWidth } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
-const customStyles = { spacing: 16 }
-const config = { adjustableItems: 2 }
+const customStyles = { spacing: 16 };
+const config = { adjustableItems: 2 };
 
 const Card50 = ({
   label,
@@ -27,26 +27,26 @@ const Card50 = ({
   handleGameAction,
   ...rest
 }) => {
-  const [isShowMoreItems, setIsShowMoreItems] = useState(false)
+  const [isShowMoreItems, setIsShowMoreItems] = useState(false);
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   const { isGrid, gridItems, showGridBtn } = useMemo(
     () => ({
       isGrid: feedType === 'grid',
       gridItems: !isShowMoreItems ? items.slice(0, visibleItems) : items,
-      showGridBtn: items.length > visibleItems
+      showGridBtn: items.length > visibleItems,
     }),
     [feedType, isShowMoreItems, items, visibleItems]
-  )
+  );
 
   const handleClick = useCallback(
     idx => {
-      handleGameAction(items[idx])
+      handleGameAction(items[idx]);
     },
     [handleGameAction, items]
-  )
+  );
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -59,15 +59,15 @@ const Card50 = ({
             source={{
               uri: item?.isLocked
                 ? item?.metaData?.lockedCardImageUrl
-                : item?.metaData?.cardImageUrl
+                : item?.metaData?.cardImageUrl,
             }}
             width={screenWidth * 0.5 - customStyles.spacing * 2}
           />
         </Pressable>
-      )
+      );
     },
     [handleClick]
-  )
+  );
 
   const renderGrid = useCallback(
     (item, idx) => {
@@ -78,17 +78,17 @@ const Card50 = ({
           key={idx}
           style={{
             ...(idx % config.adjustableItems != 0 && {
-              marginLeft: customStyles.spacing
+              marginLeft: customStyles.spacing,
             }),
             ...(gridItems.length - idx > config.adjustableItems && {
-              marginBottom: customStyles.spacing
-            })
+              marginBottom: customStyles.spacing,
+            }),
           }}>
           <AutoHeightImage
             source={{
               uri: item?.isLocked
                 ? item?.metaData?.lockedCardImageUrl
-                : item?.metaData?.cardImageUrl
+                : item?.metaData?.cardImageUrl,
             }}
             width={
               screenWidth * 0.5 -
@@ -97,26 +97,26 @@ const Card50 = ({
             }
           />
         </Pressable>
-      )
+      );
     },
     [gridItems.length, handleClick]
-  )
+  );
 
   const HorizontalItemSeparator = useCallback(() => {
     return (
       <CView
         style={{
           width: customStyles.spacing * 2,
-          ...(feedType == 'vertical' && { height: customStyles.spacing })
+          ...(feedType == 'vertical' && { height: customStyles.spacing }),
         }}
       />
-    )
-  }, [feedType])
+    );
+  }, [feedType]);
 
   const toggleExpand = useCallback(value => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-    setIsShowMoreItems(value)
-  }, [])
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsShowMoreItems(value);
+  }, []);
 
   return (
     <CView style={styles.wrapper}>
@@ -139,7 +139,7 @@ const Card50 = ({
               row
               style={{
                 flexWrap: 'wrap',
-                marginHorizontal: customStyles.spacing
+                marginHorizontal: customStyles.spacing,
               }}>
               {gridItems.map(renderGrid)}
             </CView>
@@ -184,24 +184,24 @@ const Card50 = ({
             style={{
               ...(feedType == 'vertical' && {
                 marginLeft: customStyles.spacing,
-                marginRight: customStyles.spacing
+                marginRight: customStyles.spacing,
               }),
               ...(feedType == 'horizontal' &&
                 items.length <= config.adjustableItems && {
                   marginLeft: customStyles.spacing,
-                  marginRight: customStyles.spacing
-                })
+                  marginRight: customStyles.spacing,
+                }),
             }}
             contentContainerStyle={{
               ...(feedType == 'horizontal' &&
                 items.length > config.adjustableItems && {
-                  paddingHorizontal: customStyles.spacing
-                })
+                  paddingHorizontal: customStyles.spacing,
+                }),
             }}
           />
         )}
       </CView>
     </CView>
-  )
-}
-export default Card50
+  );
+};
+export default Card50;

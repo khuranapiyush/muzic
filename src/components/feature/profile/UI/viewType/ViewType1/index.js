@@ -1,31 +1,31 @@
-import { useNavigation } from '@react-navigation/native'
-import React, { useCallback } from 'react'
-import { FlatList, Image, Pressable, TouchableOpacity } from 'react-native'
-import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE'
-import appImages from '../../../../../../resource/images'
-import { generateTransparentColor } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './styles'
-import Colors from '../../../../../common/Colors'
+import { useNavigation } from '@react-navigation/native';
+import React, { useCallback } from 'react';
+import { FlatList, Image, Pressable, TouchableOpacity } from 'react-native';
+import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE';
+import appImages from '../../../../../../resource/images';
+import { generateTransparentColor } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './styles';
+import Colors from '../../../../../common/Colors';
 
 const ViewType1 = ({ items, theme }) => {
-  const navigation = useNavigation()
+  const navigation = useNavigation();
 
-  const styles = getStyles(theme)
+  const styles = getStyles(theme);
 
-  const keyExtractor = useCallback((item, idx) => `list_${idx}`, [])
+  const keyExtractor = useCallback((item, idx) => `list_${idx}`, []);
 
   const handleActionBtn = useCallback(
     action => {
-      const routeConfig = ROUTE_MAPPING_BE[action]
+      const routeConfig = ROUTE_MAPPING_BE[action];
       if (!routeConfig) {
-        return
+        return;
       }
-      navigation.navigate(routeConfig.name, routeConfig.params)
+      navigation.navigate(routeConfig.name, routeConfig.params);
     },
     [navigation]
-  )
+  );
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -39,13 +39,13 @@ const ViewType1 = ({ items, theme }) => {
                 width:
                   !!item.action && !!ROUTE_MAPPING_BE[item.action]
                     ? '90%'
-                    : '100%'
+                    : '100%',
               }}>
               <CView
                 row
                 style={{
                   alignItems: 'center',
-                  ...(!item.value && { width: '90%' })
+                  ...(!item.value && { width: '90%' }),
                 }}>
                 <CView style={styles.leftIconWrapper}>
                   {!!item.icon && (
@@ -65,7 +65,7 @@ const ViewType1 = ({ items, theme }) => {
                     <CText
                       style={{
                         ...styles.descriptionText,
-                        color: Colors[theme].textLightGray
+                        color: Colors[theme].textLightGray,
                       }}>
                       {item?.description}
                     </CText>
@@ -79,12 +79,12 @@ const ViewType1 = ({ items, theme }) => {
                     ...styles.valueWrapper,
                     backgroundColor: item?.valueColor
                       ? generateTransparentColor(item?.valueColor, 0.4)
-                      : Colors[theme].iconBg
+                      : Colors[theme].iconBg,
                   }}>
                   <CText
                     style={{
                       ...styles.valueText,
-                      color: Colors[theme].white
+                      color: Colors[theme].white,
                     }}>
                     {item.value}
                   </CText>
@@ -104,10 +104,10 @@ const ViewType1 = ({ items, theme }) => {
             )}
           </CView>
         </Pressable>
-      )
+      );
     },
     [handleActionBtn, theme]
-  )
+  );
 
   return (
     <FlatList
@@ -116,7 +116,7 @@ const ViewType1 = ({ items, theme }) => {
       renderItem={renderItem}
       showsHorizontalScrollIndicator={false}
     />
-  )
-}
+  );
+};
 
-export default ViewType1
+export default ViewType1;

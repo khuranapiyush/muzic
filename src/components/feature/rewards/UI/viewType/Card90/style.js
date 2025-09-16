@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -7,17 +7,17 @@ const getStyles = theme => {
     feedHeaderText: {
       color: Colors[theme].white,
       fontWeight: '600',
-      fontSize: 16
+      fontSize: 16,
     },
     feedDescriptionWrapper: { marginTop: 8 },
     feedDescriptionText: {
       color: Colors[theme].textLightGray,
       fontWeight: '500',
-      fontSize: 12
+      fontSize: 12,
     },
     itemWrapper: {
-      marginTop: 16
-    }
-  })
-}
-export default getStyles
+      marginTop: 16,
+    },
+  });
+};
+export default getStyles;

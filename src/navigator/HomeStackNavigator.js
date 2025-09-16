@@ -1,4 +1,4 @@
-/* eslint-disable react-native/no-inline-styles */
+
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React, {useMemo, useCallback} from 'react';
 import {

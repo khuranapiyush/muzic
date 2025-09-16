@@ -1,31 +1,31 @@
-import React, { useCallback, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { Platform, SafeAreaView, ScrollView } from 'react-native'
-import { useSelector } from 'react-redux'
-import { dollarToInrWithRupeeSign } from '../../../../utils/common'
-import TextInputFC from '../../../common/FormComponents/TextInputFC'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import PaymentWebView from '../Payment'
-import Config from 'react-native-config'
+import React, { useCallback, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Platform, SafeAreaView, ScrollView } from 'react-native';
+import { useSelector } from 'react-redux';
+import { dollarToInrWithRupeeSign } from '../../../../utils/common';
+import TextInputFC from '../../../common/FormComponents/TextInputFC';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import PaymentWebView from '../Payment';
+import Config from 'react-native-config';
 
 export const PAYMENT_CONFIG = {
   STRIPE: {
     MERCHANT_ID: 'your_merchant_id', // For Apple Pay
     MERCHANT_NAME: 'Muzic_App',
     COUNTRY_CODE: 'IN',
-    CURRENCY: 'INR'
-  }
-}
+    CURRENCY: 'INR',
+  },
+};
 
 const AddFund = () => {
-  const { accessToken } = useSelector(state => state.auth)
-  const { balance } = useSelector(state => state.walletStats)
+  const { accessToken } = useSelector(state => state.auth);
+  const { balance } = useSelector(state => state.walletStats);
 
-  const [invokeWebView, setInvokeWebView] = useState(false)
-  const [paymentUrl, setPaymentUrl] = useState('')
+  const [invokeWebView, setInvokeWebView] = useState(false);
+  const [paymentUrl, setPaymentUrl] = useState('');
 
   const { control, watch } = useForm({
     criteriaMode: 'all',
@@ -33,26 +33,26 @@ const AddFund = () => {
     defaultValues: {
       countryRegion: 'India',
       paymentMethod: 'Debit card, Credit card, UPI, or NetBanking',
-      amount: ''
-    }
-  })
+      amount: '',
+    },
+  });
 
-  const { amount } = watch()
+  const { amount } = watch();
 
   const handleAddMoney = useCallback(() => {
-    let url = `${Config.WEB_URL}/android/payment?country_code=IN&amount=${amount}&token=${accessToken}`
-    setPaymentUrl(url)
-    setInvokeWebView(true)
-  }, [accessToken, amount])
+    let url = `${Config.WEB_URL}/android/payment?country_code=IN&amount=${amount}&token=${accessToken}`;
+    setPaymentUrl(url);
+    setInvokeWebView(true);
+  }, [accessToken, amount]);
 
-  const stripe = useStripe()
-  const [loading, setLoading] = useState(false)
+  const stripe = useStripe();
+  const [loading, setLoading] = useState(false);
 
   const paymentMethods = [
     { id: 'card', name: 'Debit card, Credit card, UPI, or NetBanking' },
     { id: 'applepay', name: 'Apple Pay', platform: 'ios' },
-    { id: 'googlepay', name: 'Google Pay', platform: 'android' }
-  ]
+    { id: 'googlepay', name: 'Google Pay', platform: 'android' },
+  ];
 
   const handleApplePay = async amount => {
     try {
@@ -60,22 +60,22 @@ const AddFund = () => {
         paymentIntentClientSecret: 'your_payment_intent',
         applePay: {
           merchantId: 'your_merchant_id',
-          merchantCountryCode: 'IN'
+          merchantCountryCode: 'IN',
         },
         amount: amount * 100, // Convert to cents
-        currency: 'INR'
-      })
+        currency: 'INR',
+      });
 
       if (error) {
-        console.error('Error:', error)
-        return
+        console.error('Error:', error);
+        return;
       }
 
       // Handle successful payment
     } catch (error) {
-      console.error('Payment failed:', error)
+      console.error('Payment failed:', error);
     }
-  }
+  };
 
   const handleGooglePay = async amount => {
     try {
@@ -84,22 +84,22 @@ const AddFund = () => {
         googlePay: {
           merchantName: 'Your Merchant Name',
           merchantCountryCode: 'IN',
-          testEnv: false // Set to true for testing
+          testEnv: false, // Set to true for testing
         },
         amount: amount * 100,
-        currency: 'INR'
-      })
+        currency: 'INR',
+      });
 
       if (error) {
-        console.error('Error:', error)
-        return
+        console.error('Error:', error);
+        return;
       }
 
       // Handle successful payment
     } catch (error) {
-      console.error('Payment failed:', error)
+      console.error('Payment failed:', error);
     }
-  }
+  };
 
   return (
     <SafeAreaView style={styles.wrapper}>
@@ -170,7 +170,7 @@ const AddFund = () => {
         </ScrollView>
       )}
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default AddFund
+export default AddFund;

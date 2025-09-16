@@ -1,10 +1,10 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   communities: [],
   selectedCommunity: {},
-  showJoiningBonus: { status: false, data: {} }
-}
+  showJoiningBonus: { status: false, data: {} },
+};
 
 const community = createSlice({
   name: 'community',
@@ -12,25 +12,25 @@ const community = createSlice({
 
   reducers: {
     setCommunities: (state, action) => {
-      state.communities = [...action.payload]
+      state.communities = [...action.payload];
     },
     setSelectedCommunity: (state, action) => {
-      state.selectedCommunity = action.payload
+      state.selectedCommunity = action.payload;
     },
     showJoiningBonus: (state, action) => {
-      state.showJoiningBonus = action.payload
+      state.showJoiningBonus = action.payload;
     },
     claimJoiningBonus: (state, action) => {
-      state.showJoiningBonus = { status: false, data: {} }
-    }
-  }
-})
+      state.showJoiningBonus = { status: false, data: {} };
+    },
+  },
+});
 
 export const {
   setCommunities,
   setSelectedCommunity,
   showJoiningBonus,
-  claimJoiningBonus
-} = community.actions
+  claimJoiningBonus,
+} = community.actions;
 
-export default community.reducer
+export default community.reducer;

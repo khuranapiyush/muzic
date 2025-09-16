@@ -1,25 +1,25 @@
-import { useQuery } from '@tanstack/react-query'
-import React, { useCallback, useEffect, useState } from 'react'
-import { ScrollView } from 'react-native'
-import { useSelector } from 'react-redux'
-import { fetchDashboardInvestmentData } from '../../../../../api/trade'
-import CView from '../../../../common/core/View'
-import DashboardInfoCard from '../UI/DashboardInfoCard'
-import PortFolioCard from '../UI/PortfolioCard'
-import styles from './style'
-import { useAuthUser } from '../../../../../stores/selector'
-import CText from '../../../../common/core/Text'
-import CButton from '../../../../common/core/Button'
-import useModal from '../../../../../hooks/useModal'
-import ROUTE_NAME from '../../../../../navigator/config/routeName'
-import { useIsFocused } from '@react-navigation/native'
+import { useQuery } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useState } from 'react';
+import { ScrollView } from 'react-native';
+import { useSelector } from 'react-redux';
+import { fetchDashboardInvestmentData } from '../../../../../api/trade';
+import CView from '../../../../common/core/View';
+import DashboardInfoCard from '../UI/DashboardInfoCard';
+import PortFolioCard from '../UI/PortfolioCard';
+import styles from './style';
+import { useAuthUser } from '../../../../../stores/selector';
+import CText from '../../../../common/core/Text';
+import CButton from '../../../../common/core/Button';
+import useModal from '../../../../../hooks/useModal';
+import ROUTE_NAME from '../../../../../navigator/config/routeName';
+import { useIsFocused } from '@react-navigation/native';
 
 const Portfolio = () => {
-  const { isLoggedIn } = useSelector(useAuthUser)
-  const { showModal, hideModal } = useModal()
-  const [investmentData, setInvestmentData] = useState([])
-  const { userId } = useSelector(state => state.user)
-  const focused = useIsFocused()
+  const { isLoggedIn } = useSelector(useAuthUser);
+  const { showModal, hideModal } = useModal();
+  const [investmentData, setInvestmentData] = useState([]);
+  const { userId } = useSelector(state => state.user);
+  const focused = useIsFocused();
 
   const { refetch } = useQuery({
     queryKey: ['fetchDashboardInvestmentData'],
@@ -27,24 +27,24 @@ const Portfolio = () => {
     refetchOnMount: true,
     enabled: !!userId || focused,
     onSuccess: res => {
-      const data = res.data.data
-      setInvestmentData(data)
-    }
-  })
+      const data = res.data.data;
+      setInvestmentData(data);
+    },
+  });
 
   useEffect(() => {
     if (userId || focused) {
-      refetch()
+      refetch();
     }
-  }, [focused, refetch, userId])
+  }, [focused, refetch, userId]);
 
   const handleLogin = useCallback(() => {
     showModal('auth', {
       isVisible: true,
       onClose: () => hideModal('auth'),
-      navigationData: { redirectToPath: ROUTE_NAME.Trade }
-    })
-  }, [hideModal, showModal])
+      navigationData: { redirectToPath: ROUTE_NAME.Trade },
+    });
+  }, [hideModal, showModal]);
 
   return (
     <CView style={styles.wrapper}>
@@ -78,7 +78,7 @@ const Portfolio = () => {
         </CView>
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default Portfolio
+export default Portfolio;

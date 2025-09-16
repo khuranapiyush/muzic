@@ -1,9 +1,9 @@
-import React, { useCallback } from 'react'
-import Carousel, { Pagination } from 'react-native-snap-carousel'
-import { screenWidth } from '../../../../utils/common'
-import CView from '../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React, { useCallback } from 'react';
+import Carousel, { Pagination } from 'react-native-snap-carousel';
+import { screenWidth } from '../../../../utils/common';
+import CView from '../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
 const CarouselView = ({
   data,
@@ -13,17 +13,17 @@ const CarouselView = ({
   sliderWidth = screenWidth,
   itemWidth = screenWidth,
   autoplayInterval = 3000,
-  autoplayDelay = 5000
+  autoplayDelay = 5000,
 }) => {
-  const [index, setIndex] = React.useState(0)
-  const isCarousel = React.useRef(null)
+  const [index, setIndex] = React.useState(0);
+  const isCarousel = React.useRef(null);
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   const handleSnapItem = useCallback(idx => {
-    setIndex(idx)
-  }, [])
+    setIndex(idx);
+  }, []);
 
   return (
     <CView>
@@ -54,7 +54,7 @@ const CarouselView = ({
         inactiveDotScale={0.8}
       />
     </CView>
-  )
-}
+  );
+};
 
-export default CarouselView
+export default CarouselView;

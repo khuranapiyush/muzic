@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   mainBtnContainer: {
@@ -15,7 +15,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#C1C1C1CC',
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   coinIcon: { width: 24, height: 24, marginRight: 4 },
   coinText: { fontWeight: '500', fontSize: 14, marginRight: 2 },
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     marginLeft: 10,
     marginTop: 10,
     borderRadius: 8,
-    backgroundColor: '#fff'
-  }
-})
-export default styles
+    backgroundColor: '#fff',
+  },
+});
+export default styles;

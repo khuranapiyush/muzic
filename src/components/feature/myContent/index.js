@@ -1,18 +1,18 @@
-import React from 'react'
-import { Image, Pressable } from 'react-native'
+import React from 'react';
+import { Image, Pressable } from 'react-native';
 
 import {
   getThumbnailUrl,
   numberFormatter,
   screenWidth,
-  timeSince
-} from '../../../utils/common'
-import CText from '../../common/core/Text'
-import CView from '../../common/core/View'
-import styles from './style'
+  timeSince,
+} from '../../../utils/common';
+import CText from '../../common/core/Text';
+import CView from '../../common/core/View';
+import styles from './style';
 
 const MyContent = ({ item }) => {
-  const imgWidth = screenWidth / 2.5 - 10
+  const imgWidth = screenWidth / 2.5 - 10;
 
   return (
     <>
@@ -23,7 +23,7 @@ const MyContent = ({ item }) => {
             style={{
               width: imgWidth,
               height: imgWidth * (193 / 343),
-              borderRadius: 10
+              borderRadius: 10,
             }}
             resizeMode="contain"
           />
@@ -46,7 +46,7 @@ const MyContent = ({ item }) => {
         </CView>
       </Pressable>
     </>
-  )
-}
+  );
+};
 
-export default MyContent
+export default MyContent;

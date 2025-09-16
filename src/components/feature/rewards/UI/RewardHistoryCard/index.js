@@ -1,10 +1,10 @@
-import moment from 'moment'
-import React from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import { SvgUri } from 'react-native-svg'
-import CText from '../../../../common/core/Text'
-import CView from '../../../../common/core/View'
-import styles from './style'
+import moment from 'moment';
+import React from 'react';
+import { Image, TouchableOpacity } from 'react-native';
+import { SvgUri } from 'react-native-svg';
+import CText from '../../../../common/core/Text';
+import CView from '../../../../common/core/View';
+import styles from './style';
 
 const RewardHistoryCard = ({ config, handleTerms }) => {
   return (
@@ -15,7 +15,7 @@ const RewardHistoryCard = ({ config, handleTerms }) => {
         ) : (
           <Image
             source={{
-              uri: config.logo
+              uri: config.logo,
             }}
             style={styles.rewardIcon}
           />
@@ -50,7 +50,7 @@ const RewardHistoryCard = ({ config, handleTerms }) => {
         </CView>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default RewardHistoryCard
+export default RewardHistoryCard;

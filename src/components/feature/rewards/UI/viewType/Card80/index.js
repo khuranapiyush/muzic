@@ -1,13 +1,13 @@
-import React, { useCallback } from 'react'
-import { FlatList, Pressable } from 'react-native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import { screenWidth } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React, { useCallback } from 'react';
+import { FlatList, Pressable } from 'react-native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import { screenWidth } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
-const customStyles = { spacing: 16 }
+const customStyles = { spacing: 16 };
 
 const Card80 = ({
   label,
@@ -20,13 +20,13 @@ const Card80 = ({
 }) => {
   const handleClick = useCallback(
     idx => {
-      handleGameAction(items[idx])
+      handleGameAction(items[idx]);
     },
     [handleGameAction, items]
-  )
+  );
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   const renderItem = useCallback(({ item, index: idx }) => {
     return (
@@ -35,24 +35,24 @@ const Card80 = ({
           source={{
             uri: item?.isLocked
               ? item?.metaData?.lockedCardImageUrl
-              : item?.metaData?.cardImageUrl
+              : item?.metaData?.cardImageUrl,
           }}
           width={screenWidth * 0.8 - customStyles.spacing}
         />
       </Pressable>
-    )
-  }, [])
+    );
+  }, []);
 
   const HorizontalItemSeparator = useCallback(() => {
     return (
       <CView
         style={{
           width: customStyles.spacing,
-          ...(feedType == 'vertical' && { height: customStyles.spacing })
+          ...(feedType == 'vertical' && { height: customStyles.spacing }),
         }}
       />
-    )
-  }, [feedType])
+    );
+  }, [feedType]);
 
   return (
     <CView style={styles.wrapper}>
@@ -77,16 +77,16 @@ const Card80 = ({
           showsHorizontalScrollIndicator={false}
           ItemSeparatorComponent={HorizontalItemSeparator}
           style={{
-            ...(feedType == 'vertical' && { marginLeft: customStyles.spacing })
+            ...(feedType == 'vertical' && { marginLeft: customStyles.spacing }),
           }}
           contentContainerStyle={{
             ...(feedType == 'horizontal' && {
-              paddingHorizontal: customStyles.spacing
-            })
+              paddingHorizontal: customStyles.spacing,
+            }),
           }}
         />
       </CView>
     </CView>
-  )
-}
-export default Card80
+  );
+};
+export default Card80;

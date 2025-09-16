@@ -118,7 +118,7 @@ const MarketPlaceSell = ({route}) => {
       deviceInfo: {source: 'ios'},
     };
     if (orderType == 'Limit') {
-      requestBody['price'] = round(price / 80, 6);
+      requestBody.price = round(price / 80, 6);
     }
     ConfirmSellNFT(requestBody);
   }, [ConfirmSellNFT, count, orderType, price, tierId]);

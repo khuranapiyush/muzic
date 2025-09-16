@@ -1,26 +1,26 @@
-import React from 'react'
-import { SceneMap, TabBar, TabView } from 'react-native-tab-view'
-import getStyles from '../style'
-import CText from '../../../common/core/Text'
-import { screenWidth } from '../../../../utils/common'
-import Stream from './Stream'
-import RoyaltyProjection from './RoyaltyProjection'
-import RoyaltyReturn from './RoyaltyReturn'
+import React from 'react';
+import { SceneMap, TabBar, TabView } from 'react-native-tab-view';
+import getStyles from '../style';
+import CText from '../../../common/core/Text';
+import { screenWidth } from '../../../../utils/common';
+import Stream from './Stream';
+import RoyaltyProjection from './RoyaltyProjection';
+import RoyaltyReturn from './RoyaltyReturn';
 
 const renderScene = SceneMap({
   stream: Stream,
   royaltyProjection: RoyaltyProjection,
-  royaltyReturn: RoyaltyReturn
-})
+  royaltyReturn: RoyaltyReturn,
+});
 const RoyaltyStreamAndProjection = ({ theme }) => {
-  const styles = getStyles(theme)
-  const [index, setIndex] = React.useState(1)
+  const styles = getStyles(theme);
+  const [index, setIndex] = React.useState(1);
 
   const [routes] = React.useState([
     { key: 'stream', title: 'Stream' },
     { key: 'royaltyProjection', title: 'Royalty Projection' },
-    { key: 'royaltyReturn', title: 'Royalty Return' }
-  ])
+    { key: 'royaltyReturn', title: 'Royalty Return' },
+  ]);
 
   return (
     <TabView
@@ -47,7 +47,7 @@ const RoyaltyStreamAndProjection = ({ theme }) => {
       initialLayout={{ width: screenWidth }}
       style={{ height: 350 }}
     />
-  )
-}
+  );
+};
 
-export default RoyaltyStreamAndProjection
+export default RoyaltyStreamAndProjection;

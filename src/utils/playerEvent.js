@@ -17,8 +17,8 @@ export const getPlayerEventInfo = (player, config = { data: {} }) => {
     dataSpeed,
     ipAddress,
     dataSaver,
-    shortieId = null
-  } = config.data
+    shortieId = null,
+  } = config.data;
 
   return {
     type: category,
@@ -41,9 +41,9 @@ export const getPlayerEventInfo = (player, config = { data: {} }) => {
     dataSpeed: dataSpeed ? { int: dataSpeed } : null,
     dataSaver: dataSaver ? { boolean: dataSaver } : null,
     timeStamp: Date.now(),
-    deviceIp: ipAddress || null
-  }
-}
+    deviceIp: ipAddress || null,
+  };
+};
 
 export const getKafkaSchema = (events, key) => {
   const kafkaSchema = {
@@ -53,16 +53,16 @@ export const getKafkaSchema = (events, key) => {
       {
         key,
         value: {
-          ...events[0]
-        }
-      }
-    ]
-  }
+          ...events[0],
+        },
+      },
+    ],
+  };
 
   // console.log(
   //   '🚀 ~ file: playerEvent.js:77 ~ getKafkaSchema ~ kafkaSchema:',
   //   JSON.stringify(kafkaSchema, null, 2)
   // )
 
-  return kafkaSchema
-}
+  return kafkaSchema;
+};

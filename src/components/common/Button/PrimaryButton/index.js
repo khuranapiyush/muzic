@@ -1,8 +1,8 @@
-import React from 'react'
-import { TouchableOpacity } from 'react-native-gesture-handler'
-import CText from '../../core/Text'
-import { screenWidth } from '../../../../utils/common'
-import CView from '../../core/View'
+import React from 'react';
+import { TouchableOpacity } from 'react-native-gesture-handler';
+import CText from '../../core/Text';
+import { screenWidth } from '../../../../utils/common';
+import CView from '../../core/View';
 
 const PrimaryButton = ({ label, handlePress }) => {
   return (
@@ -13,5 +13,5 @@ const PrimaryButton = ({ label, handlePress }) => {
         <CText>Login</CText>
       </TouchableOpacity>
     </CView>
-  )
-}
+  );
+};

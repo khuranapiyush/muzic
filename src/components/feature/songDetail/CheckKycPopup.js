@@ -1,16 +1,16 @@
-import React from 'react'
-import { Image, Pressable, TouchableOpacity } from 'react-native'
-import Modal from 'react-native-modal'
-import styles from './style'
-import appImages from '../../../resource/images'
-import CText from '../../common/core/Text'
-import CView from '../../common/core/View'
-import CButton from '../../common/core/Button'
+import React from 'react';
+import { Image, Pressable, TouchableOpacity } from 'react-native';
+import Modal from 'react-native-modal';
+import styles from './style';
+import appImages from '../../../resource/images';
+import CText from '../../common/core/Text';
+import CView from '../../common/core/View';
+import CButton from '../../common/core/Button';
 const CheckKycPopup = ({
   isOpen,
   title = 'Please Complete your KYC',
   handleClose,
-  handlePressBtn
+  handlePressBtn,
 }) => {
   return (
     <Modal
@@ -44,14 +44,14 @@ const CheckKycPopup = ({
               isGradientButton
               onPress={handlePressBtn}
               customStyles={{
-                buttonTextStyles: styles.submitBtn
+                buttonTextStyles: styles.submitBtn,
               }}
             />
           </CView>
         </CView>
       </CView>
     </Modal>
-  )
-}
+  );
+};
 
-export default CheckKycPopup
+export default CheckKycPopup;

@@ -1,9 +1,9 @@
-import { Slider } from '@miblanchard/react-native-slider'
-import React, { useCallback, useRef, useState } from 'react'
-import { Animated } from 'react-native'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { screenHeight } from '../../../../../../utils/common'
-import styles from './style'
+import { Slider } from '@miblanchard/react-native-slider';
+import React, { useCallback, useRef, useState } from 'react';
+import { Animated } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { screenHeight } from '../../../../../../utils/common';
+import styles from './style';
 
 const SeekControls = ({
   playerProps,
@@ -12,13 +12,13 @@ const SeekControls = ({
   duration,
   handleSeekStart: propsHandleSeekStart,
   handleSeekMove: propsHandleSeekMove,
-  handleSeekEnd: propsHandleSeekEnd
+  handleSeekEnd: propsHandleSeekEnd,
 }) => {
-  const [localSeek, setLocalSeek] = useState(seekValue)
+  const [localSeek, setLocalSeek] = useState(seekValue);
 
-  const thumbSize = useRef(new Animated.Value(1)).current
+  const thumbSize = useRef(new Animated.Value(1)).current;
 
-  const insets = useSafeAreaInsets()
+  const insets = useSafeAreaInsets();
 
   const renderThumbComponent = useCallback(() => {
     return (
@@ -29,39 +29,39 @@ const SeekControls = ({
             {
               scale: thumbSize.interpolate({
                 inputRange: [1, 1.3],
-                outputRange: [1, 1.3]
-              })
-            }
-          ]
+                outputRange: [1, 1.3],
+              }),
+            },
+          ],
         }}
       />
-    )
-  }, [thumbSize])
+    );
+  }, [thumbSize]);
 
   const startThumbAnimation = toValue => {
     Animated.timing(thumbSize, {
       toValue,
       duration: 200,
-      useNativeDriver: false
-    }).start()
-  }
+      useNativeDriver: false,
+    }).start();
+  };
 
   const handleSeekStart = value => {
-    setLocalSeek(value)
-    startThumbAnimation(1.3)
-    propsHandleSeekStart(value)
-  }
+    setLocalSeek(value);
+    startThumbAnimation(1.3);
+    propsHandleSeekStart(value);
+  };
 
   const handleSeekMove = value => {
-    setLocalSeek(value)
-    propsHandleSeekMove(value)
-  }
+    setLocalSeek(value);
+    propsHandleSeekMove(value);
+  };
 
   const handleSeekEnd = value => {
-    setLocalSeek(value)
-    startThumbAnimation(1)
-    propsHandleSeekEnd(value)
-  }
+    setLocalSeek(value);
+    startThumbAnimation(1);
+    propsHandleSeekEnd(value);
+  };
 
   return (
     <Slider
@@ -71,8 +71,8 @@ const SeekControls = ({
           width: `${
             100 - ((insets.left + insets.right) / screenHeight) * 100
           }%`,
-          bottom: '6%'
-        }
+          bottom: '6%',
+        },
       ]}
       value={isSeeking ? localSeek : seekValue}
       minimumValue={0}
@@ -86,7 +86,7 @@ const SeekControls = ({
       thumbTouchSize={{ width: 10, height: 10 }}
       trackStyle={styles.trackStyle}
     />
-  )
-}
+  );
+};
 
-export default SeekControls
+export default SeekControls;

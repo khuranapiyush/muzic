@@ -1,3 +1,3 @@
-const expiry = {}
+const expiry = {};
 
-export default expiry
+export default expiry;

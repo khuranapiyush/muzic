@@ -1,19 +1,19 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   wrapper: {
-    padding: 10
+    padding: 10,
   },
   container: {
     alignItems: 'center',
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
   label: {
     fontSize: 18,
-    marginBottom: 10
+    marginBottom: 10,
   },
   switchContainer: {},
-  switchText: {}
-})
+  switchText: {},
+});
 
-export default styles
+export default styles;

@@ -1,25 +1,25 @@
-import { useNavigationState } from '@react-navigation/native'
-import ROUTE_NAME from '../navigator/config/routeName'
+import { useNavigationState } from '@react-navigation/native';
+import ROUTE_NAME from '../navigator/config/routeName';
 
 const useIfHomeStack = () => {
-  const routes = useNavigationState(state => state.routes)
-  const mainStack = routes.find(route => route.name === ROUTE_NAME.MainStack)
+  const routes = useNavigationState(state => state.routes);
+  const mainStack = routes.find(route => route.name === ROUTE_NAME.MainStack);
 
   if (!mainStack) {
     // Handle the case where MainStack is not found in the routes
-    return false
+    return false;
   }
 
-  const homeStackIdx = mainStack.state?.routeNames.indexOf(ROUTE_NAME.HomeStack)
+  const homeStackIdx = mainStack.state?.routeNames.indexOf(ROUTE_NAME.HomeStack);
 
   if (homeStackIdx === -1) {
     // Handle the case where HomeStack is not found in the routeNames
-    return false
+    return false;
   }
 
-  const currentIdx = mainStack.state?.index
+  const currentIdx = mainStack.state?.index;
 
-  return homeStackIdx === currentIdx
-}
+  return homeStackIdx === currentIdx;
+};
 
-export default useIfHomeStack
+export default useIfHomeStack;

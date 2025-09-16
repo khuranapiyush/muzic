@@ -162,7 +162,7 @@ const UploadVideo = () => {
           <ActivityIndicator
             color="red"
             textContent={'Loading...'}
-            size={'large'}></ActivityIndicator>
+            size={'large'} />
           <CText style={{marginTop: 10}}>
             Please Wait, Your Video is Processing
           </CText>

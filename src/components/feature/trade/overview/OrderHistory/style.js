@@ -1,11 +1,11 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   wrapper: {
-    flex: 1
+    flex: 1,
   },
   itemSeparator: {
-    marginTop: 10
+    marginTop: 10,
   },
   loginWrapper: {
     marginTop: 30,
@@ -14,14 +14,14 @@ const styles = StyleSheet.create({
     borderColor: '#DADADA',
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: '#FFF'
+    backgroundColor: '#FFF',
   },
   submitBtn: { fontWeight: '700' },
   btnContainer: {
-    marginTop: 10
+    marginTop: 10,
   },
   loadingStyle: {
-    paddingTop: 20
-  }
-})
-export default styles
+    paddingTop: 20,
+  },
+});
+export default styles;

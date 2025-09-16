@@ -1,33 +1,33 @@
-import get from 'lodash/get'
-import React, { useCallback, useContext } from 'react'
-import { Image, Keyboard, Pressable } from 'react-native'
-import { useDispatch } from 'react-redux'
-import { setFullModePlayer } from '../../../../stores/slices/watch'
+import get from 'lodash/get';
+import React, { useCallback, useContext } from 'react';
+import { Image, Keyboard, Pressable } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { setFullModePlayer } from '../../../../stores/slices/watch';
 import {
   numberFormatter,
   screenWidth,
-  timeSince
-} from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import { getAppConfig } from '../../../../constants/code'
-import Colors from '../../../common/Colors'
-import { ThemeContext } from '../../../../context/ThemeContext'
+  timeSince,
+} from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import { getAppConfig } from '../../../../constants/code';
+import Colors from '../../../common/Colors';
+import { ThemeContext } from '../../../../context/ThemeContext';
 
 const ListView = ({ data, index, searchQuery }) => {
-  const dispatch = useDispatch()
-  const videoTitle = get(data, 'items[0].title', 'Title')
-  const imageUrl = get(data, 'items[0].background.value', null)
-  const imgWidth = screenWidth / 3 - 10
+  const dispatch = useDispatch();
+  const videoTitle = get(data, 'items[0].title', 'Title');
+  const imageUrl = get(data, 'items[0].background.value', null);
+  const imgWidth = screenWidth / 3 - 10;
 
-  const views = get(data, 'items[0].stats.views', '0')
-  const createdAt = get(data, 'items[0].createdAt', '')
+  const views = get(data, 'items[0].stats.views', '0');
+  const createdAt = get(data, 'items[0].createdAt', '');
 
-  const chName = get(data, 'items[0].profile.name', '')
+  const chName = get(data, 'items[0].profile.name', '');
 
   const handleCardClick = useCallback(() => {
-    Keyboard.dismiss()
+    Keyboard.dismiss();
 
     const videoData = {
       ...data.items[0],
@@ -37,20 +37,20 @@ const ListView = ({ data, index, searchQuery }) => {
         order: index + 1,
         ...(searchQuery && { searchKeyWord: searchQuery }),
         viewType: data?.viewType,
-        type: data?.items?.[0]?.type || 'video'
-      }
-    }
+        type: data?.items?.[0]?.type || 'video',
+      },
+    };
     dispatch(
       setFullModePlayer({
         isVisible: true,
-        videoDetail: videoData
+        videoDetail: videoData,
       })
-    )
-  }, [data.items, data.viewType, dispatch, index, searchQuery])
+    );
+  }, [data.items, data.viewType, dispatch, index, searchQuery]);
 
   const {
-    theme: { mode }
-  } = useContext(ThemeContext)
+    theme: { mode },
+  } = useContext(ThemeContext);
 
   return (
     <>
@@ -62,7 +62,7 @@ const ListView = ({ data, index, searchQuery }) => {
               style={{
                 width: imgWidth,
                 height: imgWidth * (193 / 343),
-                borderRadius: 10
+                borderRadius: 10,
               }}
               resizeMode="contain"
             />
@@ -94,7 +94,7 @@ const ListView = ({ data, index, searchQuery }) => {
         </Pressable>
       )}
     </>
-  )
-}
+  );
+};
 
-export default ListView
+export default ListView;

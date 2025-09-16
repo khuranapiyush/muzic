@@ -1,11 +1,11 @@
-import React from 'react'
-import { Image, Modal } from 'react-native'
+import React from 'react';
+import { Image, Modal } from 'react-native';
 
-import styles from './style'
-import appImages from '../../../../resource/images'
-import CButton from '../../../common/core/Button'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
+import styles from './style';
+import appImages from '../../../../resource/images';
+import CButton from '../../../common/core/Button';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
 
 const UploadSuccessModal = ({ isVisible, onClose }) => {
   return (
@@ -39,7 +39,7 @@ const UploadSuccessModal = ({ isVisible, onClose }) => {
         </CView>
       </CView>
     </Modal>
-  )
-}
+  );
+};
 
-export default UploadSuccessModal
+export default UploadSuccessModal;

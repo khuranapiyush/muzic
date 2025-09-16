@@ -1,16 +1,16 @@
-import React from 'react'
-import CView from '../../../../../common/core/View'
-import CText from '../../../../../common/core/Text'
-import getStyles from './styles'
+import React from 'react';
+import CView from '../../../../../common/core/View';
+import CText from '../../../../../common/core/Text';
+import getStyles from './styles';
 import {
   calculateProfitLoss,
-  dollarToInrWithRupeeSign
-} from '../../../../../../utils/common'
-import { useTheme } from '@react-navigation/native'
+  dollarToInrWithRupeeSign,
+} from '../../../../../../utils/common';
+import { useTheme } from '@react-navigation/native';
 
 const DashboardInfoCard = ({ data, type = '' }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
   return (
     <CView style={styles.wrapper}>
       <CView row style={styles.container}>
@@ -78,7 +78,7 @@ const DashboardInfoCard = ({ data, type = '' }) => {
         </CView>
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default DashboardInfoCard
+export default DashboardInfoCard;

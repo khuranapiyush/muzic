@@ -1,15 +1,15 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
-    width: '100%'
+    width: '100%',
   },
   percentTextFilledColor: {
-    color: '#FFF'
+    color: '#FFF',
   },
   percentText: {
-    position: 'absolute'
-  }
-})
+    position: 'absolute',
+  },
+});
 
-export default styles
+export default styles;

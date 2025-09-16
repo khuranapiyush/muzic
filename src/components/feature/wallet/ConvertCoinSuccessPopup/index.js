@@ -1,22 +1,22 @@
-import LottieView from 'lottie-react-native'
-import React, { useEffect, useState } from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import Modal from 'react-native-modal'
-import appImages from '../../../../resource/images'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import appAnimations from '../../../../resource/animation'
-import RenderHTML from 'react-native-render-html'
-import AutoHeightImage from 'react-native-auto-height-image'
-import Toaster from '../../../common/Toaster'
+import LottieView from 'lottie-react-native';
+import React, { useEffect, useState } from 'react';
+import { Image, TouchableOpacity } from 'react-native';
+import Modal from 'react-native-modal';
+import appImages from '../../../../resource/images';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import appAnimations from '../../../../resource/animation';
+import RenderHTML from 'react-native-render-html';
+import AutoHeightImage from 'react-native-auto-height-image';
+import Toaster from '../../../common/Toaster';
 
 const ConvertCoinSuccessPopup = ({
   isOpen,
   handleRedeem,
   handleClose,
-  data
+  data,
 }) => {
   return (
     <Modal
@@ -51,7 +51,7 @@ const ConvertCoinSuccessPopup = ({
                     <RenderHTML
                       contentWidth={screenWidth}
                       source={{
-                        html: item.text
+                        html: item.text,
                       }}
                       tagsStyles={tagsStyles}
                     />
@@ -80,15 +80,15 @@ const ConvertCoinSuccessPopup = ({
               customStyles={{
                 buttonTextStyles: styles.submitBtn,
                 buttonStyle: {
-                  minWidth: '100%'
-                }
+                  minWidth: '100%',
+                },
               }}
             />
           </CView>
         </CView>
       </CView>
     </Modal>
-  )
-}
+  );
+};
 
-export default ConvertCoinSuccessPopup
+export default ConvertCoinSuccessPopup;

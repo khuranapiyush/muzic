@@ -1,126 +1,126 @@
-import get from 'lodash/get'
-import moment from 'moment'
-import React, { useEffect, useRef, useState } from 'react'
-import { ActivityIndicator, TouchableOpacity } from 'react-native'
-import { FlatList } from 'react-native-gesture-handler'
-import IonIcon from 'react-native-vector-icons/Ionicons'
-import { useMutation } from '@tanstack/react-query'
-import { getNFTPrice, getTradingGraph } from '../../../api/trade'
-import { dollarToInrWithRupeeSign } from '../../../utils/common'
-import CText from '../../common/core/Text'
-import CView from '../../common/core/View'
-import NewGraphComponent from './newGrpahComponent'
-import getStyles from './style'
-import Colors from '../../common/Colors'
+import get from 'lodash/get';
+import moment from 'moment';
+import React, { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, TouchableOpacity } from 'react-native';
+import { FlatList } from 'react-native-gesture-handler';
+import IonIcon from 'react-native-vector-icons/Ionicons';
+import { useMutation } from '@tanstack/react-query';
+import { getNFTPrice, getTradingGraph } from '../../../api/trade';
+import { dollarToInrWithRupeeSign } from '../../../utils/common';
+import CText from '../../common/core/Text';
+import CView from '../../common/core/View';
+import NewGraphComponent from './newGrpahComponent';
+import getStyles from './style';
+import Colors from '../../common/Colors';
 
 const TradingGraph = ({ slug = null, data, tierId = null, theme }) => {
-  const styles = getStyles(theme)
-  const [currentPrice, setCurrentPrice] = useState(null)
-  const [isBuy, setIsBuy] = useState(true)
-  const [isLoading, setIsLoading] = useState(true)
-  const [allGraphData, setAllGraphData] = useState([])
-  const renderRef = useRef(0)
+  const styles = getStyles(theme);
+  const [currentPrice, setCurrentPrice] = useState(null);
+  const [isBuy, setIsBuy] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+  const [allGraphData, setAllGraphData] = useState([]);
+  const renderRef = useRef(0);
   useEffect(() => {
-    renderRef.current = renderRef.current + 1
-  })
+    renderRef.current = renderRef.current + 1;
+  });
 
   const { mutate: getCurrentNFTPrice } = useMutation(
     data => getNFTPrice(data),
     {
       onSuccess: response => {
-        setCurrentPrice(get(response, 'data.data', null))
+        setCurrentPrice(get(response, 'data.data', null));
       },
       onError: error => {
-        console.log('Error', error.response.data)
-      }
+        console.log('Error', error.response.data);
+      },
     }
-  )
+  );
 
-  const [graphLabel, setGraphLabel] = useState('1W')
-  const tradeGraphInterval = ['1D', '1W', '1M', '6M']
-  const [tradeGraphData, setTradeGraphData] = useState(null)
+  const [graphLabel, setGraphLabel] = useState('1W');
+  const tradeGraphInterval = ['1D', '1W', '1M', '6M'];
+  const [tradeGraphData, setTradeGraphData] = useState(null);
 
   useEffect(() => {
     if (tierId != null) {
-      setCurrentPrice(null)
+      setCurrentPrice(null);
       getCurrentNFTPrice({
         tierId,
-        quantity: 1
-      })
+        quantity: 1,
+      });
     }
-  }, [getCurrentNFTPrice, tierId])
+  }, [getCurrentNFTPrice, tierId]);
 
   const { mutate: getTradingGraphData } = useMutation(
     data => getTradingGraph(data),
     {
       onSuccess: response => {
-        setIsLoading(false)
-        const graph_data = get(response, 'data.data', null)
-        setTradeGraphData(graph_data)
+        setIsLoading(false);
+        const graph_data = get(response, 'data.data', null);
+        setTradeGraphData(graph_data);
 
         setAllGraphData(prev => [
           ...prev,
           {
             label: graphLabel,
-            data: graph_data
-          }
-        ])
+            data: graph_data,
+          },
+        ]);
       },
 
       onError: error => {
-        console.log('Error', error.response.data)
-      }
+        console.log('Error', error.response.data);
+      },
     }
-  )
+  );
 
   useEffect(() => {
-    let obj
+    let obj;
     if (tierId != null && currentPrice != null) {
       const selectedGraph = allGraphData?.filter(
         item => item?.label == graphLabel
-      )
+      );
       if (selectedGraph?.length) {
-        setTradeGraphData(selectedGraph[0]?.data)
+        setTradeGraphData(selectedGraph[0]?.data);
       } else {
-        let label = graphLabel
+        let label = graphLabel;
         if (label == '1D') {
           obj = {
             tierId,
             fromDate: moment().subtract(1, 'days'),
-            interval: 300
-          }
+            interval: 300,
+          };
         } else if (label == '1W') {
           obj = {
             tierId,
             fromDate: moment().subtract(7, 'days'),
-            interval: 900
-          }
+            interval: 900,
+          };
         } else if (label == '1M') {
           obj = {
             tierId,
             fromDate: moment().subtract(1, 'months'),
-            interval: 7200
-          }
+            interval: 7200,
+          };
         } else if (label == '6M') {
           obj = {
             tierId,
             fromDate: moment().subtract(6, 'months'),
-            interval: 7200
-          }
+            interval: 7200,
+          };
         }
-        setIsLoading(true)
-        getTradingGraphData(obj)
+        setIsLoading(true);
+        getTradingGraphData(obj);
       }
     }
-  }, [tierId, graphLabel, currentPrice, allGraphData, getTradingGraphData])
+  }, [tierId, graphLabel, currentPrice, allGraphData, getTradingGraphData]);
 
   const renderGraphInterval = ({ item, index }) => {
-    const selected = graphLabel == item
+    const selected = graphLabel == item;
     return (
       <TouchableOpacity
         disabled={selected}
         onPress={() => {
-          setGraphLabel(item)
+          setGraphLabel(item);
         }}>
         <CView
           style={
@@ -130,18 +130,18 @@ const TradingGraph = ({ slug = null, data, tierId = null, theme }) => {
             style={{
               color: selected
                 ? Colors[theme].commonWhite
-                : Colors[theme].commonBlack
+                : Colors[theme].commonBlack,
             }}>
             {item}
           </CText>
         </CView>
       </TouchableOpacity>
-    )
-  }
+    );
+  };
 
   useEffect(() => {
-    setAllGraphData([])
-  }, [tierId])
+    setAllGraphData([]);
+  }, [tierId]);
 
   return (
     <CView>
@@ -150,7 +150,7 @@ const TradingGraph = ({ slug = null, data, tierId = null, theme }) => {
           <CView>
             <TouchableOpacity
               onPress={() => {
-                setIsBuy(!isBuy)
+                setIsBuy(!isBuy);
               }}>
               <CView row>
                 <CText>
@@ -234,7 +234,7 @@ const TradingGraph = ({ slug = null, data, tierId = null, theme }) => {
         {isLoading == true && (
           <ActivityIndicator
             style={{
-              height: tradeGraphData == null ? 200 : null
+              height: tradeGraphData == null ? 200 : null,
             }}
             size={'large'}
             color={Colors[theme].brandPink}
@@ -250,7 +250,7 @@ const TradingGraph = ({ slug = null, data, tierId = null, theme }) => {
         )}
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default TradingGraph
+export default TradingGraph;

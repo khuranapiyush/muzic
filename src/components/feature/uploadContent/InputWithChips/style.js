@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 export default StyleSheet.create({
   wrapper: {},
@@ -8,25 +8,25 @@ export default StyleSheet.create({
     borderRadius: 12,
     fontSize: 14,
     padding: 15,
-    backgroundColor: '#FFF'
+    backgroundColor: '#FFF',
   },
   arrowIcon: {
     alignSelf: 'flex-end',
     width: 20,
     height: 30,
-    paddingLeft: 10
+    paddingLeft: 10,
   },
   label: {
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   inputContainer: {
-    justifyContent: 'space-between'
+    justifyContent: 'space-between',
   },
 
   container: {
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   chipsContainer: {
     backgroundColor: '#FFF',
@@ -38,20 +38,20 @@ export default StyleSheet.create({
     borderRadius: 12,
     padding: 10,
     marginTop: 10,
-    width: '100%'
+    width: '100%',
   },
   chip: {
     backgroundColor: '#F4F6FA',
     borderRadius: 8,
     paddingHorizontal: 8,
-    margin: 4
+    margin: 4,
   },
   textInput: {
     padding: 6,
-    fontSize: 16
+    fontSize: 16,
   },
   chipsLabel: {
     color: 'red',
-    fontSize: 14
-  }
-})
+    fontSize: 14,
+  },
+});

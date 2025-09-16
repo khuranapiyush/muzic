@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
-import CView from '../../../common/core/View'
-import styles from './style'
-import { Switch } from 'react-native-switch'
+import React, { useState } from 'react';
+import CView from '../../../common/core/View';
+import styles from './style';
+import { Switch } from 'react-native-switch';
 
 const MonetizeToggle = ({
   isActive = false,
@@ -10,14 +10,14 @@ const MonetizeToggle = ({
   inActiveText = 'No',
   barHeight = 40,
   backgroundActive = '#48B16E',
-  isDisabled = false
+  isDisabled = false,
 }) => {
-  const [isEnabled, setIsEnabled] = useState(isActive)
+  const [isEnabled, setIsEnabled] = useState(isActive);
 
   const toggleSwitch = () => {
-    setIsEnabled(previousState => !previousState)
-    setToggle(!isEnabled)
-  }
+    setIsEnabled(previousState => !previousState);
+    setToggle(!isEnabled);
+  };
 
   return (
     <CView style={styles.wrapper}>
@@ -40,7 +40,7 @@ const MonetizeToggle = ({
         />
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default MonetizeToggle
+export default MonetizeToggle;

@@ -1,20 +1,20 @@
-import { useNavigation } from '@react-navigation/native'
-import React from 'react'
-import { Image, Pressable } from 'react-native'
-import LinearGradient from 'react-native-linear-gradient'
-import { SvgUri } from 'react-native-svg'
-import appImages from '../../../../../resource/images'
-import ProgressBar from '../../../../common/ProgressBar'
-import CText from '../../../../common/core/Text'
-import CView from '../../../../common/core/View'
-import styles from './style'
+import { useNavigation } from '@react-navigation/native';
+import React from 'react';
+import { Image, Pressable } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { SvgUri } from 'react-native-svg';
+import appImages from '../../../../../resource/images';
+import ProgressBar from '../../../../common/ProgressBar';
+import CText from '../../../../common/core/Text';
+import CView from '../../../../common/core/View';
+import styles from './style';
 
 const LevelProgress = ({ config }) => {
-  const navigator = useNavigation()
+  const navigator = useNavigation();
 
   const handleWatchVideos = () => {
-    navigator.navigate('Home')
-  }
+    navigator.navigate('Home');
+  };
 
   return (
     <CView>
@@ -32,7 +32,7 @@ const LevelProgress = ({ config }) => {
             ) : (
               <Image
                 source={{
-                  uri: config.currentLevel
+                  uri: config.currentLevel,
                 }}
                 style={styles.levelIcon}
               />
@@ -55,7 +55,7 @@ const LevelProgress = ({ config }) => {
             ) : (
               <Image
                 source={{
-                  uri: config.nextLevel
+                  uri: config.nextLevel,
                 }}
                 style={styles.levelIcon}
               />
@@ -68,7 +68,7 @@ const LevelProgress = ({ config }) => {
         <Image style={styles.backIcon} source={appImages.arrowBack} />
       </Pressable>
     </CView>
-  )
-}
+  );
+};
 
-export default LevelProgress
+export default LevelProgress;

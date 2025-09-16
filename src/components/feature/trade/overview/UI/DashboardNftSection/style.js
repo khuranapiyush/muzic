@@ -1,11 +1,11 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
     wrapper: {
       paddingHorizontal: 5,
-      marginBottom: 20
+      marginBottom: 20,
     },
 
     cardContainer: {
@@ -14,7 +14,7 @@ const getStyles = theme => {
       borderColor: Colors[theme].cardBorderColor,
       borderWidth: 1,
       borderRadius: 10,
-      backgroundColor: Colors[theme].cardBg
+      backgroundColor: Colors[theme].cardBg,
     },
     cardContainerWithSpace: {
       marginTop: 10,
@@ -23,33 +23,33 @@ const getStyles = theme => {
       borderWidth: 1,
       borderRadius: 10,
       backgroundColor: Colors[theme].cardBg,
-      marginHorizontal: 5
+      marginHorizontal: 5,
     },
     contentContainer: {
-      padding: 10
+      padding: 10,
     },
 
     imageStyle: {
       borderRadius: 10,
       height: 130,
-      width: '100%'
+      width: '100%',
     },
     itemContainer: {
-      marginTop: 2
+      marginTop: 2,
     },
     profit: {
-      color: '#3FBB5A'
+      color: '#3FBB5A',
     },
     loss: {
-      color: 'red'
+      color: 'red',
     },
     marginTop15: {
-      marginTop: 15
+      marginTop: 15,
     },
     headerContainer: {
-      justifyContent: 'space-between'
-    }
-  })
-}
+      justifyContent: 'space-between',
+    },
+  });
+};
 
-export default getStyles
+export default getStyles;

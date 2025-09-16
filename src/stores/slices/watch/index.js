@@ -1,13 +1,13 @@
-import { createSlice } from '@reduxjs/toolkit'
-import { setMiniPlayer } from '../player'
+import { createSlice } from '@reduxjs/toolkit';
+import { setMiniPlayer } from '../player';
 
 const initialState = {
   isVisible: false,
   videoDetail: {},
   watchEvent: {},
   watchId: null,
-  mode: 'max'
-}
+  mode: 'max',
+};
 
 const watch = createSlice({
   name: 'watch',
@@ -15,37 +15,37 @@ const watch = createSlice({
 
   reducers: {
     setIsWatchPageVisible: (state, action) => {
-      state.isVisible = action.payload
+      state.isVisible = action.payload;
     },
     setWatchId: (state, action) => {
-      state.watchId = action.payload
+      state.watchId = action.payload;
     },
     setVideoDetail: (state, action) => {
-      state.videoDetail = action.payload
+      state.videoDetail = action.payload;
     },
     setWatchEvent: (state, action) => {
-      state.watchEvent = action.payload
+      state.watchEvent = action.payload;
     },
     setFullModePlayer: (state, action) => {
-      const { videoDetail } = action.payload
-      state.isVisible = true
-      state.videoDetail = videoDetail
-      state.mode = 'shouldBeMax'
+      const { videoDetail } = action.payload;
+      state.isVisible = true;
+      state.videoDetail = videoDetail;
+      state.mode = 'shouldBeMax';
     },
     setMiniModePlayer: (state, action) => {
-      state.isVisible = true
-      state.mode = 'shouldBeMini'
+      state.isVisible = true;
+      state.mode = 'shouldBeMini';
     },
     setWatchMode: (state, action) => {
-      state.mode = action.payload
-    }
+      state.mode = action.payload;
+    },
   },
   extraReducers: builder => {
     builder.addCase(setMiniPlayer, (state, action) => {
-      state.mode = action.payload ? 'mini' : 'max'
-    })
-  }
-})
+      state.mode = action.payload ? 'mini' : 'max';
+    });
+  },
+});
 
 export const {
   setIsWatchPageVisible,
@@ -54,7 +54,7 @@ export const {
   setMiniModePlayer,
   setWatchMode,
   setWatchId,
-  setWatchEvent
-} = watch.actions
+  setWatchEvent,
+} = watch.actions;
 
-export default watch.reducer
+export default watch.reducer;

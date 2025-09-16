@@ -204,7 +204,7 @@ const MarketPlaceBuy = ({route}) => {
     };
 
     if (orderType == 'Limit') {
-      requestBody['price'] = round(price / 80, 6);
+      requestBody.price = round(price / 80, 6);
     }
     ConfirmNFT(requestBody);
   }, [

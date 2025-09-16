@@ -1,26 +1,26 @@
-import React from 'react'
-import { StyleSheet } from 'react-native'
-import { Image } from 'react-native'
+import React from 'react';
+import { StyleSheet } from 'react-native';
+import { Image } from 'react-native';
 
-import Icon from 'react-native-vector-icons/Ionicons'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import appImages from '../../../../resource/images'
+import Icon from 'react-native-vector-icons/Ionicons';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import appImages from '../../../../resource/images';
 
 const styles = StyleSheet.create({
   privilegeText: {
     fontSize: 14,
     fontWeight: '400',
     lineHeight: 17,
-    marginLeft: 8
+    marginLeft: 8,
   },
   benefits: {
     fontSize: 16,
     fontWeight: '400',
     lineHeight: 19,
-    marginLeft: 8
-  }
-})
+    marginLeft: 8,
+  },
+});
 
 const PrivilegeText = ({ text }) => {
   return (
@@ -32,8 +32,8 @@ const PrivilegeText = ({ text }) => {
         </CView>
       )}
     </CView>
-  )
-}
+  );
+};
 
 const TopPrivilegeText = ({ text }) => {
   return (
@@ -43,8 +43,8 @@ const TopPrivilegeText = ({ text }) => {
         {text}
       </CText>
     </CView>
-  )
-}
+  );
+};
 
 const BenefitsText = ({ text }) => {
   return (
@@ -56,7 +56,7 @@ const BenefitsText = ({ text }) => {
         </CView>
       )}
     </>
-  )
-}
+  );
+};
 
-export { PrivilegeText, TopPrivilegeText, BenefitsText }
+export { PrivilegeText, TopPrivilegeText, BenefitsText };

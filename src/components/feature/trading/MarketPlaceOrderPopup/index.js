@@ -1,74 +1,74 @@
-import { useNavigation, useTheme } from '@react-navigation/native'
-import { useMutation } from '@tanstack/react-query'
-import React, { useCallback, useEffect, useState } from 'react'
-import { Image, ScrollView, TouchableOpacity } from 'react-native'
-import Modal from 'react-native-modal'
-import { useDispatch } from 'react-redux'
-import { cancelOrder, getFanCardBuySellStatus } from '../../../../api/trade'
-import useToaster from '../../../../hooks/useToaster'
-import ROUTE_NAME from '../../../../navigator/config/routeName'
-import appImages from '../../../../resource/images'
-import { setChildTabIndex } from '../../../../stores/slices/trade'
-import { dollarToInrWithRupeeSign } from '../../../../utils/common'
-import ConfirmDialogBox from '../../../common/Modal/ConfirmBox'
-import Toaster from '../../../common/Toaster'
-import CButton from '../../../common/core/Button'
-import Divider from '../../../common/core/Divider'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './style'
+import { useNavigation, useTheme } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Image, ScrollView, TouchableOpacity } from 'react-native';
+import Modal from 'react-native-modal';
+import { useDispatch } from 'react-redux';
+import { cancelOrder, getFanCardBuySellStatus } from '../../../../api/trade';
+import useToaster from '../../../../hooks/useToaster';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
+import appImages from '../../../../resource/images';
+import { setChildTabIndex } from '../../../../stores/slices/trade';
+import { dollarToInrWithRupeeSign } from '../../../../utils/common';
+import ConfirmDialogBox from '../../../common/Modal/ConfirmBox';
+import Toaster from '../../../common/Toaster';
+import CButton from '../../../common/core/Button';
+import Divider from '../../../common/core/Divider';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './style';
 
 const MarketPlaceOrderPopup = ({
   isVisible,
   onClose,
   config = { type: 'custom' },
   orderId = '',
-  type = 'BUY'
+  type = 'BUY',
 }) => {
   const handleSwipeComplete = useCallback(() => {
-    onClose()
-  }, [onClose])
+    onClose();
+  }, [onClose]);
 
-  const { showToaster } = useToaster()
+  const { showToaster } = useToaster();
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
-  const navigation = useNavigation()
-  const [orderResult, setOrderResult] = useState({})
-  const [orderStatus, setOrderStatus] = useState()
+  const navigation = useNavigation();
+  const [orderResult, setOrderResult] = useState({});
+  const [orderStatus, setOrderStatus] = useState();
 
-  const [isConfirmBoxOpen, setIsConfirmBoxOpen] = useState(false)
+  const [isConfirmBoxOpen, setIsConfirmBoxOpen] = useState(false);
 
   const { mutate: getStatus } = useMutation(
     () => getFanCardBuySellStatus({ orderId: orderId }),
     {
       onSuccess: ({ data }) => {
-        setOrderStatus(data?.results?.[0]?.status)
-        setOrderResult(data?.results?.[0])
+        setOrderStatus(data?.results?.[0]?.status);
+        setOrderResult(data?.results?.[0]);
       },
       onError: error => {
-        alert(error?.response?.data?.message)
-      }
+        alert(error?.response?.data?.message);
+      },
     }
-  )
+  );
 
   useEffect(() => {
-    let timer
-    timer = setTimeout(() => getStatus(), 2000)
+    let timer;
+    timer = setTimeout(() => getStatus(), 2000);
     return () => {
-      clearTimeout(timer)
-      setOrderResult({})
-      setOrderStatus('')
-    }
-  }, [getStatus])
+      clearTimeout(timer);
+      setOrderResult({});
+      setOrderStatus('');
+    };
+  }, [getStatus]);
 
   const handleCancelOrder = () => {
-    handleCancelOrderApi()
-  }
+    handleCancelOrderApi();
+  };
   const handleNo = () => {
-    setIsConfirmBoxOpen(false)
-  }
+    setIsConfirmBoxOpen(false);
+  };
 
   const PartialSuccessList = () => (
     <CView style={styles.listContainer}>
@@ -121,7 +121,7 @@ const MarketPlaceOrderPopup = ({
         </CText>
       </CView>
     </CView>
-  )
+  );
 
   const SuccessList = () => (
     <CView style={styles.listContainer}>
@@ -155,26 +155,26 @@ const MarketPlaceOrderPopup = ({
         </CText>
       </CView>
     </CView>
-  )
+  );
 
   const handleCheckPortfolio = useCallback(() => {
-    onClose()
-    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0, childIdx: 1 })
-  }, [navigation, onClose])
+    onClose();
+    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0, childIdx: 1 });
+  }, [navigation, onClose]);
 
   const handleOrderHistory = useCallback(() => {
-    onClose()
-    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0, childIdx: 2 })
-  }, [navigation, onClose])
+    onClose();
+    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0, childIdx: 2 });
+  }, [navigation, onClose]);
 
   const handleCheckOrder = useCallback(() => {
-    onClose()
-    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0, childIdx: 2 })
-  }, [navigation, onClose])
+    onClose();
+    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0, childIdx: 2 });
+  }, [navigation, onClose]);
 
   const handleCancelOrderBtn = useCallback(() => {
-    setIsConfirmBoxOpen(true)
-  }, [])
+    setIsConfirmBoxOpen(true);
+  }, []);
 
   const { mutate: handleCancelOrderApi } = useMutation(
     () => cancelOrder(orderId),
@@ -183,24 +183,24 @@ const MarketPlaceOrderPopup = ({
         showToaster({
           type: 'success',
           text1: 'Success',
-          text2: 'Order Canceled Successfully!'
-        })
-        setIsConfirmBoxOpen(false)
+          text2: 'Order Canceled Successfully!',
+        });
+        setIsConfirmBoxOpen(false);
       },
       onError: error => {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: error?.response?.data?.message
-        })
-        setIsConfirmBoxOpen(false)
-      }
+          text2: error?.response?.data?.message,
+        });
+        setIsConfirmBoxOpen(false);
+      },
     }
-  )
+  );
 
   const handleClosePopup = useCallback(() => {
-    setIsConfirmBoxOpen(false)
-  }, [])
+    setIsConfirmBoxOpen(false);
+  }, []);
 
   return (
     <CView>
@@ -320,8 +320,8 @@ const MarketPlaceOrderPopup = ({
                         customStyles={{
                           buttonTextStyles: styles.submitBtn,
                           buttonStyle: {
-                            minWidth: '45%'
-                          }
+                            minWidth: '45%',
+                          },
                         }}
                       />
                     ) : (
@@ -333,8 +333,8 @@ const MarketPlaceOrderPopup = ({
                         customStyles={{
                           buttonTextStyles: styles.submitBtn,
                           buttonStyle: {
-                            minWidth: '45%'
-                          }
+                            minWidth: '45%',
+                          },
                         }}
                       />
                     )}
@@ -348,8 +348,8 @@ const MarketPlaceOrderPopup = ({
                         customStyles={{
                           buttonTextStyles: styles.submitBtn,
                           buttonStyle: {
-                            minWidth: '45%'
-                          }
+                            minWidth: '45%',
+                          },
                         }}
                       />
                     ) : (
@@ -362,8 +362,8 @@ const MarketPlaceOrderPopup = ({
                         customStyles={{
                           buttonTextStyles: styles.submitBtn,
                           buttonStyle: {
-                            minWidth: '45%'
-                          }
+                            minWidth: '45%',
+                          },
                         }}
                       />
                     )}
@@ -387,7 +387,7 @@ const MarketPlaceOrderPopup = ({
         )}
       </Modal>
     </CView>
-  )
-}
+  );
+};
 
-export default MarketPlaceOrderPopup
+export default MarketPlaceOrderPopup;

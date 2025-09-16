@@ -1,10 +1,10 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useTheme } from '@react-navigation/native'
-import React, { useCallback } from 'react'
-import { SectionList, TouchableOpacity, SafeAreaView } from 'react-native'
-import getStyles from './AIHistory.styles'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
+import { useTheme } from '@react-navigation/native';
+import React, { useCallback } from 'react';
+import { SectionList, TouchableOpacity, SafeAreaView } from 'react-native';
+import getStyles from './AIHistory.styles';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
 
 const searchHistoryData = {
   searches: [
@@ -17,27 +17,27 @@ const searchHistoryData = {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
-        }
-      ]
+          style: 'Rock, Bold, Rage',
+        },
+      ],
     },
     {
       id: '2',
@@ -48,27 +48,27 @@ const searchHistoryData = {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
-        }
-      ]
+          style: 'Rock, Bold, Rage',
+        },
+      ],
     },
     {
       id: '3',
@@ -79,27 +79,27 @@ const searchHistoryData = {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
-        }
-      ]
+          style: 'Rock, Bold, Rage',
+        },
+      ],
     },
     {
       id: '4',
@@ -110,75 +110,75 @@ const searchHistoryData = {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
+          style: 'Rock, Bold, Rage',
         },
         {
           id: '101',
           songName: 'Rock, Bold, Rage',
           duration: '2:03 mins',
-          style: 'Rock, Bold, Rage'
-        }
-      ]
-    }
-  ]
-}
+          style: 'Rock, Bold, Rage',
+        },
+      ],
+    },
+  ],
+};
 
 const groupSearchHistoryByDate = data => {
   const sortedData = [...data].sort(
     (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-  )
+  );
 
   const grouped = sortedData.reduce((acc, item) => {
-    const date = new Date(item.timestamp)
-    const today = new Date()
-    const yesterday = new Date(today)
-    yesterday.setDate(yesterday.getDate() - 1)
+    const date = new Date(item.timestamp);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
 
-    let sectionTitle
+    let sectionTitle;
     if (date.toDateString() === today.toDateString()) {
-      sectionTitle = '2 hours ago'
+      sectionTitle = '2 hours ago';
     } else if (date.toDateString() === yesterday.toDateString()) {
-      sectionTitle = 'Yesterday'
+      sectionTitle = 'Yesterday';
     } else {
       sectionTitle = date.toLocaleDateString('en-US', {
         weekday: 'short',
         day: 'numeric',
-        month: 'short'
-      })
+        month: 'short',
+      });
     }
-    const existingSection = acc.find(section => section.title === sectionTitle)
+    const existingSection = acc.find(section => section.title === sectionTitle);
     if (existingSection) {
-      existingSection.data.push(item)
+      existingSection.data.push(item);
     } else {
       acc.push({
         title: sectionTitle,
-        data: [item]
-      })
+        data: [item],
+      });
     }
 
-    return acc
-  }, [])
+    return acc;
+  }, []);
 
-  return grouped
-}
+  return grouped;
+};
 
 const AIHistory = ({ setIsModalVisible, tabHeading }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
-  const sections = groupSearchHistoryByDate(searchHistoryData.searches)
+  const sections = groupSearchHistoryByDate(searchHistoryData.searches);
 
   const renderItem = useCallback(
     ({ item }) => (
@@ -188,8 +188,8 @@ const AIHistory = ({ setIsModalVisible, tabHeading }) => {
           setIsModalVisible({
             data: item,
             isVisible: true,
-            tabHeading: tabHeading
-          })
+            tabHeading: tabHeading,
+          });
         }}>
         <CView style={styles.musicIconContainer}>
           <CText style={styles.musicIcon}>♪</CText>
@@ -200,14 +200,14 @@ const AIHistory = ({ setIsModalVisible, tabHeading }) => {
       </TouchableOpacity>
     ),
     []
-  )
+  );
 
   const renderSectionHeader = useCallback(
     ({ section: { title } }) => (
       <CText style={styles.sectionHeader}>{title}</CText>
     ),
     []
-  )
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -220,7 +220,7 @@ const AIHistory = ({ setIsModalVisible, tabHeading }) => {
         contentContainerStyle={styles.listContent}
       />
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default AIHistory
+export default AIHistory;

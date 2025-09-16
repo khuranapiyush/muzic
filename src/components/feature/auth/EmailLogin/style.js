@@ -1,41 +1,41 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: '4%',
     paddingVertical: 16,
-    height: '100%'
+    height: '100%',
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 24
+    marginBottom: 24,
   },
   backBtnIcon: { tintColor: '#000', height: 30, width: 30 },
   labelContainer: {
     marginBottom: 32,
-    alignItems: 'center'
+    alignItems: 'center',
   },
   headerTextContainer: { flex: 1 },
   headerText: { fontSize: 20, fontWeight: '600' },
   formContainer: {
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   emailContainer: { width: '100%', marginBottom: 24 },
   formLabel: { fontSize: 16, fontWeight: '600', marginBottom: 10 },
   passwordContainer: { width: '100%' },
   btnContainer: { marginVertical: 16 },
   submitBtn: {
-    buttonTextStyles: { fontSize: 18, fontWeight: '700' }
+    buttonTextStyles: { fontSize: 18, fontWeight: '700' },
   },
   termsContainer: {
     marginTop: 16,
     alignItems: 'center',
-    justifyContent: 'center'
+    justifyContent: 'center',
   },
   termsCheckBoxContainer: {
     justifyContent: 'flex-start',
-    marginRight: 4
+    marginRight: 4,
   },
   termsTextContainer: { flex: 1 },
   signUpInfoContainer: {
@@ -44,11 +44,11 @@ const styles = StyleSheet.create({
     left: '29%',
     margin: 'auto',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   signInContainer: { marginBottom: 17 },
   signUpInfoText: { fontWeight: '500' },
-  signUpText: { fontWeight: '500', color: '#E94278' }
-})
+  signUpText: { fontWeight: '500', color: '#E94278' },
+});
 
-export default styles
+export default styles;

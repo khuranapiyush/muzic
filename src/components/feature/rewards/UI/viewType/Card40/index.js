@@ -1,16 +1,16 @@
-import { useTheme } from '@react-navigation/native'
-import React, { useCallback, useState } from 'react'
-import { FlatList, Image, Pressable, TouchableOpacity } from 'react-native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import Modal from 'react-native-modal'
-import appImages from '../../../../../../resource/images'
-import { screenWidth } from '../../../../../../utils/common'
-import CButton from '../../../../../common/core/Button'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './style'
+import { useTheme } from '@react-navigation/native';
+import React, { useCallback, useState } from 'react';
+import { FlatList, Image, Pressable, TouchableOpacity } from 'react-native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import Modal from 'react-native-modal';
+import appImages from '../../../../../../resource/images';
+import { screenWidth } from '../../../../../../utils/common';
+import CButton from '../../../../../common/core/Button';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './style';
 
-const customStyles = { spacing: 16 }
+const customStyles = { spacing: 16 };
 
 const Card40 = ({
   label,
@@ -21,38 +21,38 @@ const Card40 = ({
   handleGameAction,
   ...rest
 }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
-  const [isCashOut, setIsCashOut] = useState(false)
-  const [options, setOptions] = useState([])
-  const [selectedOptions, setSelectedOptions] = useState('')
-  const [selectedItem, setSelectedItem] = useState([])
+  const [isCashOut, setIsCashOut] = useState(false);
+  const [options, setOptions] = useState([]);
+  const [selectedOptions, setSelectedOptions] = useState('');
+  const [selectedItem, setSelectedItem] = useState([]);
 
   const handleClose = () => {
-    setIsCashOut(!isCashOut)
-  }
+    setIsCashOut(!isCashOut);
+  };
 
   const handleClick = useCallback(
     idx => {
       if (items[idx]?.metaData?.gameName == 'CASHOUT') {
-        setOptions(items[idx]?.metaData?.subtype)
-        setSelectedOptions(items[idx]?.metaData?.subtype[0])
-        setSelectedItem(items[idx])
+        setOptions(items[idx]?.metaData?.subtype);
+        setSelectedOptions(items[idx]?.metaData?.subtype[0]);
+        setSelectedItem(items[idx]);
 
-        setIsCashOut(true)
+        setIsCashOut(true);
       } else {
-        handleGameAction(items[idx])
+        handleGameAction(items[idx]);
       }
     },
     [handleGameAction, items]
-  )
+  );
 
   const handleRedeem = () => {
-    let obj = { action: selectedOptions, subGameId: selectedItem.action.gameId }
-    setIsCashOut(false)
-    handleGameAction(obj)
-  }
+    let obj = { action: selectedOptions, subGameId: selectedItem.action.gameId };
+    setIsCashOut(false);
+    handleGameAction(obj);
+  };
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -62,26 +62,26 @@ const Card40 = ({
             source={{
               uri: item?.isLocked
                 ? item?.metaData?.lockedCardImageUrl
-                : item?.metaData?.cardImageUrl
+                : item?.metaData?.cardImageUrl,
             }}
             width={screenWidth * 0.4 - customStyles.spacing * 2}
           />
         </Pressable>
-      )
+      );
     },
     [handleClick]
-  )
+  );
 
   const HorizontalItemSeparator = useCallback(() => {
     return (
       <CView
         style={{
           width: customStyles.spacing,
-          ...(feedType == 'vertical' && { height: customStyles.spacing })
+          ...(feedType == 'vertical' && { height: customStyles.spacing }),
         }}
       />
-    )
-  }, [feedType])
+    );
+  }, [feedType]);
 
   return (
     <>
@@ -109,19 +109,19 @@ const Card40 = ({
             style={{
               ...(feedType == 'vertical' && {
                 marginLeft: customStyles.spacing,
-                marginRight: customStyles.spacing
+                marginRight: customStyles.spacing,
               }),
               ...(feedType == 'horizontal' &&
                 items.length <= 2 && {
                   marginLeft: customStyles.spacing,
-                  marginRight: customStyles.spacing
-                })
+                  marginRight: customStyles.spacing,
+                }),
             }}
             contentContainerStyle={{
               ...(feedType == 'horizontal' &&
                 items.length > 2 && {
-                  paddingHorizontal: customStyles.spacing
-                })
+                  paddingHorizontal: customStyles.spacing,
+                }),
             }}
           />
         </CView>
@@ -173,7 +173,7 @@ const Card40 = ({
                           item.gameId == selectedOptions.gameId
                             ? {
                                 ...styles.itemContainer,
-                                ...styles.selectedItemContainer
+                                ...styles.selectedItemContainer,
                               }
                             : styles.itemContainer
                         }>
@@ -218,8 +218,8 @@ const Card40 = ({
                   customStyles={{
                     buttonTextStyles: styles.submitBtn,
                     buttonStyle: {
-                      minWidth: '100%'
-                    }
+                      minWidth: '100%',
+                    },
                   }}
                 />
               </CView>
@@ -228,6 +228,6 @@ const Card40 = ({
         </Modal>
       )}
     </>
-  )
-}
-export default Card40
+  );
+};
+export default Card40;

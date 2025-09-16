@@ -1,14 +1,14 @@
-import React, { useCallback, useState } from 'react'
-import { StyleSheet } from 'react-native'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import { Slider } from '@miblanchard/react-native-slider'
-import CButton from '../../../common/core/Button'
+import React, { useCallback, useState } from 'react';
+import { StyleSheet } from 'react-native';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import { Slider } from '@miblanchard/react-native-slider';
+import CButton from '../../../common/core/Button';
 
 const StreamSlider = ({ sliderValue = 20, setSliderValue }) => {
   const onValueChange = newValue => {
-    setSliderValue(newValue)
-  }
+    setSliderValue(newValue);
+  };
 
   const renderThumb = useCallback(() => {
     return (
@@ -26,21 +26,21 @@ const StreamSlider = ({ sliderValue = 20, setSliderValue }) => {
               minWidth: 55,
               width: 64,
               fontSize: 10,
-              paddingHorizontal: 2
-            }
+              paddingHorizontal: 2,
+            },
           }}
         />
       </CView>
-    )
-  }, [sliderValue])
+    );
+  }, [sliderValue]);
 
   const renderTrackMark = item => {
     return (
       <CView>
         <CText>|</CText>
       </CView>
-    )
-  }
+    );
+  };
   return (
     <CView style={styles.container}>
       <Slider
@@ -59,17 +59,17 @@ const StreamSlider = ({ sliderValue = 20, setSliderValue }) => {
         trackStyle={styles.trackStyle}
       />
     </CView>
-  )
-}
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
-    marginLeft: 10
+    marginLeft: 10,
   },
   trackStyle: {
     backgroundColor: '#E14084',
-    height: 2
-  }
-})
+    height: 2,
+  },
+});
 
-export default StreamSlider
+export default StreamSlider;

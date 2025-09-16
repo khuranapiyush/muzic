@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -7,16 +7,16 @@ const getStyles = theme => {
     feedHeaderText: {
       color: Colors[theme].white,
       fontWeight: '600',
-      fontSize: 16
+      fontSize: 16,
     },
     feedDescriptionWrapper: { marginTop: 8 },
     feedDescriptionText: {
       color: Colors[theme].textLightGray,
       fontWeight: '500',
-      fontSize: 12
+      fontSize: 12,
     },
     itemWrapper: {
-      marginTop: 16
+      marginTop: 16,
     },
     gridBtnWrapper: { justifyContent: 'center', marginTop: 24 },
     gridBtn: {
@@ -26,15 +26,15 @@ const getStyles = theme => {
       paddingVertical: 8,
       borderWidth: 1,
       flexDirection: 'row',
-      alignItems: 'center'
+      alignItems: 'center',
     },
     btnText: {
       fontWeight: '500',
       color: Colors[theme].white,
       fontSize: 14,
-      marginRight: 4
+      marginRight: 4,
     },
-    btnIcon: { width: 16, height: 16 }
-  })
-}
-export default getStyles
+    btnIcon: { width: 16, height: 16 },
+  });
+};
+export default getStyles;

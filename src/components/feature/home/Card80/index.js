@@ -1,25 +1,25 @@
-import React, { memo, useContext, useRef } from 'react'
-import { Dimensions, FlatList, Image, Pressable } from 'react-native'
-import { useDispatch } from 'react-redux'
-import { getAppConfig } from '../../../../constants/code'
-import { setFullModePlayer } from '../../../../stores/slices/watch'
-import { numberFormatter, timeSince } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import Colors from '../../../common/Colors'
-import { ThemeContext } from '../../../../context/ThemeContext'
+import React, { memo, useContext, useRef } from 'react';
+import { Dimensions, FlatList, Image, Pressable } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { getAppConfig } from '../../../../constants/code';
+import { setFullModePlayer } from '../../../../stores/slices/watch';
+import { numberFormatter, timeSince } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import Colors from '../../../common/Colors';
+import { ThemeContext } from '../../../../context/ThemeContext';
 
-export const SLIDER_WIDTH = Dimensions.get('window').width
-export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.95)
+export const SLIDER_WIDTH = Dimensions.get('window').width;
+export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.95);
 
 const Card80 = ({ data }) => {
-  const dispatch = useDispatch()
-  const cgRef = useRef()
+  const dispatch = useDispatch();
+  const cgRef = useRef();
 
   const {
-    theme: { mode }
-  } = useContext(ThemeContext)
+    theme: { mode },
+  } = useContext(ThemeContext);
 
   const handleCardClick = (item, index) => {
     const videoData = {
@@ -29,11 +29,11 @@ const Card80 = ({ data }) => {
         eventName: 'click',
         order: index + 1,
         viewType: data?.viewType,
-        type: item?.type || 'video'
-      }
-    }
-    dispatch(setFullModePlayer({ isVisible: true, videoDetail: videoData }))
-  }
+        type: item?.type || 'video',
+      },
+    };
+    dispatch(setFullModePlayer({ isVisible: true, videoDetail: videoData }));
+  };
 
   const renderItem = ({ item, index }) => (
     <CView style={styles.Card30Container}>
@@ -57,7 +57,7 @@ const Card80 = ({ data }) => {
         </CView>
       </Pressable>
     </CView>
-  )
+  );
   return (
     <CView style={styles.container}>
       <CView style={styles.sectionTitleStyle}>
@@ -73,7 +73,7 @@ const Card80 = ({ data }) => {
         extraData={data}
       />
     </CView>
-  )
-}
+  );
+};
 
-export default memo(Card80)
+export default memo(Card80);

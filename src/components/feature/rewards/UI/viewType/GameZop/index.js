@@ -1,13 +1,13 @@
-import React, { useCallback } from 'react'
-import { FlatList, Pressable } from 'react-native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import { screenWidth } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React, { useCallback } from 'react';
+import { FlatList, Pressable } from 'react-native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import { screenWidth } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
-const customStyles = { spacing: 16 }
+const customStyles = { spacing: 16 };
 
 const GameZop = ({
   label,
@@ -20,13 +20,13 @@ const GameZop = ({
 }) => {
   const handleClick = useCallback(
     idx => {
-      handleGameAction(items[idx])
+      handleGameAction(items[idx]);
     },
     [handleGameAction, items]
-  )
+  );
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -36,26 +36,26 @@ const GameZop = ({
             source={{
               uri: item?.isLocked
                 ? item?.metaData?.lockedCardImageUrl
-                : item?.metaData?.cardImageUrl
+                : item?.metaData?.cardImageUrl,
             }}
             width={screenWidth * 0.4 - customStyles.spacing * 2}
           />
         </Pressable>
-      )
+      );
     },
     [handleClick]
-  )
+  );
 
   const HorizontalItemSeparator = useCallback(() => {
     return (
       <CView
         style={{
           width: customStyles.spacing,
-          ...(feedType == 'vertical' && { height: customStyles.spacing })
+          ...(feedType == 'vertical' && { height: customStyles.spacing }),
         }}
       />
-    )
-  }, [feedType])
+    );
+  }, [feedType]);
 
   return (
     <CView style={styles.wrapper}>
@@ -82,23 +82,23 @@ const GameZop = ({
           style={{
             ...(feedType == 'vertical' && {
               marginLeft: customStyles.spacing,
-              marginRight: customStyles.spacing
+              marginRight: customStyles.spacing,
             }),
             ...(feedType == 'horizontal' &&
               items.length <= 2 && {
                 marginLeft: customStyles.spacing,
-                marginRight: customStyles.spacing
-              })
+                marginRight: customStyles.spacing,
+              }),
           }}
           contentContainerStyle={{
             ...(feedType == 'horizontal' &&
               items.length > 2 && {
-                paddingHorizontal: customStyles.spacing
-              })
+                paddingHorizontal: customStyles.spacing,
+              }),
           }}
         />
       </CView>
     </CView>
-  )
-}
-export default GameZop
+  );
+};
+export default GameZop;

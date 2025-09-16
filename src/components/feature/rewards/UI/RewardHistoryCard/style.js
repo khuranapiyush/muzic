@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   wrapper: {
@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 1,
     shadowRadius: 3,
-    padding: 12
+    padding: 12,
   },
   rewardLogoWrapper: {
     justifyContent: 'center',
@@ -20,13 +20,13 @@ const styles = StyleSheet.create({
     height: 40,
     padding: 8,
     backgroundColor: '#F4F6FA',
-    borderRadius: 50
+    borderRadius: 50,
   },
   rewardIcon: { width: 32, height: 32 },
   detailWrapper: { flex: 1, marginLeft: 14 },
   firstRowWrapper: {
     justifyContent: 'space-between',
-    marginBottom: 16
+    marginBottom: 16,
   },
   secondRowWrapper: { justifyContent: 'space-between' },
   itemHeader: { color: '#959595', fontWeight: '500', fontSize: 12 },
@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     color: '#E14084',
     fontWeight: '500',
     fontSize: 12,
-    textDecorationLine: 'underline'
-  }
-})
-export default styles
+    textDecorationLine: 'underline',
+  },
+});
+export default styles;

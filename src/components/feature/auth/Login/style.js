@@ -186,12 +186,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    borderRadius: 100,
+    borderWidth: 1,
+    borderColor: '#FFF',
+    borderStyle: 'solid',
+    backgroundColor: '#FC6C14',
+    boxShadow: '0 0 14px 0 #FFDBC5 inset',
   },
   createButtonText: {
     color: '#000',
     fontSize: 18,
     fontWeight: '600',
     ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
+  },
+  disabledButtonText: {
+    opacity: 0.5,
   },
   checkmark: {
     position: 'absolute',

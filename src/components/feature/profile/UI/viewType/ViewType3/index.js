@@ -1,17 +1,17 @@
-import React, { useCallback } from 'react'
-import { FlatList, Image, Pressable } from 'react-native'
-import appImages from '../../../../../../resource/images'
-import { screenWidth } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE'
-import { useNavigation } from '@react-navigation/native'
-import Colors from '../../../../../common/Colors'
+import React, { useCallback } from 'react';
+import { FlatList, Image, Pressable } from 'react-native';
+import appImages from '../../../../../../resource/images';
+import { screenWidth } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE';
+import { useNavigation } from '@react-navigation/native';
+import Colors from '../../../../../common/Colors';
 
 const ViewType3 = ({ items, theme }) => {
-  const navigation = useNavigation()
+  const navigation = useNavigation();
 
-  const keyExtractor = useCallback((item, idx) => `list_${idx}`, [])
+  const keyExtractor = useCallback((item, idx) => `list_${idx}`, []);
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -26,7 +26,7 @@ const ViewType3 = ({ items, theme }) => {
             paddingHorizontal: 12,
             paddingVertical: 16,
             marginRight: 16,
-            width: screenWidth * 0.55
+            width: screenWidth * 0.55,
           }}>
           <CView>
             <Image
@@ -47,7 +47,7 @@ const ViewType3 = ({ items, theme }) => {
                 fontSize: 12,
                 fontWeight: '500',
                 marginTop: 5,
-                color: '#FE9BF3'
+                color: '#FE9BF3',
               }}>
               {item.description}
             </CText>
@@ -57,24 +57,24 @@ const ViewType3 = ({ items, theme }) => {
                 fontSize: 14,
                 fontWeight: '500',
                 marginTop: 5,
-                color: '#D2D2D2'
+                color: '#D2D2D2',
               }}>
               {item.value}
             </CText>
           </CView>
         </CView>
-      )
+      );
     },
     [theme]
-  )
+  );
 
   const handleBuyNft = action => {
-    const routeConfig = ROUTE_MAPPING_BE['TRADE_VIEW']
+    const routeConfig = ROUTE_MAPPING_BE.TRADE_VIEW;
     if (!routeConfig) {
-      return
+      return;
     }
-    navigation.navigate(routeConfig.name, routeConfig.params)
-  }
+    navigation.navigate(routeConfig.name, routeConfig.params);
+  };
 
   return !items.length ? (
     <CView row>
@@ -88,7 +88,7 @@ const ViewType3 = ({ items, theme }) => {
           borderColor: Colors[theme].cardBorderColor,
           backgroundColor: Colors[theme].cardBg,
           borderRadius: 12,
-          padding: 20
+          padding: 20,
         }}>
         <Image
           source={appImages.plusIcon}
@@ -98,7 +98,7 @@ const ViewType3 = ({ items, theme }) => {
           style={{
             marginTop: 12,
             fontSize: 12,
-            fontWeight: '400'
+            fontWeight: '400',
           }}>
           Buy your First FanCard
         </CText>
@@ -112,7 +112,7 @@ const ViewType3 = ({ items, theme }) => {
       renderItem={renderItem}
       showsHorizontalScrollIndicator={false}
     />
-  )
-}
+  );
+};
 
-export default ViewType3
+export default ViewType3;

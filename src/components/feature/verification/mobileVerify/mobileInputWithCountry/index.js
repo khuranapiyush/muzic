@@ -1,21 +1,21 @@
-import React from 'react'
-import CountryPickerDropdownFC from '../../../../common/FormComponents/CountryPickerDropdownFC'
-import MobileInputFC from '../../../../common/FormComponents/MobileInputFC'
-import CButton from '../../../../common/core/Button'
-import CText from '../../../../common/core/Text'
-import CView from '../../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React from 'react';
+import CountryPickerDropdownFC from '../../../../common/FormComponents/CountryPickerDropdownFC';
+import MobileInputFC from '../../../../common/FormComponents/MobileInputFC';
+import CButton from '../../../../common/core/Button';
+import CText from '../../../../common/core/Text';
+import CView from '../../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
 const MobileInputWithCountry = ({
   handleContinue,
   control,
   isValid,
-  isLoading
+  isLoading,
 }) => {
-  const { mode } = useTheme()
+  const { mode } = useTheme();
 
-  const styles = getStyles(mode)
+  const styles = getStyles(mode);
 
   return (
     <CView style={styles.container}>
@@ -52,7 +52,7 @@ const MobileInputWithCountry = ({
         />
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default MobileInputWithCountry
+export default MobileInputWithCountry;

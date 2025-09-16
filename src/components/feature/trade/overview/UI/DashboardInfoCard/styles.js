@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -8,25 +8,25 @@ const getStyles = theme => {
       borderColor: Colors[theme].cardBorderColor,
       borderWidth: 1,
       borderRadius: 8,
-      backgroundColor: Colors[theme].cardBg
+      backgroundColor: Colors[theme].cardBg,
     },
     container: {
-      justifyContent: 'space-around'
+      justifyContent: 'space-around',
     },
 
     portfolioContainer: {
       paddingTop: 20,
-      justifyContent: 'space-around'
+      justifyContent: 'space-around',
     },
     itemContainer: {
-      marginTop: 2
+      marginTop: 2,
     },
     profit: {
-      color: '#3FBB5A'
+      color: '#3FBB5A',
     },
     loss: {
-      color: 'red'
-    }
-  })
-}
-export default getStyles
+      color: 'red',
+    },
+  });
+};
+export default getStyles;

@@ -1,29 +1,29 @@
-import React, { useCallback } from 'react'
-import { FlatList, Image, Pressable, TouchableOpacity } from 'react-native'
-import appImages from '../../../../../../resource/images'
-import { generateTransparentColor } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './styles'
-import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE'
-import { useNavigation } from '@react-navigation/native'
+import React, { useCallback } from 'react';
+import { FlatList, Image, Pressable, TouchableOpacity } from 'react-native';
+import appImages from '../../../../../../resource/images';
+import { generateTransparentColor } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './styles';
+import ROUTE_MAPPING_BE from '../../../../../../navigator/config/routeMappingBE';
+import { useNavigation } from '@react-navigation/native';
 
 const ViewType2 = ({ items, theme }) => {
-  const navigation = useNavigation()
-  const styles = getStyles(theme)
+  const navigation = useNavigation();
+  const styles = getStyles(theme);
 
-  const keyExtractor = useCallback((item, idx) => `list_${idx}`, [])
+  const keyExtractor = useCallback((item, idx) => `list_${idx}`, []);
 
   const handleActionBtn = useCallback(
     action => {
-      const routeConfig = ROUTE_MAPPING_BE[action]
+      const routeConfig = ROUTE_MAPPING_BE[action];
       if (!routeConfig) {
-        return
+        return;
       }
-      navigation.navigate(routeConfig.name, routeConfig.params)
+      navigation.navigate(routeConfig.name, routeConfig.params);
     },
     [navigation]
-  )
+  );
 
   const renderItem = useCallback(
     ({ item, index: idx }) => {
@@ -35,7 +35,7 @@ const ViewType2 = ({ items, theme }) => {
                 row
                 style={{
                   alignItems: 'center',
-                  ...(!item.value && { width: '90%' })
+                  ...(!item.value && { width: '90%' }),
                 }}>
                 <CView style={styles.leftIconWrapper}>
                   {!!item.icon && (
@@ -54,7 +54,7 @@ const ViewType2 = ({ items, theme }) => {
                   {!!item?.description && (
                     <CText
                       style={{
-                        ...styles.descriptionText
+                        ...styles.descriptionText,
                       }}>
                       {item?.description}
                     </CText>
@@ -71,7 +71,7 @@ const ViewType2 = ({ items, theme }) => {
                           fontSize: 12,
                           fontWeight: '500',
                           color: '#0B091C',
-                          marginLeft: 5
+                          marginLeft: 5,
                         }}>
                         {item.coinValue}
                       </CText>
@@ -87,7 +87,7 @@ const ViewType2 = ({ items, theme }) => {
                           fontSize: 12,
                           fontWeight: '500',
                           color: '#0B091C',
-                          marginLeft: 5
+                          marginLeft: 5,
                         }}>
                         {item.tokenValue}
                       </CText>
@@ -102,12 +102,12 @@ const ViewType2 = ({ items, theme }) => {
                     ...styles.valueWrapper,
                     backgroundColor: item?.valueColor
                       ? generateTransparentColor(item?.valueColor, 0.4)
-                      : '#E8E8E8'
+                      : '#E8E8E8',
                   }}>
                   <CText
                     style={{
                       ...styles.valueText,
-                      color: item.valueColor || '#000'
+                      color: item.valueColor || '#000',
                     }}>
                     {item.value}
                   </CText>
@@ -127,10 +127,10 @@ const ViewType2 = ({ items, theme }) => {
             )}
           </CView>
         </Pressable>
-      )
+      );
     },
     [theme]
-  )
+  );
 
   return (
     <FlatList
@@ -139,7 +139,7 @@ const ViewType2 = ({ items, theme }) => {
       renderItem={renderItem}
       showsHorizontalScrollIndicator={false}
     />
-  )
-}
+  );
+};
 
-export default ViewType2
+export default ViewType2;

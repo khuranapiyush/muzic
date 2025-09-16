@@ -1,22 +1,22 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
     wrapper: { flex: 1, margin: 10 },
     flex1: {
-      flex: 1
+      flex: 1,
     },
     container: {
       marginTop: 20,
-      justifyContent: 'center'
+      justifyContent: 'center',
     },
     paddingTop20: {
-      paddingTop: 20
+      paddingTop: 20,
     },
     iconStyle: {
       width: 50,
-      height: 50
+      height: 50,
     },
     iconContainer: {
       // borderColor: '#DADADA',
@@ -24,7 +24,7 @@ const getStyles = theme => {
       // borderWidth: 1,
       borderRadius: 5,
       width: 40,
-      height: 40
+      height: 40,
     },
     selectedBackAccountContainer: {
       marginBottom: 10,
@@ -32,7 +32,7 @@ const getStyles = theme => {
       paddingHorizontal: 10,
       paddingVertical: 15,
       borderWidth: 1,
-      borderRadius: 5
+      borderRadius: 5,
     },
 
     backAccountContainer: {
@@ -41,32 +41,32 @@ const getStyles = theme => {
       paddingHorizontal: 10,
       paddingVertical: 15,
       borderWidth: 1,
-      borderRadius: 5
+      borderRadius: 5,
     },
 
     btnContainer: {
       marginTop: 20,
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
     },
     confirmBtnContainer: {
       marginTop: 20,
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
     },
     submitBtn: { fontWeight: '700' },
     closeContainer: {
       flex: 1,
-      marginRight: 20
+      marginRight: 20,
     },
     radioIcon: {
       height: 30,
-      width: 30
+      width: 30,
     },
 
     marginTop20: {
-      marginTop: 20
+      marginTop: 20,
     },
     marginInline: {
-      marginHorizontal: 15
+      marginHorizontal: 15,
     },
     addAccountContainer: {
       marginTop: 10,
@@ -75,7 +75,7 @@ const getStyles = theme => {
       paddingHorizontal: 10,
       paddingVertical: 15,
       borderWidth: 1,
-      borderRadius: 5
+      borderRadius: 5,
     },
     input: {
       borderWidth: 1,
@@ -85,14 +85,14 @@ const getStyles = theme => {
       height: 44,
       color: Colors[theme].white,
       width: '100%',
-      paddingHorizontal: 15
+      paddingHorizontal: 15,
     },
     alignStart: {
-      alignSelf: 'flex-start'
+      alignSelf: 'flex-start',
     },
     errorColor: {
-      color: 'red'
-    }
-  })
-}
-export default getStyles
+      color: 'red',
+    },
+  });
+};
+export default getStyles;

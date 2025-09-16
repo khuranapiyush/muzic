@@ -1,79 +1,79 @@
-import React, { useState } from 'react'
-import CView from '../../../../../common/core/View'
-import CText from '../../../../../common/core/Text'
-import { Image, Pressable, TouchableOpacity } from 'react-native'
-import { screenWidth } from '../../../../../../utils/common'
-import styles from './style'
-import { useNavigation } from '@react-navigation/native'
-import useToaster from '../../../../../../hooks/useToaster'
-import { useMutation } from '@tanstack/react-query'
-import { validateTwitterFollow } from '../../../../../../api/game'
-import { useSelector } from 'react-redux'
-import ROUTE_NAME from '../../../../../../navigator/config/routeName'
+import React, { useState } from 'react';
+import CView from '../../../../../common/core/View';
+import CText from '../../../../../common/core/Text';
+import { Image, Pressable, TouchableOpacity } from 'react-native';
+import { screenWidth } from '../../../../../../utils/common';
+import styles from './style';
+import { useNavigation } from '@react-navigation/native';
+import useToaster from '../../../../../../hooks/useToaster';
+import { useMutation } from '@tanstack/react-query';
+import { validateTwitterFollow } from '../../../../../../api/game';
+import { useSelector } from 'react-redux';
+import ROUTE_NAME from '../../../../../../navigator/config/routeName';
 
-const customStyles = { spacing: 16 }
+const customStyles = { spacing: 16 };
 
 const CustomCard30 = ({ item, metaData }) => {
-  const { userId } = useSelector(state => state.user)
-  const navigation = useNavigation()
-  const { showToaster } = useToaster()
+  const { userId } = useSelector(state => state.user);
+  const navigation = useNavigation();
+  const { showToaster } = useToaster();
   const [buttonText, setButtonText] = useState(
     metaData?.questConfig?.buttonText
-  )
+  );
 
   const [redirectUrl, setRedirectUrl] = useState(
     metaData?.questConfig?.redirectUrl
-  )
-  const [isValidating, setIsValidating] = useState(false)
+  );
+  const [isValidating, setIsValidating] = useState(false);
 
   const { mutate: handleValidate } = useMutation(
     () => validateTwitterFollow({ user: userId }),
     {
       onSuccess: ({ data }) => {
-        setIsValidating(false)
+        setIsValidating(false);
         if (data.data.isFollowing) {
-          setButtonText('Followed')
+          setButtonText('Followed');
         } else {
-          setButtonText(metaData?.questConfig?.buttonText)
-          setRedirectUrl(metaData?.questConfig?.redirectUrl)
+          setButtonText(metaData?.questConfig?.buttonText);
+          setRedirectUrl(metaData?.questConfig?.redirectUrl);
           showToaster({
             type: 'info',
             text1: 'Warning',
-            text2: 'Please Follow first then validate'
-          })
+            text2: 'Please Follow first then validate',
+          });
         }
       },
       onError: err => {
-        setIsValidating(false)
+        setIsValidating(false);
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: err.response.data.message
-        })
-      }
+          text2: err.response.data.message,
+        });
+      },
     }
-  )
+  );
 
   const handleFollow = item => {
-    if (!!redirectUrl) {
+    if (redirectUrl) {
       if (item?.questConfig.redirectUrl) {
         navigation.navigate(ROUTE_NAME.CWebView, {
-          url: item?.questConfig?.redirectUrl
-        })
-        setButtonText('Validate')
-        setRedirectUrl('')
+          url: item?.questConfig?.redirectUrl,
+        });
+        setButtonText('Validate');
+        setRedirectUrl('');
       }
     } else if (buttonText == 'Validate' && !isValidating) {
-      setIsValidating(true)
-      handleValidate()
+      setIsValidating(true);
+      handleValidate();
     } else if (buttonText == 'Validate' && isValidating) {
       showToaster({
         type: 'info',
         text1: 'In Progress',
-        text2: 'Validation is in process please wait for a while'
-      })
+        text2: 'Validation is in process please wait for a while',
+      });
     }
-  }
+  };
 
   return (
     <CView>
@@ -87,7 +87,7 @@ const CustomCard30 = ({ item, metaData }) => {
             paddingTop: 38,
             backgroundColor: item?.metaData?.backgroundColor,
             width: screenWidth * 0.42 - customStyles.spacing * 2,
-            borderRadius: 7
+            borderRadius: 7,
           }}>
           <Image
             source={{ uri: item?.metaData?.logoUrl }}
@@ -109,7 +109,7 @@ const CustomCard30 = ({ item, metaData }) => {
         </CView>
       </Pressable>
     </CView>
-  )
-}
+  );
+};
 
-export default CustomCard30
+export default CustomCard30;

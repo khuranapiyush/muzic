@@ -1,13 +1,13 @@
-import React from 'react'
-import { Image, Pressable } from 'react-native'
-import { dollarToInrWithRupeeSign, round } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './style'
-import Colors from '../../../../../common/Colors'
+import React from 'react';
+import { Image, Pressable } from 'react-native';
+import { dollarToInrWithRupeeSign, round } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './style';
+import Colors from '../../../../../common/Colors';
 
 const ListItem = ({ item, cardClick, mode }) => {
-  const styles = getStyles(mode)
+  const styles = getStyles(mode);
   return (
     <Pressable onPress={cardClick}>
       <CView row style={styles.container}>
@@ -52,7 +52,7 @@ const ListItem = ({ item, cardClick, mode }) => {
         </CView>
       </CView>
     </Pressable>
-  )
-}
+  );
+};
 
-export default ListItem
+export default ListItem;

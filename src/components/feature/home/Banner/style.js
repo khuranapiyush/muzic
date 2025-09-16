@@ -1,17 +1,17 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
-import { screenWidth } from '../../../../utils/common'
+import { screenWidth } from '../../../../utils/common';
 
-const ITEM_WIDTH = Math.round(screenWidth)
+const ITEM_WIDTH = Math.round(screenWidth);
 
 const styles = StyleSheet.create({
   container: {
     borderRadius: 8,
-    width: ITEM_WIDTH
+    width: ITEM_WIDTH,
   },
   image: {
     aspectRatio: 16 / 9,
-    width: ITEM_WIDTH
-  }
-})
-export default styles
+    width: ITEM_WIDTH,
+  },
+});
+export default styles;

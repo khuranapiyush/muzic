@@ -1,45 +1,45 @@
-import { useQuery } from '@tanstack/react-query'
-import React, { useState } from 'react'
-import { fetchUploadMetaData } from '../../../../api/uploadContent'
-import CustomDropdownFC from '../../../common/FormComponents/CustomDropdownFC'
-import InputWithChipsFC from '../../../common/FormComponents/InputWithChipsFC'
-import ToggleFC from '../../../common/FormComponents/ToggleFC'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
+import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { fetchUploadMetaData } from '../../../../api/uploadContent';
+import CustomDropdownFC from '../../../common/FormComponents/CustomDropdownFC';
+import InputWithChipsFC from '../../../common/FormComponents/InputWithChipsFC';
+import ToggleFC from '../../../common/FormComponents/ToggleFC';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
 
 const privacyData = [
   { label: 'Public', id: 1 },
-  { label: 'Private', id: 2 }
-]
+  { label: 'Private', id: 2 },
+];
 const VideoUploadForm = ({ handleBack, control, handleUpload, watch }) => {
   const [formMetaData, setFormMetaData] = useState({
     languages: [],
-    contentTypes: []
-  })
+    contentTypes: [],
+  });
 
-  const { categories, language } = watch()
+  const { categories, language } = watch();
 
   useQuery({
     queryKey: ['fetchUploadMetaData'],
     queryFn: fetchUploadMetaData.bind(this, {
-      dropdown: encodeURIComponent(JSON.stringify(['language', 'contentType']))
+      dropdown: encodeURIComponent(JSON.stringify(['language', 'contentType'])),
     }),
     refetchOnMount: true,
     onSuccess: res => {
-      const data = res.data.data
+      const data = res.data.data;
       const contentTypes = data.contentType.map(item => ({
         label: item.name,
-        value: item._id
-      }))
+        value: item._id,
+      }));
       const languages = data.language.map(item => ({
         label: item.name,
-        value: item._id
-      }))
-      setFormMetaData({ contentTypes, languages })
-    }
-  })
+        value: item._id,
+      }));
+      setFormMetaData({ contentTypes, languages });
+    },
+  });
 
   return (
     <CView style={styles.wrapper}>
@@ -112,7 +112,7 @@ const VideoUploadForm = ({ handleBack, control, handleUpload, watch }) => {
         </CView>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default VideoUploadForm
+export default VideoUploadForm;

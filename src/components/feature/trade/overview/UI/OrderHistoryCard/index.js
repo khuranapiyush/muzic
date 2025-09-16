@@ -1,44 +1,44 @@
-import React, { memo, useState } from 'react'
-import { Image, LayoutAnimation, Pressable } from 'react-native'
-import getStyles from './style'
-import appImages from '../../../../../../resource/images'
-import CView from '../../../../../common/core/View'
-import CText from '../../../../../common/core/Text'
+import React, { memo, useState } from 'react';
+import { Image, LayoutAnimation, Pressable } from 'react-native';
+import getStyles from './style';
+import appImages from '../../../../../../resource/images';
+import CView from '../../../../../common/core/View';
+import CText from '../../../../../common/core/Text';
 import {
   convertUSDtoINR,
   dollarToInrWithRupeeSign,
-  formatDate
-} from '../../../../../../utils/common'
-import { useTheme } from '@react-navigation/native'
+  formatDate,
+} from '../../../../../../utils/common';
+import { useTheme } from '@react-navigation/native';
 
 const OrderHistoryCard = ({ item, index, handleCancelOrder }) => {
-  const [isExpanded, setIsExpanded] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   const toggleExpansion = () => {
-    setIsExpanded(!isExpanded)
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-  }
+    setIsExpanded(!isExpanded);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  };
 
   const getStatus = item => {
     if (item.status == 'PARTIAL_SUCCESS') {
-      return { label: 'Partial Success', color: '#DCA048' }
+      return { label: 'Partial Success', color: '#DCA048' };
     } else if (item.status == 'SUCCESS') {
-      return { label: 'Completed', color: '#48B16E' }
+      return { label: 'Completed', color: '#48B16E' };
     } else if (item.status == 'PENDING') {
-      return { label: 'Pending', color: '#DCA048' }
+      return { label: 'Pending', color: '#DCA048' };
     } else if (item.status == 'CANCELLED' && item.executedQuantity > 0) {
-      return { label: 'Partially Cancelled', color: '#48B16E' }
+      return { label: 'Partially Cancelled', color: '#48B16E' };
     } else if (item.status == 'CANCELLED') {
-      return { label: 'Cancelled', color: '#FB3836' }
+      return { label: 'Cancelled', color: '#FB3836' };
     } else if (item.status == 'FAILED') {
-      return { label: 'Failed', color: '#FB3836' }
+      return { label: 'Failed', color: '#FB3836' };
     } else {
-      return { label: 'Pending', color: '#DCA048' }
+      return { label: 'Pending', color: '#DCA048' };
     }
-  }
+  };
 
   return (
     <Pressable onPress={toggleExpansion}>
@@ -61,7 +61,7 @@ const OrderHistoryCard = ({ item, index, handleCancelOrder }) => {
                 <CText
                   style={{
                     ...styles.textNormal,
-                    color: getStatus(item).color
+                    color: getStatus(item).color,
                   }}>
                   {getStatus(item)?.label}
                 </CText>
@@ -222,7 +222,7 @@ const OrderHistoryCard = ({ item, index, handleCancelOrder }) => {
         )}
       </CView>
     </Pressable>
-  )
-}
+  );
+};
 
-export default memo(OrderHistoryCard)
+export default memo(OrderHistoryCard);

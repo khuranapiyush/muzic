@@ -1,7 +1,7 @@
-import { StyleSheet } from 'react-native'
-import { screenWidth } from '../../../../utils/common'
+import { StyleSheet } from 'react-native';
+import { screenWidth } from '../../../../utils/common';
 
-const SLIDER_WIDTH = Math.round(screenWidth * 0.95)
+const SLIDER_WIDTH = Math.round(screenWidth * 0.95);
 
 const styles = StyleSheet.create({
   cardContent: {
@@ -10,14 +10,14 @@ const styles = StyleSheet.create({
     height: '50%',
     justifyContent: 'flex-end',
     bottom: -1,
-    padding: 8
+    padding: 8,
   },
   topCardContent: {
     width: '100%',
     position: 'absolute',
     justifyContent: 'space-between',
     top: -5,
-    padding: 8
+    padding: 8,
   },
   liveTagContainer: {
     backgroundColor: '#E14084',
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 10,
     paddingVertical: 3,
-    borderRadius: 4
+    borderRadius: 4,
   },
 
   joinTagContainer: {
@@ -35,32 +35,32 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingHorizontal: 6,
     paddingVertical: 3,
-    borderRadius: 4
+    borderRadius: 4,
   },
 
   viewContainer: {
     paddingTop: 5,
-    alignSelf: 'flex-start'
+    alignSelf: 'flex-start',
   },
   container: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 4
+    paddingHorizontal: 4,
   },
 
   sectionTitleStyle: {
     flexDirection: 'row',
     display: 'flex',
     paddingBottom: 10,
-    paddingHorizontal: 10
+    paddingHorizontal: 10,
   },
   sectionIcon: {
     height: 24,
     width: 24,
-    marginRight: 8
+    marginRight: 8,
   },
   NewCardBody: {
-    width: SLIDER_WIDTH * 0.486
+    width: SLIDER_WIDTH * 0.486,
   },
   Card30Container: {
     // flexWrap: 'wrap'
@@ -70,7 +70,7 @@ const styles = StyleSheet.create({
   image: {
     height: SLIDER_WIDTH * 0.76,
     borderRadius: 5,
-    display: 'flex'
+    display: 'flex',
   },
   playIconCenter: {
     position: 'absolute',
@@ -79,10 +79,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   txtColor: {
     // color: '#979797'
-  }
-})
-export default styles
+  },
+});
+export default styles;

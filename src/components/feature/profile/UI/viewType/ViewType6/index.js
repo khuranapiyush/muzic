@@ -1,14 +1,14 @@
-import React, { useCallback } from 'react'
-import { FlatList, Image } from 'react-native'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './styles'
-import Divider from '../../../../../common/core/Divider'
-import Colors from '../../../../../common/Colors'
+import React, { useCallback } from 'react';
+import { FlatList, Image } from 'react-native';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './styles';
+import Divider from '../../../../../common/core/Divider';
+import Colors from '../../../../../common/Colors';
 
 const ViewType6 = ({ items, theme }) => {
-  const keyExtractor = useCallback((item, idx) => `list_${idx}`, [])
-  const styles = getStyles(theme)
+  const keyExtractor = useCallback((item, idx) => `list_${idx}`, []);
+  const styles = getStyles(theme);
   const renderItem = useCallback(
     ({ item, index: idx }) => {
       return (
@@ -16,7 +16,7 @@ const ViewType6 = ({ items, theme }) => {
           <CView
             row
             style={{
-              paddingHorizontal: 12
+              paddingHorizontal: 12,
             }}>
             {!!item.icon && (
               <Image source={{ uri: item.icon }} style={styles.leftIcon} />
@@ -41,7 +41,7 @@ const ViewType6 = ({ items, theme }) => {
                     style={{
                       marginLeft: 8,
                       fontSize: 12,
-                      fontWeight: '600'
+                      fontWeight: '600',
                     }}>
                     {menu.text}
                   </CText>
@@ -50,7 +50,7 @@ const ViewType6 = ({ items, theme }) => {
                   <Divider
                     customStyle={{
                       borderWidth: 1,
-                      borderColor: Colors[theme].borderColor
+                      borderColor: Colors[theme].borderColor,
                     }}
                   />
                 )}
@@ -58,10 +58,10 @@ const ViewType6 = ({ items, theme }) => {
             ))}
           </CView>
         </CView>
-      )
+      );
     },
     [theme]
-  )
+  );
 
   return (
     <FlatList
@@ -70,7 +70,7 @@ const ViewType6 = ({ items, theme }) => {
       renderItem={renderItem}
       showsHorizontalScrollIndicator={false}
     />
-  )
-}
+  );
+};
 
-export default ViewType6
+export default ViewType6;

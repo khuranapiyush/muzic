@@ -1,13 +1,13 @@
-import React from 'react'
-import CView from '../../../common/core/View'
-import getStyles from './AgentHome.styles'
-import CText from '../../../common/core/Text'
-import { useNavigation, useTheme } from '@react-navigation/native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import appImages from '../../../../resource/images'
-import { Image, ScrollView } from 'react-native'
-import { TouchableOpacity } from 'react-native'
-import ROUTE_NAME from '../../../../navigator/config/routeName'
+import React from 'react';
+import CView from '../../../common/core/View';
+import getStyles from './AgentHome.styles';
+import CText from '../../../common/core/Text';
+import { useNavigation, useTheme } from '@react-navigation/native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import appImages from '../../../../resource/images';
+import { Image, ScrollView } from 'react-native';
+import { TouchableOpacity } from 'react-native';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
 
 const cardData = [
   {
@@ -18,7 +18,7 @@ const cardData = [
     navigationTab: 'video',
     isComingSoon: false,
     isIconRequired: false,
-    iconsArray: []
+    iconsArray: [],
   },
   {
     id: 2,
@@ -28,7 +28,7 @@ const cardData = [
     navigationTab: 'music',
     isComingSoon: false,
     isIconRequired: false,
-    iconsArray: []
+    iconsArray: [],
   },
   {
     id: 3,
@@ -38,7 +38,7 @@ const cardData = [
     navigationTab: 'lyrics',
     isComingSoon: false,
     isIconRequired: false,
-    iconsArray: []
+    iconsArray: [],
   },
   {
     id: 4,
@@ -48,7 +48,7 @@ const cardData = [
     navigationTab: '',
     isComingSoon: true,
     isIconRequired: false,
-    iconsArray: []
+    iconsArray: [],
   },
   {
     id: 5,
@@ -61,23 +61,23 @@ const cardData = [
     iconsArray: [
       { id: 0, iconSource: appImages.tiktokIcon },
       { id: 1, iconSource: appImages.xIcon },
-      { id: 2, iconSource: appImages.instagramIcon }
-    ]
-  }
-]
+      { id: 2, iconSource: appImages.instagramIcon },
+    ],
+  },
+];
 const AgentHome = () => {
-  const { mode } = useTheme()
+  const { mode } = useTheme();
 
-  const styles = getStyles(mode)
+  const styles = getStyles(mode);
 
-  const navigation = useNavigation()
+  const navigation = useNavigation();
 
   const handleOnClick = route => {
     navigation.navigate(ROUTE_NAME.AIGenerator, {
       title: route.heading,
-      tab: route.navigationTab
-    })
-  }
+      tab: route.navigationTab,
+    });
+  };
 
   return (
     <ScrollView showsVerticalScrollIndicator={false}>
@@ -133,7 +133,7 @@ const AgentHome = () => {
                                   style={styles.iconStyle}
                                 />
                               </CView>
-                            )
+                            );
                           })
                         ) : (
                           <CText style={styles.descriptionText}>
@@ -155,11 +155,11 @@ const AgentHome = () => {
                 )}
               </CView>
             </TouchableOpacity>
-          )
+          );
         })}
       </CView>
     </ScrollView>
-  )
-}
+  );
+};
 
-export default AgentHome
+export default AgentHome;

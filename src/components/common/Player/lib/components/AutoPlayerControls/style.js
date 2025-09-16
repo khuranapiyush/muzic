@@ -1,11 +1,11 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   controlsContainer: {
     width: '100%',
     height: '100%',
     position: 'absolute',
-    zIndex: 2
+    zIndex: 2,
   },
   controlMuteButton: {
     justifyContent: 'center',
@@ -13,7 +13,7 @@ const styles = StyleSheet.create({
     borderRadius: 100,
     position: 'absolute',
     top: 0,
-    right: 0
+    right: 0,
   },
   controlRemainingButton: {
     justifyContent: 'center',
@@ -25,18 +25,18 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: '#000000cc'
+    backgroundColor: '#000000cc',
   },
   controlRemainingBtnText: {
     fontWeight: '500',
-    color: '#fff'
+    color: '#fff',
   },
   controlButtonIcon: {
     width: 36,
     height: 36,
     resizeMode: 'contain',
-    padding: 10
-  }
-})
+    padding: 10,
+  },
+});
 
-export default styles
+export default styles;

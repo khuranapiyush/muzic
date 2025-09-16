@@ -1,34 +1,34 @@
-import React, { useEffect, useMemo, useState } from 'react'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import { useSelector } from 'react-redux'
-import { dollarToInrWithRupeeSign } from '../../../../utils/common'
-import { Colors } from '../../../common/core/colors'
-import StreamSlider from '../UI/Slider'
-import styles from './style'
+import React, { useEffect, useMemo, useState } from 'react';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import { useSelector } from 'react-redux';
+import { dollarToInrWithRupeeSign } from '../../../../utils/common';
+import { Colors } from '../../../common/core/colors';
+import StreamSlider from '../UI/Slider';
+import styles from './style';
 
 const RoyaltyProjection = () => {
   const { fanCardDetails, fanCardPriceDetail } = useSelector(
     state => state.trade
-  )
+  );
 
   const revenueShare = useMemo(
     () => fanCardDetails?.asset_tiers?.data?.[0]?.attributes?.revenue_share,
     [fanCardDetails?.asset_tiers?.data]
-  )
+  );
 
-  const [sliderValue, setSliderValue] = useState(26)
+  const [sliderValue, setSliderValue] = useState(26);
 
-  const [returnInX, setReturnInX] = useState(1.5)
+  const [returnInX, setReturnInX] = useState(1.5);
 
-  const [expectedReturn, setExpectedReturn] = useState(0)
+  const [expectedReturn, setExpectedReturn] = useState(0);
 
   useEffect(() => {
-    var tradeNftPrice = fanCardPriceDetail?.buyPrice * 80 * 1.5
-    var tradeRevShare = 0.04 * (revenueShare / 100)
-    var tradeSlidValue = tradeNftPrice / tradeRevShare
-    setSliderValue(Math.round((tradeSlidValue / 1000000) * 1e2) / 1e2)
-  }, [fanCardPriceDetail?.buyPrice, revenueShare])
+    var tradeNftPrice = fanCardPriceDetail?.buyPrice * 80 * 1.5;
+    var tradeRevShare = 0.04 * (revenueShare / 100);
+    var tradeSlidValue = tradeNftPrice / tradeRevShare;
+    setSliderValue(Math.round((tradeSlidValue / 1000000) * 1e2) / 1e2);
+  }, [fanCardPriceDetail?.buyPrice, revenueShare]);
 
   useEffect(() => {
     let returns =
@@ -36,14 +36,14 @@ const RoyaltyProjection = () => {
         1000000 *
         0.04 *
         fanCardDetails?.asset_tiers?.data?.[0]?.attributes?.revenue_share) /
-      100
-    setExpectedReturn(Math.round(returns))
-    setReturnInX((returns / (fanCardPriceDetail?.buyPrice * 80)).toFixed(1))
+      100;
+    setExpectedReturn(Math.round(returns));
+    setReturnInX((returns / (fanCardPriceDetail?.buyPrice * 80)).toFixed(1));
   }, [
     fanCardDetails?.asset_tiers?.data,
     fanCardPriceDetail?.buyPrice,
-    sliderValue
-  ])
+    sliderValue,
+  ]);
   return (
     <CView style={styles.royaltyProjectionContainer}>
       <CView row style={styles.royaltyProjectionTopItems}>
@@ -83,7 +83,7 @@ const RoyaltyProjection = () => {
         />
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default RoyaltyProjection
+export default RoyaltyProjection;

@@ -3,8 +3,8 @@ import config from 'react-native-config';
 const API_URL = config.API_BASE_URL;
 
 /**
- * Fetch product configuration from backend
- * @returns {Promise<{oneTime: {ios: string[], android: string[]}, subscription: {ios: string[], android: string[]}, defaultPlan: {ios: string, android: string}}>}
+ * Fetch product configuration from backend (one-time products only)
+ * @returns {Promise<{oneTime: {ios: string[], android: string[]}, defaultPlan: {ios: string, android: string}}>}
  */
 export const fetchProductConfig = async () => {
   try {
@@ -35,6 +35,101 @@ export const fetchProductConfig = async () => {
         ios: ['payment_101', 'payment_201', 'payment_301'],
         android: ['payment_100', 'payment_200', 'payment_300'],
       },
+      defaultPlan: {
+        ios: 'payment_101',
+        android: 'payment_100',
+      },
+    };
+  }
+};
+
+/**
+ * Fetch subscription product configuration from backend
+ * @returns {Promise<{subscription: {ios: string[], android: string[]}, defaultPlan: {ios: string, android: string}}>}
+ */
+export const fetchSubscriptionConfig = async () => {
+  try {
+    const response = await fetch(`${API_URL}/v1/config/subscription-products`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch subscription config: ${response.status}`,
+      );
+    }
+
+    const result = await response.json();
+
+    if (result.status === 'SUCCESS' && result.data) {
+      // Handle both nested and flat response formats for compatibility
+      const data = result.data;
+      return {
+        subscription: data.subscription || {
+          ios: data.ios_sub_plan || ['subplan_1', 'subplan_2', 'subplan_3'],
+          android: data.android_sub_plan || [
+            'subplan_1',
+            'subplan_2',
+            'subplan_3',
+          ],
+        },
+        defaultPlan: data.defaultPlan || {
+          ios: 'payment_101',
+          android: 'payment_100',
+        },
+      };
+    } else {
+      throw new Error(
+        result.message || 'Failed to get subscription configuration',
+      );
+    }
+  } catch (error) {
+    console.error('Error fetching subscription config:', error);
+
+    // Return fallback subscription configuration if API fails
+    return {
+      subscription: {
+        ios: ['subplan_1', 'subplan_2', 'subplan_3'],
+        android: ['subplan_1', 'subplan_2', 'subplan_3'],
+      },
+      defaultPlan: {
+        ios: 'payment_101',
+        android: 'payment_100',
+      },
+    };
+  }
+};
+
+/**
+ * Fetch complete product configuration (both one-time and subscription)
+ * This function combines both APIs to provide backward compatibility
+ * @returns {Promise<{oneTime: {ios: string[], android: string[]}, subscription: {ios: string[], android: string[]}, defaultPlan: {ios: string, android: string}}>}
+ */
+export const fetchCompleteProductConfig = async () => {
+  try {
+    // Fetch both configurations in parallel
+    const [oneTimeConfig, subscriptionConfig] = await Promise.all([
+      fetchProductConfig(),
+      fetchSubscriptionConfig(),
+    ]);
+
+    return {
+      oneTime: oneTimeConfig.oneTime,
+      subscription: subscriptionConfig.subscription,
+      defaultPlan: oneTimeConfig.defaultPlan || subscriptionConfig.defaultPlan,
+    };
+  } catch (error) {
+    console.error('Error fetching complete product config:', error);
+
+    // Return complete fallback configuration
+    return {
+      oneTime: {
+        ios: ['payment_101', 'payment_201', 'payment_301'],
+        android: ['payment_100', 'payment_200', 'payment_300'],
+      },
       subscription: {
         ios: ['subplan_1', 'subplan_2', 'subplan_3'],
         android: ['subplan_1', 'subplan_2', 'subplan_3'],
@@ -58,16 +153,21 @@ export const getPlatformProductIds = async (
   type = 'subscription',
 ) => {
   try {
-    const config = await fetchProductConfig();
+    let productConfig;
 
-    if (type === 'oneTime' && config.oneTime && config.oneTime[platform]) {
-      return config.oneTime[platform];
-    } else if (
-      type === 'subscription' &&
-      config.subscription &&
-      config.subscription[platform]
-    ) {
-      return config.subscription[platform];
+    // Use appropriate API based on product type
+    if (type === 'oneTime') {
+      productConfig = await fetchProductConfig();
+
+      if (productConfig.oneTime && productConfig.oneTime[platform]) {
+        return productConfig.oneTime[platform];
+      }
+    } else if (type === 'subscription') {
+      productConfig = await fetchSubscriptionConfig();
+
+      if (productConfig.subscription && productConfig.subscription[platform]) {
+        return productConfig.subscription[platform];
+      }
     }
 
     // Fallback to default values if config is not available
@@ -99,9 +199,10 @@ export const getPlatformProductIds = async (
  */
 export const getDefaultProductId = async (platform = 'ios') => {
   try {
-    const config = await fetchProductConfig();
+    // Try to get default from one-time products first (for backward compatibility)
+    const productConfig = await fetchProductConfig();
     return (
-      config.defaultPlan?.[platform] ||
+      productConfig.defaultPlan?.[platform] ||
       (platform === 'ios' ? 'payment_101' : 'payment_100')
     );
   } catch (error) {
@@ -136,14 +237,19 @@ export const getSubscriptionProductIds = async (platform = 'ios') => {
  */
 export const getAllProductIds = async (platform = 'ios') => {
   try {
-    const [oneTimeIds, subscriptionIds] = await Promise.all([
-      getOneTimeProductIds(platform),
-      getSubscriptionProductIds(platform),
-    ]);
+    const productConfig = await fetchCompleteProductConfig();
 
     return {
-      oneTime: oneTimeIds,
-      subscription: subscriptionIds,
+      oneTime:
+        productConfig.oneTime?.[platform] ||
+        (platform === 'ios'
+          ? ['payment_101', 'payment_201', 'payment_301']
+          : ['payment_100', 'payment_200', 'payment_300']),
+      subscription: productConfig.subscription?.[platform] || [
+        'subplan_1',
+        'subplan_2',
+        'subplan_3',
+      ],
     };
   } catch (error) {
     console.error('Error getting all product IDs:', error);
@@ -189,4 +295,17 @@ export const isSubscriptionProduct = async (productId, platform = 'ios') => {
     console.error('Error checking if product is subscription:', error);
     return false;
   }
+};
+
+/**
+ * Legacy function for backward compatibility
+ * This function provides the old behavior where fetchProductConfig returned both types
+ * @deprecated Use fetchCompleteProductConfig instead
+ * @returns {Promise<{oneTime: {ios: string[], android: string[]}, subscription: {ios: string[], android: string[]}, defaultPlan: {ios: string, android: string}}>}
+ */
+export const fetchLegacyProductConfig = async () => {
+  console.warn(
+    'fetchLegacyProductConfig is deprecated. Use fetchCompleteProductConfig instead.',
+  );
+  return fetchCompleteProductConfig();
 };

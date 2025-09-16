@@ -1,14 +1,14 @@
-import React, { memo, useContext } from 'react'
-import { View as DefaultView } from 'react-native'
-import { ThemeContext } from '../../../../context/ThemeContext'
-import { Theme } from '../colors'
-import { get } from '../../../../utils/common'
+import React, { memo, useContext } from 'react';
+import { View as DefaultView } from 'react-native';
+import { ThemeContext } from '../../../../context/ThemeContext';
+import { Theme } from '../colors';
+import { get } from '../../../../utils/common';
 
 const _style = (row, centered, borderRadius) => ({
   ...(!!row && { flexDirection: 'row' }),
   ...(!!centered && { justifyContent: 'center', alignItems: 'center' }),
-  ...(!!borderRadius && { borderRadius })
-})
+  ...(!!borderRadius && { borderRadius }),
+});
 
 const _borderColor = (
   theme,
@@ -32,8 +32,8 @@ const _borderColor = (
     : undefined,
   borderRightColor: borderRightColor
     ? get(Theme[theme], borderRightColor, undefined)
-    : undefined
-})
+    : undefined,
+});
 
 const CView = ({
   row,
@@ -49,8 +49,8 @@ const CView = ({
   ...rest
 }) => {
   const {
-    theme: { mode }
-  } = useContext(ThemeContext)
+    theme: { mode },
+  } = useContext(ThemeContext);
 
   return (
     <DefaultView
@@ -59,7 +59,7 @@ const CView = ({
         {
           backgroundColor: color
             ? get(Theme[mode], color || 'surface.primary', undefined)
-            : undefined
+            : undefined,
         },
         _borderColor(
           mode,
@@ -70,10 +70,10 @@ const CView = ({
           borderRightColor
         ),
         _style(row, centered, borderRadius),
-        style
+        style,
       ]}
     />
-  )
-}
+  );
+};
 
-export default CView
+export default CView;

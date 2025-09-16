@@ -1,25 +1,25 @@
-import { useNavigation, useTheme } from '@react-navigation/native'
-import React, { memo, useRef } from 'react'
-import { Dimensions, FlatList, Image, Pressable } from 'react-native'
-import LinearGradient from 'react-native-linear-gradient'
-import { useDispatch } from 'react-redux'
-import { getAppConfig } from '../../../../constants/code'
-import ROUTE_NAME from '../../../../navigator/config/routeName'
-import { setTrackData } from '../../../../stores/slices/shortiePlayer'
-import { numberFormatter } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import Colors from '../../../common/Colors'
-import { setIsWatchPageVisible } from '../../../../stores/slices/watch'
+import { useNavigation, useTheme } from '@react-navigation/native';
+import React, { memo, useRef } from 'react';
+import { Dimensions, FlatList, Image, Pressable } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
+import { useDispatch } from 'react-redux';
+import { getAppConfig } from '../../../../constants/code';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
+import { setTrackData } from '../../../../stores/slices/shortiePlayer';
+import { numberFormatter } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import Colors from '../../../common/Colors';
+import { setIsWatchPageVisible } from '../../../../stores/slices/watch';
 
-export const SLIDER_WIDTH = Dimensions.get('window').width
-export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.95)
+export const SLIDER_WIDTH = Dimensions.get('window').width;
+export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.95);
 
 const Card45 = ({ data }) => {
-  const dispatch = useDispatch()
-  const cgRef = useRef()
-  const navigation = useNavigation()
+  const dispatch = useDispatch();
+  const cgRef = useRef();
+  const navigation = useNavigation();
 
   const handleCardClick = (item, index) => {
     const videoData = {
@@ -29,13 +29,13 @@ const Card45 = ({ data }) => {
         eventName: 'click',
         order: index + 1,
         viewType: '20',
-        type: 'shorties'
-      }
-    }
-    dispatch(setTrackData({ shortieDetail: videoData }))
-    dispatch(setIsWatchPageVisible(false))
-    navigation.navigate(ROUTE_NAME.Shorties, { data: item })
-  }
+        type: 'shorties',
+      },
+    };
+    dispatch(setTrackData({ shortieDetail: videoData }));
+    dispatch(setIsWatchPageVisible(false));
+    navigation.navigate(ROUTE_NAME.Shorties, { data: item });
+  };
 
   const renderItem = ({ item, index }) => (
     <CView style={styles.Card30Container}>
@@ -70,7 +70,7 @@ const Card45 = ({ data }) => {
         </LinearGradient>
       </Pressable>
     </CView>
-  )
+  );
   return (
     <CView style={styles.container}>
       <CView style={styles.sectionTitleStyle}>
@@ -89,7 +89,7 @@ const Card45 = ({ data }) => {
         extraData={data}
       />
     </CView>
-  )
-}
+  );
+};
 
-export default memo(Card45)
+export default memo(Card45);

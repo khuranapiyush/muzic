@@ -1,23 +1,23 @@
-import React, { memo, useState } from 'react'
-import { Image, LayoutAnimation, Pressable } from 'react-native'
-import appImages from '../../../../resource/images'
-import { convertUSDtoINR, formatDate } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './style'
+import React, { memo, useState } from 'react';
+import { Image, LayoutAnimation, Pressable } from 'react-native';
+import appImages from '../../../../resource/images';
+import { convertUSDtoINR, formatDate } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './style';
 
 const TransactionList = ({ item, index, theme }) => {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const isSuccess = item?.paymentStatus == 'SUCCESS'
-  let status = isSuccess ? 'Completed' : 'Failed'
-  let statusTextColor = isSuccess ? '#48B16E' : '#FB3836'
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isSuccess = item?.paymentStatus == 'SUCCESS';
+  let status = isSuccess ? 'Completed' : 'Failed';
+  let statusTextColor = isSuccess ? '#48B16E' : '#FB3836';
 
   const toggleExpansion = () => {
-    setIsExpanded(!isExpanded)
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-  }
+    setIsExpanded(!isExpanded);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  };
 
-  const styles = getStyles(theme)
+  const styles = getStyles(theme);
   return (
     <Pressable onPress={toggleExpansion}>
       <CView style={styles.transactionContainer}>
@@ -110,7 +110,7 @@ const TransactionList = ({ item, index, theme }) => {
         )}
       </CView>
     </Pressable>
-  )
-}
+  );
+};
 
-export default memo(TransactionList)
+export default memo(TransactionList);

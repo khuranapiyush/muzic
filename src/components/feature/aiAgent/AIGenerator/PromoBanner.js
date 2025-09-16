@@ -6,10 +6,10 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
-  ImageBackground,
   Platform,
   ActivityIndicator,
 } from 'react-native';
+import Video from 'react-native-video';
 import appImages from '../../../../resource/images';
 import LinearGradient from 'react-native-linear-gradient';
 import {useNavigation} from '@react-navigation/native';
@@ -157,14 +157,21 @@ const PromoModal = ({visible, onClose}) => {
       onRequestClose={onClose}
       statusBarTranslucent={Platform.OS === 'android'}>
       <View style={styles.modalContainer}>
-        <ImageBackground
-          source={appImages.promoBanner}
-          style={styles.modalView}
-          resizeMode="cover">
+        <View style={styles.modalView}>
+          <Video
+            source={require('../../../../../assets/animation/promoBanner.mp4')}
+            style={styles.videoBackground}
+            resizeMode="cover"
+            repeat={true}
+            muted={true}
+            playInBackground={false}
+            playWhenInactive={false}
+          />
+
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Image
               source={appImages.closeIcon}
-              style={{tintColor: 'black', width: 40, height: 40}}
+              style={styles.closeButtonIcon}
             />
           </TouchableOpacity>
 
@@ -283,7 +290,7 @@ const PromoModal = ({visible, onClose}) => {
               </LinearGradient>
             </View>
           )}
-        </ImageBackground>
+        </View>
       </View>
     </Modal>
   );
@@ -297,6 +304,16 @@ const styles = StyleSheet.create({
   },
   modalView: {
     flex: 1,
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  videoBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    right: 0,
     width: '100%',
     height: '100%',
   },
@@ -330,6 +347,11 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 50 : 40,
     zIndex: 10,
     padding: 10,
+  },
+  closeButtonIcon: {
+    tintColor: 'black',
+    width: 40,
+    height: 40,
   },
   featuresContainer: {
     width: '100%',

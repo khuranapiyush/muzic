@@ -1,37 +1,37 @@
-import { useNavigation } from '@react-navigation/native'
-import { useMutation } from '@tanstack/react-query'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { Image, TextInput, TouchableOpacity } from 'react-native'
-import { ScrollView } from 'react-native-gesture-handler'
-import { useSelector } from 'react-redux'
-import { applyPromoCode, buyPreSaleFanCard } from '../../../../api/trade'
-import useToaster from '../../../../hooks/useToaster'
-import useTrading from '../../../../hooks/useTrading'
-import ROUTE_NAME from '../../../../navigator/config/routeName'
-import appImages from '../../../../resource/images'
+import { useNavigation } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Image, TextInput, TouchableOpacity } from 'react-native';
+import { ScrollView } from 'react-native-gesture-handler';
+import { useSelector } from 'react-redux';
+import { applyPromoCode, buyPreSaleFanCard } from '../../../../api/trade';
+import useToaster from '../../../../hooks/useToaster';
+import useTrading from '../../../../hooks/useTrading';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
+import appImages from '../../../../resource/images';
 import {
   coinToINR,
   dollarToInr,
   dollarToInrWithRupeeSign,
-  round
-} from '../../../../utils/common'
-import TextInputFC from '../../../common/FormComponents/TextInputFC'
-import CButton from '../../../common/core/Button'
-import CheckBox from '../../../common/core/Checkbox'
-import Divider from '../../../common/core/Divider'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import PreSaleOrderPopup from '../PreSaleOrderPopup'
-import styles from './style'
+  round,
+} from '../../../../utils/common';
+import TextInputFC from '../../../common/FormComponents/TextInputFC';
+import CButton from '../../../common/core/Button';
+import CheckBox from '../../../common/core/Checkbox';
+import Divider from '../../../common/core/Divider';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import PreSaleOrderPopup from '../PreSaleOrderPopup';
+import styles from './style';
 
 const PreSaleBuy = ({ route }) => {
   const { currentPrice, maxQuantityPerUser, lowerLimit, higherLimit } =
-    useTrading(route.params.songData)
+    useTrading(route.params.songData);
 
-  const { buyPrice = 0 } = currentPrice || {}
-  const { tierId, background, tierName } = route.params.songData
-  const navigation = useNavigation()
+  const { buyPrice = 0 } = currentPrice || {};
+  const { tierId, background, tierName } = route.params.songData;
+  const navigation = useNavigation();
   const { control, reset, watch, setValue } = useForm({
     criteriaMode: 'all',
     mode: 'all',
@@ -45,148 +45,148 @@ const PreSaleBuy = ({ route }) => {
         promoCode: '',
         isPromoApplied: false,
         promoValue: 0,
-        promoCoins: 0
-      }
-    }
-  })
-  const { showToaster } = useToaster()
+        promoCoins: 0,
+      },
+    },
+  });
+  const { showToaster } = useToaster();
 
   const {
     fantigerCoin: fanTvCoin,
     balance,
-    redeemableFantigerCoin
-  } = useSelector(state => state.walletStats)
+    redeemableFantigerCoin,
+  } = useSelector(state => state.walletStats);
 
-  const [orderType, setOrderType] = useState('Instant')
-  const [orderId, setOrderId] = useState('')
+  const [orderType, setOrderType] = useState('Instant');
+  const [orderId, setOrderId] = useState('');
 
-  const [toBePaid, setToBePaid] = useState('')
-  const [totalPrice, setTotalPrice] = useState('')
+  const [toBePaid, setToBePaid] = useState('');
+  const [totalPrice, setTotalPrice] = useState('');
 
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [isMarketPlacePopupShow, setIsMarketPlaceBuyPopupShow] = useState(false)
+  const [isMarketPlacePopupShow, setIsMarketPlaceBuyPopupShow] = useState(false);
 
   const {
     redeemCoin,
     term,
     price,
     quantity,
-    promo: { promoCode, isPromoApplied, promoValue, promoCoins }
-  } = watch()
+    promo: { promoCode, isPromoApplied, promoValue, promoCoins },
+  } = watch();
 
   const isQuantityValid = useMemo(
     () => !!(quantity <= maxQuantityPerUser && quantity > 0),
     [maxQuantityPerUser, quantity]
-  )
+  );
 
   const isLimitPriceValid = useMemo(
     () =>
       parseFloat(price) >= parseFloat(lowerLimit) &&
       parseFloat(price) <= parseFloat(higherLimit),
     [higherLimit, lowerLimit, price]
-  )
+  );
   const count = useMemo(
     () => (quantity <= maxQuantityPerUser && quantity > 0 ? quantity : 1),
     [maxQuantityPerUser, quantity]
-  )
+  );
 
   useEffect(() => {
     let temp =
       dollarToInr(buyPrice) * count -
       (redeemCoin ? coinToINR(redeemableFantigerCoin) : 0) -
-      promoValue * 80
+      promoValue * 80;
 
-    setToBePaid(round(temp))
-    setTotalPrice(dollarToInr(buyPrice) * count)
-  }, [buyPrice, count, promoValue, redeemCoin, redeemableFantigerCoin])
+    setToBePaid(round(temp));
+    setTotalPrice(dollarToInr(buyPrice) * count);
+  }, [buyPrice, count, promoValue, redeemCoin, redeemableFantigerCoin]);
 
   useEffect(() => {
     reset(formValues => ({
       ...formValues,
-      price: dollarToInr(buyPrice).toString()
-    }))
-  }, [buyPrice, reset])
+      price: dollarToInr(buyPrice).toString(),
+    }));
+  }, [buyPrice, reset]);
 
   const { mutate: postApplyPromo } = useMutation(
     requestBody => applyPromoCode(requestBody),
     {
       onSuccess: ({ data }) => {
         if (data?.data?.discountType == 'cashback') {
-          setValue('promo.promoValue', 0)
-          setValue('promo.promoCoins', data?.data?.cashbackCoin)
-          setValue('promo.isPromoApplied', true)
+          setValue('promo.promoValue', 0);
+          setValue('promo.promoCoins', data?.data?.cashbackCoin);
+          setValue('promo.isPromoApplied', true);
         } else {
-          setValue('promo.promoValue', data?.data?.discountValue)
-          setValue('promo.promoCoins', 0)
-          setValue('promo.isPromoApplied', true)
+          setValue('promo.promoValue', data?.data?.discountValue);
+          setValue('promo.promoCoins', 0);
+          setValue('promo.isPromoApplied', true);
         }
         showToaster({
           type: 'success',
           text1: 'Success',
-          text2: 'Promo Code applied successfully!'
-        })
+          text2: 'Promo Code applied successfully!',
+        });
       },
       onError: error => {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: error.response.data.message
-        })
-      }
+          text2: error.response.data.message,
+        });
+      },
     }
-  )
+  );
 
   const handleApplyPromoCode = useCallback(() => {
-    let request = { tierId: 20001, quantity: 1, promoCode: promoCode }
-    postApplyPromo(request)
-  }, [postApplyPromo, promoCode])
+    let request = { tierId: 20001, quantity: 1, promoCode: promoCode };
+    postApplyPromo(request);
+  }, [postApplyPromo, promoCode]);
 
   const handleRemovePromo = useCallback(() => {
-    setValue('promo.promoValue', 0)
-    setValue('promo.promoCoins', 0)
-    setValue('promo.isPromoApplied', false)
-  }, [setValue])
+    setValue('promo.promoValue', 0);
+    setValue('promo.promoCoins', 0);
+    setValue('promo.isPromoApplied', false);
+  }, [setValue]);
 
   const handlePlaceOrder = useCallback(() => {
-    setIsLoading(true)
+    setIsLoading(true);
     let requestBody = {
       tierId: tierId,
       quantity: count,
       ...(!!redeemCoin && { fantigerCoin: redeemableFantigerCoin }),
       ...(!!promoCode && { promoCode: promoCode }),
-      deviceInfo: { source: 'ios' }
-    }
-    ConfirmNFT(requestBody)
-  }, [ConfirmNFT, count, promoCode, redeemCoin, redeemableFantigerCoin, tierId])
+      deviceInfo: { source: 'ios' },
+    };
+    ConfirmNFT(requestBody);
+  }, [ConfirmNFT, count, promoCode, redeemCoin, redeemableFantigerCoin, tierId]);
 
   const handleAddMoney = useCallback(() => {
-    navigation.navigate(ROUTE_NAME.AddFund)
-  }, [navigation])
+    navigation.navigate(ROUTE_NAME.AddFund);
+  }, [navigation]);
 
   const handleClosePopup = useCallback(() => {
-    setIsMarketPlaceBuyPopupShow(false)
-  }, [])
+    setIsMarketPlaceBuyPopupShow(false);
+  }, []);
 
   const { mutate: ConfirmNFT } = useMutation(
     requestBody => buyPreSaleFanCard(requestBody),
     {
       onSuccess: ({ data }) => {
-        setOrderId(data?.orderId)
-        setIsMarketPlaceBuyPopupShow(true)
-        setIsLoading(false)
+        setOrderId(data?.orderId);
+        setIsMarketPlaceBuyPopupShow(true);
+        setIsLoading(false);
       },
       onError: err => {
         showToaster({
           type: 'error',
           text1: 'Error',
-          text2: err.response.data.message
-        })
-        console.log('Error message Print ===', err.response.data.message)
-        setIsLoading(false)
-      }
+          text2: err.response.data.message,
+        });
+        console.log('Error message Print ===', err.response.data.message);
+        setIsLoading(false);
+      },
     }
-  )
+  );
 
   return (
     <CView style={styles.flex}>
@@ -228,7 +228,7 @@ const PreSaleBuy = ({ route }) => {
                 autoComplete="off"
                 autoCorrect={false}
                 rules={{
-                  required: 'Name is required'
+                  required: 'Name is required',
                 }}
                 style={isQuantityValid ? styles.input : styles.errorInput}
               />
@@ -278,7 +278,7 @@ const PreSaleBuy = ({ route }) => {
                   {!isPromoApplied ? (
                     <TextInput
                       onChangeText={textEntry => {
-                        setValue('promo.promoCode', textEntry)
+                        setValue('promo.promoCode', textEntry);
                       }}
                       editable={!isPromoApplied}
                     />
@@ -329,7 +329,7 @@ const PreSaleBuy = ({ route }) => {
             <CView row centered style={styles.alignCheckBox}>
               <CheckBox
                 customStyles={{
-                  containerStyle: { padding: 0, marginLeft: 0, marginRight: 0 }
+                  containerStyle: { padding: 0, marginLeft: 0, marginRight: 0 },
                 }}
                 checked={redeemCoin}
                 onPress={() => setValue('redeemCoin', !redeemCoin)}
@@ -375,8 +375,8 @@ const PreSaleBuy = ({ route }) => {
                     containerStyle: {
                       padding: 0,
                       marginLeft: 0,
-                      marginRight: 0
-                    }
+                      marginRight: 0,
+                    },
                   }}
                   checked={term}
                   onPress={() => setValue('term', !term)}
@@ -435,7 +435,7 @@ const PreSaleBuy = ({ route }) => {
         />
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default PreSaleBuy
+export default PreSaleBuy;

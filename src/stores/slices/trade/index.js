@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   parentTabIndex: 0,
@@ -7,8 +7,8 @@ const initialState = {
   fanCardDetails: {}, // strapi data
   fanCardPriceDetail: {},
   streamAndRoyaltyData: {},
-  fanCardVideoDetail: {} //mongo data
-}
+  fanCardVideoDetail: {}, //mongo data
+};
 
 const trade = createSlice({
   name: 'trade',
@@ -16,29 +16,29 @@ const trade = createSlice({
 
   reducers: {
     setParentTabIndex: (state, action) => {
-      state.parentTabIndex = action.payload
-      state.childTabIndex = 0
+      state.parentTabIndex = action.payload;
+      state.childTabIndex = 0;
     },
     setChildTabIndex: (state, action) => {
-      state.childTabIndex = action.payload
+      state.childTabIndex = action.payload;
     },
     setSelectedTabId: (state, action) => {
-      state.selectedTabId = action.payload
+      state.selectedTabId = action.payload;
     },
     setFanCardDetails: (state, action) => {
-      state.fanCardDetails = action.payload
+      state.fanCardDetails = action.payload;
     },
     setFanCardPriceDetail: (state, action) => {
-      state.fanCardPriceDetail = action.payload
+      state.fanCardPriceDetail = action.payload;
     },
     setStreamAndRoyaltyData: (state, action) => {
-      state.streamAndRoyaltyData = action.payload
+      state.streamAndRoyaltyData = action.payload;
     },
     setFanCardVideoDetail: (state, action) => {
-      state.fanCardVideoDetail = action.payload
-    }
-  }
-})
+      state.fanCardVideoDetail = action.payload;
+    },
+  },
+});
 
 export const {
   setParentTabIndex,
@@ -47,7 +47,7 @@ export const {
   setFanCardDetails,
   setFanCardPriceDetail,
   setStreamAndRoyaltyData,
-  setFanCardVideoDetail
-} = trade.actions
+  setFanCardVideoDetail,
+} = trade.actions;
 
-export default trade.reducer
+export default trade.reducer;

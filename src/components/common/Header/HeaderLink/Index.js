@@ -14,7 +14,7 @@ const HeaderLink = ({icon, link}) => {
   return (
     <CView>
       {link == 'Settings' ? (
-        !!user.isInternational ? (
+        user.isInternational ? (
           <></>
         ) : (
           <TouchableOpacity onPress={() => navigation.navigate(link)}>

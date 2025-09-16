@@ -1,20 +1,20 @@
-import React, { useCallback } from 'react'
-import CView from '../../../../../common/core/View'
-import CText from '../../../../../common/core/Text'
-import styles from './style'
-import CButton from '../../../../../common/core/Button'
-import useToaster from '../../../../../../hooks/useToaster'
+import React, { useCallback } from 'react';
+import CView from '../../../../../common/core/View';
+import CText from '../../../../../common/core/Text';
+import styles from './style';
+import CButton from '../../../../../common/core/Button';
+import useToaster from '../../../../../../hooks/useToaster';
 
 const NotifyMe = () => {
-  const { showToaster } = useToaster()
+  const { showToaster } = useToaster();
 
   const handleNotify = useCallback(() => {
     showToaster({
       type: 'success',
       text1: 'Success',
-      text2: 'You’re on the List!'
-    })
-  }, [showToaster])
+      text2: 'You’re on the List!',
+    });
+  }, [showToaster]);
 
   return (
     <CView centered style={styles.wrapper}>
@@ -38,7 +38,7 @@ const NotifyMe = () => {
         Happy Trading!
       </CText>
     </CView>
-  )
-}
+  );
+};
 
-export default NotifyMe
+export default NotifyMe;

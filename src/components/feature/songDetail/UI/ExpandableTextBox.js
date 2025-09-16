@@ -1,59 +1,59 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import { LayoutAnimation, StyleSheet, TouchableOpacity } from 'react-native'
-import CText from '../../../common/core/Text'
-import Hyperlink from 'react-native-hyperlink'
-import { useTheme } from 'react-native-elements'
-import Colors from '../../../common/Colors'
+import React, { useCallback, useEffect, useState } from 'react';
+import { LayoutAnimation, StyleSheet, TouchableOpacity } from 'react-native';
+import CText from '../../../common/core/Text';
+import Hyperlink from 'react-native-hyperlink';
+import { useTheme } from 'react-native-elements';
+import Colors from '../../../common/Colors';
 
 const styles = StyleSheet.create({
   text: {
     fontSize: 14,
     lineHeight: 21,
-    fontWeight: '400'
+    fontWeight: '400',
   },
   readButton: {
     alignSelf: 'flex-end',
     color: '#E14084',
     fontSize: 14,
     lineHeight: 21,
-    fontWeight: '400'
+    fontWeight: '400',
   },
   linkStyle: {
     color: '#E14084',
-    fontSize: 14
-  }
-})
+    fontSize: 14,
+  },
+});
 
 const ExpandableTextBox = ({
   text,
   defaultNoOfLines = 2,
   moreText = 'Read More',
   lessText = 'Read Less',
-  customStyle = {}
+  customStyle = {},
 }) => {
-  const { mode } = useTheme()
-  const [showMoreButton, setShowMoreButton] = useState(true)
-  const [textShown, setTextShown] = useState(false)
+  const { mode } = useTheme();
+  const [showMoreButton, setShowMoreButton] = useState(true);
+  const [textShown, setTextShown] = useState(false);
 
-  const [numLines, setNumLines] = useState(undefined)
+  const [numLines, setNumLines] = useState(undefined);
 
   const toggleTextShown = () => {
-    setTextShown(!textShown)
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
-  }
+    setTextShown(!textShown);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  };
   useEffect(() => {
-    setNumLines(textShown ? undefined : defaultNoOfLines)
-  }, [defaultNoOfLines, textShown])
+    setNumLines(textShown ? undefined : defaultNoOfLines);
+  }, [defaultNoOfLines, textShown]);
 
   const onTextLayout = useCallback(
     e => {
       if (e.nativeEvent.lines.length > 1 && !textShown) {
-        setShowMoreButton(true)
-        setNumLines(defaultNoOfLines)
+        setShowMoreButton(true);
+        setNumLines(defaultNoOfLines);
       }
     },
     [textShown, defaultNoOfLines]
-  )
+  );
 
   return (
     <>
@@ -74,7 +74,7 @@ const ExpandableTextBox = ({
         </TouchableOpacity>
       ) : null}
     </>
-  )
-}
+  );
+};
 
-export default ExpandableTextBox
+export default ExpandableTextBox;

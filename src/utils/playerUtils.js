@@ -192,7 +192,7 @@ export const playSong = (songData, source, songList = null) => {
  * @param {string} source - Screen or component that triggered playback
  */
 export const playQueue = (songsData, startIndex = 0, source) => {
-  if (!songsData || !songsData.length) return;
+  if (!songsData || !songsData.length) {return;}
 
   // First stop any currently playing audio
   stopPlayback();

@@ -1,21 +1,21 @@
-import React, { memo } from 'react'
-import { Dimensions, Image, Pressable } from 'react-native'
-import { useDispatch, useSelector } from 'react-redux'
-import { getAppConfig } from '../../../../constants/code'
-import useEvent from '../../../../hooks/useEvent'
-import { setFullModePlayer } from '../../../../stores/slices/watch'
-import CarouselView from '../CarouselView'
-import styles from './style'
-import { handleVideoStartBannerEvent } from '../../../../events/video'
+import React, { memo } from 'react';
+import { Dimensions, Image, Pressable } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { getAppConfig } from '../../../../constants/code';
+import useEvent from '../../../../hooks/useEvent';
+import { setFullModePlayer } from '../../../../stores/slices/watch';
+import CarouselView from '../CarouselView';
+import styles from './style';
+import { handleVideoStartBannerEvent } from '../../../../events/video';
 
-export const SLIDER_WIDTH = Dimensions.get('window').width
-export const ITEM_WIDTH = Math.round(SLIDER_WIDTH)
+export const SLIDER_WIDTH = Dimensions.get('window').width;
+export const ITEM_WIDTH = Math.round(SLIDER_WIDTH);
 
 const Banner = ({ data }) => {
-  const dispatch = useDispatch()
-  const { isShowFeature } = useSelector(state => state.app)
+  const dispatch = useDispatch();
+  const { isShowFeature } = useSelector(state => state.app);
 
-  const { defaultEventData } = useEvent()
+  const { defaultEventData } = useEvent();
 
   const handleBannerClick = (item, index) => {
     if (item?.type == 'video') {
@@ -26,14 +26,14 @@ const Banner = ({ data }) => {
           eventName: 'click',
           order: index + 1,
           viewType: data?.viewType,
-          type: item?.type || 'video'
-        }
-      }
-      dispatch(setFullModePlayer({ isVisible: true, videoDetail: videoData }))
+          type: item?.type || 'video',
+        },
+      };
+      dispatch(setFullModePlayer({ isVisible: true, videoDetail: videoData }));
 
-      handleVideoStartBannerEvent({ ...defaultEventData })
+      handleVideoStartBannerEvent({ ...defaultEventData });
     }
-  }
+  };
 
   const renderBanner = ({ item, index }) => (
     <Pressable
@@ -42,7 +42,7 @@ const Banner = ({ data }) => {
       key={index}>
       <Image source={{ uri: item.background.value }} style={styles.image} />
     </Pressable>
-  )
+  );
 
   return (
     <CarouselView
@@ -53,7 +53,7 @@ const Banner = ({ data }) => {
       }
       renderComponent={renderBanner}
     />
-  )
-}
+  );
+};
 
-export default memo(Banner)
+export default memo(Banner);

@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   balance: 0,
@@ -12,8 +12,8 @@ const initialState = {
   redeemedFantigerCoin: 0,
   withdrawableAmount: 0,
   ioutoken: 0,
-  ioutokenUnlocked: 0
-}
+  ioutokenUnlocked: 0,
+};
 
 const walletStats = createSlice({
   name: 'walletStats',
@@ -21,7 +21,7 @@ const walletStats = createSlice({
 
   reducers: {
     setWalletStats: (_, action) => {
-      return { ...action.payload }
+      return { ...action.payload };
     },
     updateWalletStats: (state, action) => {
       const {
@@ -30,8 +30,8 @@ const walletStats = createSlice({
         currency,
         redeemableFantigerCoin,
         ioutoken,
-        ioutokenUnlocked
-      } = action.payload
+        ioutokenUnlocked,
+      } = action.payload;
 
       return {
         ...state,
@@ -40,12 +40,12 @@ const walletStats = createSlice({
         currency,
         redeemableFantigerCoin,
         ioutokenUnlocked,
-        ioutoken
-      }
-    }
-  }
-})
+        ioutoken,
+      };
+    },
+  },
+});
 
-export const { setWalletStats, updateWalletStats } = walletStats.actions
+export const { setWalletStats, updateWalletStats } = walletStats.actions;
 
-export default walletStats.reducer
+export default walletStats.reducer;

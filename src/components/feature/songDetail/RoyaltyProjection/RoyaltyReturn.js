@@ -1,13 +1,13 @@
-import React from 'react'
-import { useSelector } from 'react-redux'
-import { dollarToInrWithRupeeSign, formatDate1 } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import StreamGraph from '../UI/StreamGraph'
-import styles from './style'
+import React from 'react';
+import { useSelector } from 'react-redux';
+import { dollarToInrWithRupeeSign, formatDate1 } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import StreamGraph from '../UI/StreamGraph';
+import styles from './style';
 
 const RoyaltyReturn = () => {
-  const { streamAndRoyaltyData } = useSelector(state => state.trade)
+  const { streamAndRoyaltyData } = useSelector(state => state.trade);
 
   return (
     <CView style={styles.wrapper}>
@@ -59,7 +59,7 @@ const RoyaltyReturn = () => {
         </CView>
       )}
     </CView>
-  )
-}
+  );
+};
 
-export default RoyaltyReturn
+export default RoyaltyReturn;

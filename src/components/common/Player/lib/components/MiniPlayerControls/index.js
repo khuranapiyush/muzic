@@ -1,39 +1,39 @@
-import React from 'react'
-import { Animated, Image, TouchableOpacity } from 'react-native'
-import { TouchableWithoutFeedback } from 'react-native-gesture-handler'
-import { useDispatch, useSelector } from 'react-redux'
-import appImages from '../../../../../../resource/images'
-import { setPlayerPlayPauseState } from '../../../../../../stores/slices/player'
-import { setIsWatchPageVisible } from '../../../../../../stores/slices/watch'
-import CText from '../../../../core/Text'
-import CView from '../../../../core/View'
-import getStyles from './styles'
-import { useTheme } from '@react-navigation/native'
+import React from 'react';
+import { Animated, Image, TouchableOpacity } from 'react-native';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import { useDispatch, useSelector } from 'react-redux';
+import appImages from '../../../../../../resource/images';
+import { setPlayerPlayPauseState } from '../../../../../../stores/slices/player';
+import { setIsWatchPageVisible } from '../../../../../../stores/slices/watch';
+import CText from '../../../../core/Text';
+import CView from '../../../../core/View';
+import getStyles from './styles';
+import { useTheme } from '@react-navigation/native';
 
 const MiniPlayerControls = ({ handleMiniPlayerClick, customStyles = {} }) => {
-  const { playerProps } = useSelector(state => state.player)
+  const { playerProps } = useSelector(state => state.player);
 
-  const { videoDetail: currentVideo } = useSelector(state => state.watch)
+  const { videoDetail: currentVideo } = useSelector(state => state.watch);
 
-  const { mode } = useTheme()
+  const { mode } = useTheme();
 
-  const styles = getStyles(mode)
-  const dispatch = useDispatch()
+  const styles = getStyles(mode);
+  const dispatch = useDispatch();
 
   const togglePlayPause = () => {
-    dispatch(setPlayerPlayPauseState(playerProps.paused ? 'play' : 'pause'))
-  }
+    dispatch(setPlayerPlayPauseState(playerProps.paused ? 'play' : 'pause'));
+  };
 
   const handlePlayerClose = () => {
-    dispatch(setIsWatchPageVisible(false))
-  }
+    dispatch(setIsWatchPageVisible(false));
+  };
 
   return (
     <CView style={styles.miniPlayerContainer}>
       <Animated.View
         style={[
           customStyles?.miniPlayerExtendedStyles,
-          styles.videoDetailContainer
+          styles.videoDetailContainer,
         ]}>
         <TouchableWithoutFeedback
           style={styles.videoDetailBtn}
@@ -47,7 +47,7 @@ const MiniPlayerControls = ({ handleMiniPlayerClick, customStyles = {} }) => {
       <Animated.View
         style={[
           customStyles?.miniPlayerExtendedStyles,
-          styles.controlsContainer
+          styles.controlsContainer,
         ]}>
         <CView>
           <TouchableOpacity onPress={togglePlayPause}>
@@ -71,7 +71,7 @@ const MiniPlayerControls = ({ handleMiniPlayerClick, customStyles = {} }) => {
         </CView>
       </Animated.View>
     </CView>
-  )
-}
+  );
+};
 
-export default MiniPlayerControls
+export default MiniPlayerControls;

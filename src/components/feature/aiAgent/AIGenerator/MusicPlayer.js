@@ -1,40 +1,40 @@
-import { Image, TouchableOpacity } from 'react-native'
-import React, { useEffect, useRef, useState } from 'react'
-import { useTheme } from '@react-navigation/native'
-import getStyles from './AIGenerator.styles'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import { Slider } from '@miblanchard/react-native-slider'
-import Sound from 'react-native-sound'
-import appAudios from '../../../../resource/audio'
-import useToaster from '../../../../hooks/useToaster'
+import { Image, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { useTheme } from '@react-navigation/native';
+import getStyles from './AIGenerator.styles';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import { Slider } from '@miblanchard/react-native-slider';
+import Sound from 'react-native-sound';
+import appAudios from '../../../../resource/audio';
+import useToaster from '../../../../hooks/useToaster';
 
 const MusicPlayer = (songItem, isPlayingStarted, songProgress) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
-  const soundRef = useRef(null)
-  const { showToaster } = useToaster()
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
+  const soundRef = useRef(null);
+  const { showToaster } = useToaster();
 
-  const [currentSong, setCurrentSong] = useState(songItem)
-  const [currentSound, setCurrentSound] = useState(null)
-  const [isPlaying, setIsPlaying] = useState(isPlayingStarted)
-  const [progress, setProgress] = useState(songProgress)
+  const [currentSong, setCurrentSong] = useState(songItem);
+  const [currentSound, setCurrentSound] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(isPlayingStarted);
+  const [progress, setProgress] = useState(songProgress);
 
   useEffect(() => {
     const sound = new Sound(appAudios.SifarSafar, '', error => {
       // console.log('error')
-    })
+    });
     // console.log(sound)
     return () => {
       if (soundRef.current) {
-        soundRef.current.release()
+        soundRef.current.release();
       }
-    }
-  }, [])
+    };
+  }, []);
 
   const handlePlayPause = () => {
     if (isPlaying) {
-      soundRef.current.pause()
+      soundRef.current.pause();
     } else {
       soundRef.current.play(success => {
         if (success) {
@@ -42,14 +42,14 @@ const MusicPlayer = (songItem, isPlayingStarted, songProgress) => {
         } else {
           // console.log('Playback failed due to audio decoding errors')
         }
-      })
+      });
     }
-    setIsPlaying(!isPlaying)
-  }
+    setIsPlaying(!isPlaying);
+  };
 
   const handleSongPress = song => {
     if (soundRef.current) {
-      soundRef.current.release()
+      soundRef.current.release();
     }
     if (song.audioUrl) {
       //   const sound = new Sound(song.audioUrl, '', error => {
@@ -76,12 +76,12 @@ const MusicPlayer = (songItem, isPlayingStarted, songProgress) => {
       // console.log('Initializing Sound...')
       const sound = new Sound(song.audioUrl, '', error => {
         if (error) {
-          showToaster('Failed to load the song', error)
-          return
+          showToaster('Failed to load the song', error);
+          return;
         }
-      })
-      setCurrentSound(sound)
-      soundRef.current = currentSound
+      });
+      setCurrentSound(sound);
+      soundRef.current = currentSound;
       //   soundRef.current.play(success => {
       //     if (success) {
       //       setIsPlaying(true)
@@ -100,22 +100,22 @@ const MusicPlayer = (songItem, isPlayingStarted, songProgress) => {
         // console.log(soundRef.current.isLoaded(), 'soundRef.current.isLoaded')
         soundRef.current.play(success => {
           if (success) {
-            setIsPlaying(true)
+            setIsPlaying(true);
             // console.log('Finished playing')
           } else {
-            setIsPlaying(false)
+            setIsPlaying(false);
             showToaster({
               type: 'error',
-              text1: 'Playback failed due to audio decoding errors'
-            })
+              text1: 'Playback failed due to audio decoding errors',
+            });
             // console.error('Playback failed')
           }
-        })
+        });
       }
       //   setProgress(soundRef.current.getDuration())
-      setCurrentSong(song)
+      setCurrentSong(song);
     }
-  }
+  };
 
   return (
     <CView style={styles.playerContainer}>
@@ -156,7 +156,7 @@ const MusicPlayer = (songItem, isPlayingStarted, songProgress) => {
           if (soundRef.current) {
             soundRef.current.setCurrentTime(
               value * soundRef.current.getDuration()
-            )
+            );
           }
         }}
         startFromZero={true}
@@ -165,7 +165,7 @@ const MusicPlayer = (songItem, isPlayingStarted, songProgress) => {
         minimumTrackStyle={styles.minTrackStyle}
       />
     </CView>
-  )
-}
+  );
+};
 
-export default MusicPlayer
+export default MusicPlayer;

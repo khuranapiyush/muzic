@@ -1,10 +1,10 @@
-import React from 'react'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
-import { Image, Pressable, TouchableOpacity } from 'react-native'
-import appImages from '../../../../resource/images'
-import styles from './style'
-import CButton from '../../../common/core/Button'
+import React from 'react';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
+import { Image, Pressable, TouchableOpacity } from 'react-native';
+import appImages from '../../../../resource/images';
+import styles from './style';
+import CButton from '../../../common/core/Button';
 
 const UploadShorties = ({ handleShortieUpload }) => {
   return (
@@ -42,7 +42,7 @@ const UploadShorties = ({ handleShortieUpload }) => {
         </CView>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default UploadShorties
+export default UploadShorties;

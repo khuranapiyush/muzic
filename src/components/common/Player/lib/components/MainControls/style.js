@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native';
 
 const styles = StyleSheet.create({
   mainControlsContainer: {
@@ -6,20 +6,20 @@ const styles = StyleSheet.create({
     height: '30%',
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   controlButton: {
     justifyContent: 'center',
     padding: 10,
     borderRadius: 100,
     marginHorizontal: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.40)'
+    backgroundColor: 'rgba(0, 0, 0, 0.40)',
   },
   controlButtonIcon: {
     width: 28,
     height: 28,
-    resizeMode: 'contain'
-  }
-})
+    resizeMode: 'contain',
+  },
+});
 
-export default styles
+export default styles;

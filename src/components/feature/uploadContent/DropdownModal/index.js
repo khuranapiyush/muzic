@@ -1,14 +1,14 @@
-import React, { useState } from 'react'
-import { Pressable, SafeAreaView, ScrollView } from 'react-native'
-import { Divider } from 'react-native-elements'
-import Modal from 'react-native-modal'
-import { screenHeight } from '../../../../utils/common'
-import Toaster from '../../../common/Toaster'
-import CButton from '../../../common/core/Button'
-import CheckBox from '../../../common/core/Checkbox'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
+import React, { useState } from 'react';
+import { Pressable, SafeAreaView, ScrollView } from 'react-native';
+import { Divider } from 'react-native-elements';
+import Modal from 'react-native-modal';
+import { screenHeight } from '../../../../utils/common';
+import Toaster from '../../../common/Toaster';
+import CButton from '../../../common/core/Button';
+import CheckBox from '../../../common/core/Checkbox';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
 
 const DropdownModal = ({
   isVisible,
@@ -16,23 +16,23 @@ const DropdownModal = ({
   config = { type: 'custom', height: 0.5 },
   data,
   setItem,
-  title
+  title,
 }) => {
   const handleSwipeComplete = () => {
-    onClose(false)
-  }
-  const [selectedItem, setSelectedItem] = useState([])
+    onClose(false);
+  };
+  const [selectedItem, setSelectedItem] = useState([]);
 
   const handleDone = () => {
-    setItem(selectedItem)
-    onClose(false)
-  }
+    setItem(selectedItem);
+    onClose(false);
+  };
 
   const handleItemSelection = item => {
     setSelectedItem(prevSelectedItem =>
       prevSelectedItem === item ? null : item
-    )
-  }
+    );
+  };
 
   return (
     <Modal
@@ -50,7 +50,7 @@ const DropdownModal = ({
       <SafeAreaView
         style={{
           ...styles.modalContainer,
-          height: screenHeight * (config.type == 'max' ? 1 : config.height)
+          height: screenHeight * (config.type == 'max' ? 1 : config.height),
         }}>
         <CView style={styles.modalContent}>
           <CView row style={styles.titleContainer}>
@@ -97,7 +97,7 @@ const DropdownModal = ({
         <Toaster />
       </SafeAreaView>
     </Modal>
-  )
-}
+  );
+};
 
-export default DropdownModal
+export default DropdownModal;

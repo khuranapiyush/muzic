@@ -55,7 +55,7 @@ const EmptyLibrary = React.memo(() => {
 
 // Add helper function to clean song titles
 const cleanSongTitle = title => {
-  if (!title) return 'Untitled Song';
+  if (!title) {return 'Untitled Song';}
   return title.replace(/"/g, '').trim();
 };
 
@@ -323,7 +323,7 @@ const LibraryScreen = () => {
   // Updated permission handler that works better for Android 11+
   const requestAndroidPermissions = async () => {
     try {
-      if (Platform.OS !== 'android') return true;
+      if (Platform.OS !== 'android') {return true;}
 
       console.log('Android SDK Version:', Platform.Version);
 
@@ -647,7 +647,7 @@ const LibraryScreen = () => {
 
   // Create a generation indicator component
   const GenerationIndicator = () => {
-    if (!isGeneratingSong || !generatingSongId) return null;
+    if (!isGeneratingSong || !generatingSongId) {return null;}
 
     return (
       <LinearGradient

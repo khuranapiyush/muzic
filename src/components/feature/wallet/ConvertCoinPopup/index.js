@@ -1,24 +1,24 @@
-import React, { useCallback } from 'react'
-import { Image, TouchableOpacity } from 'react-native'
-import Modal from 'react-native-modal'
-import appImages from '../../../../resource/images'
-import Toaster from '../../../common/Toaster'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import AutoHeightImage from 'react-native-auto-height-image'
-import { screenWidth } from '../../../../utils/common'
+import React, { useCallback } from 'react';
+import { Image, TouchableOpacity } from 'react-native';
+import Modal from 'react-native-modal';
+import appImages from '../../../../resource/images';
+import Toaster from '../../../common/Toaster';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import AutoHeightImage from 'react-native-auto-height-image';
+import { screenWidth } from '../../../../utils/common';
 
 const ConvertCoinPopup = ({
   contentUrl,
   isVisible,
   onClose,
-  config = { type: 'custom' }
+  config = { type: 'custom' },
 }) => {
-  console.log('🚀 ~ contentUrl:', contentUrl)
+  console.log('🚀 ~ contentUrl:', contentUrl);
   const handleSwipeComplete = useCallback(() => {
-    onClose()
-  }, [onClose])
+    onClose();
+  }, [onClose]);
 
   return (
     <CView>
@@ -63,7 +63,7 @@ const ConvertCoinPopup = ({
         </CView>
       </Modal>
     </CView>
-  )
-}
+  );
+};
 
-export default ConvertCoinPopup
+export default ConvertCoinPopup;

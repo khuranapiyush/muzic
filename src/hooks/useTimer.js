@@ -1,47 +1,47 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react';
 
 const useTimer = (initialSeconds = 60, config = { autoStart: true }) => {
-  const [seconds, setSeconds] = useState(initialSeconds)
-  const [isRunning, setIsRunning] = useState(false)
-  const intervalRef = useRef(null)
+  const [seconds, setSeconds] = useState(initialSeconds);
+  const [isRunning, setIsRunning] = useState(false);
+  const intervalRef = useRef(null);
 
   const startTimer = () => {
-    setIsRunning(true)
-  }
+    setIsRunning(true);
+  };
 
   const pauseTimer = () => {
-    setIsRunning(false)
-  }
+    setIsRunning(false);
+  };
 
   const resumeTimer = () => {
-    setIsRunning(true)
-  }
+    setIsRunning(true);
+  };
 
   const resetTimer = () => {
-    setSeconds(initialSeconds)
-    setIsRunning(true)
-  }
+    setSeconds(initialSeconds);
+    setIsRunning(true);
+  };
 
   useEffect(() => {
     if (config.autoStart) {
-      startTimer()
+      startTimer();
     }
-  }, [config.autoStart])
+  }, [config.autoStart]);
 
   useEffect(() => {
     if (isRunning && seconds > 0) {
       intervalRef.current = setInterval(() => {
-        setSeconds(prevSeconds => prevSeconds - 1)
-      }, 1000)
+        setSeconds(prevSeconds => prevSeconds - 1);
+      }, 1000);
     } else if (seconds === 0) {
-      setIsRunning(false)
+      setIsRunning(false);
     }
 
     return () => {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-  }, [isRunning, seconds])
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    };
+  }, [isRunning, seconds]);
 
   return {
     seconds,
@@ -49,8 +49,8 @@ const useTimer = (initialSeconds = 60, config = { autoStart: true }) => {
     startTimer,
     pauseTimer,
     resumeTimer,
-    resetTimer
-  }
-}
+    resetTimer,
+  };
+};
 
-export default useTimer
+export default useTimer;

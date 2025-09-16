@@ -1,17 +1,17 @@
-import React, { useMemo, useState } from 'react'
-import { Button, FlatList, Pressable } from 'react-native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import { screenWidth } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React, { useMemo, useState } from 'react';
+import { Button, FlatList, Pressable } from 'react-native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import { screenWidth } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
-const customStyles = { spacing: 16 }
+const customStyles = { spacing: 16 };
 
 const generateWidth = count => {
-  return screenWidth * 0.5 - customStyles.spacing * 2
-}
+  return screenWidth * 0.5 - customStyles.spacing * 2;
+};
 
 const Card50 = ({
   label,
@@ -23,21 +23,21 @@ const Card50 = ({
   handleGameAction,
   ...rest
 }) => {
-  const [isShowMoreItems, setIsShowItems] = useState(false)
+  const [isShowMoreItems, setIsShowItems] = useState(false);
 
-  const isGrid = false
+  const isGrid = false;
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
   useMemo(
     () => feedType === 'vertical' && items.length > visibleItems,
     [feedType, items.length, visibleItems]
-  )
+  );
 
   const handleClick = idx => {
-    handleGameAction(items[idx])
-  }
+    handleGameAction(items[idx]);
+  };
 
   const renderItem = ({ item, index: idx }) => {
     return (
@@ -46,13 +46,13 @@ const Card50 = ({
           source={{
             uri: item?.isLocked
               ? item?.metaData?.lockedCardImageUrl
-              : item?.metaData?.cardImageUrl
+              : item?.metaData?.cardImageUrl,
           }}
           width={screenWidth * 0.3 - customStyles.spacing * 2}
         />
       </Pressable>
-    )
-  }
+    );
+  };
 
   const renderGrid = (item, idx) => {
     return (
@@ -62,19 +62,19 @@ const Card50 = ({
           width={screenWidth * 0.9}
         />
       </CView>
-    )
-  }
+    );
+  };
 
   const HorizontalItemSeparator = () => {
     return (
       <CView
         style={{
           width: customStyles.spacing,
-          ...(feedType == 'vertical' && { height: customStyles.spacing })
+          ...(feedType == 'vertical' && { height: customStyles.spacing }),
         }}
       />
-    )
-  }
+    );
+  };
 
   return (
     <CView style={styles.wrapper}>
@@ -117,24 +117,24 @@ const Card50 = ({
             style={{
               ...(feedType == 'vertical' && {
                 marginLeft: customStyles.spacing,
-                marginRight: customStyles.spacing
+                marginRight: customStyles.spacing,
               }),
               ...(feedType == 'horizontal' &&
                 items.length <= 3 && {
                   marginLeft: customStyles.spacing,
-                  marginRight: customStyles.spacing
-                })
+                  marginRight: customStyles.spacing,
+                }),
             }}
             contentContainerStyle={{
               ...(feedType == 'horizontal' &&
                 items.length > 3 && {
-                  paddingHorizontal: customStyles.spacing
-                })
+                  paddingHorizontal: customStyles.spacing,
+                }),
             }}
           />
         )}
       </CView>
     </CView>
-  )
-}
-export default Card50
+  );
+};
+export default Card50;

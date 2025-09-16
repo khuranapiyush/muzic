@@ -1,21 +1,21 @@
-import React from 'react'
-import { Image, Linking, Modal } from 'react-native'
-import { AppStoreLink } from '../../../../constants/app'
-import appImages from '../../../../resource/images'
-import CButton from '../../core/Button'
-import CText from '../../core/Text'
-import CView from '../../core/View'
-import styles from './style'
+import React from 'react';
+import { Image, Linking, Modal } from 'react-native';
+import { AppStoreLink } from '../../../../constants/app';
+import appImages from '../../../../resource/images';
+import CButton from '../../core/Button';
+import CText from '../../core/Text';
+import CView from '../../core/View';
+import styles from './style';
 
 const SoftUpdateModal = ({ isVisible, onClose }) => {
   const handleUpdate = async () => {
     Linking.canOpenURL(AppStoreLink).then(
       supported => {
-        supported && Linking.openURL(AppStoreLink)
+        supported && Linking.openURL(AppStoreLink);
       },
       err => console.log(err)
-    )
-  }
+    );
+  };
 
   return (
     <Modal
@@ -53,7 +53,7 @@ const SoftUpdateModal = ({ isVisible, onClose }) => {
         </CView>
       </CView>
     </Modal>
-  )
-}
+  );
+};
 
-export default SoftUpdateModal
+export default SoftUpdateModal;

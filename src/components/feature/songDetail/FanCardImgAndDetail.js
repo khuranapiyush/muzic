@@ -1,8 +1,8 @@
-import React from 'react'
-import CView from '../../common/core/View'
-import CText from '../../common/core/Text'
-import { Image } from 'react-native'
-import { BenefitsText } from './UI/PrivilegeText'
+import React from 'react';
+import CView from '../../common/core/View';
+import CText from '../../common/core/Text';
+import { Image } from 'react-native';
+import { BenefitsText } from './UI/PrivilegeText';
 
 const FanCardImgAndDetail = ({ nftDetail }) => {
   return (
@@ -11,14 +11,14 @@ const FanCardImgAndDetail = ({ nftDetail }) => {
         <Image
           source={{
             uri: nftDetail?.asset_tiers?.data?.[0]?.attributes
-              ?.nft_frontimage_url
+              ?.nft_frontimage_url,
           }}
           style={{ width: '40%', height: 270 }}
         />
         <Image
           source={{
             uri: nftDetail?.asset_tiers?.data?.[0]?.attributes
-              ?.nft_backimage_url
+              ?.nft_backimage_url,
           }}
           style={{ width: '40%', height: 270 }}
         />
@@ -59,7 +59,7 @@ const FanCardImgAndDetail = ({ nftDetail }) => {
         />
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default FanCardImgAndDetail
+export default FanCardImgAndDetail;

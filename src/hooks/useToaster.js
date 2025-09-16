@@ -1,12 +1,12 @@
-import Toast from 'react-native-toast-message'
-import { useCallback } from 'react'
+import Toast from 'react-native-toast-message';
+import { useCallback } from 'react';
 
 const useToaster = () => {
   const showToaster = useCallback((data = {}) => {
-    Toast.show(data)
-  }, [])
+    Toast.show(data);
+  }, []);
 
-  return { showToaster }
-}
+  return { showToaster };
+};
 
-export default useToaster
+export default useToaster;

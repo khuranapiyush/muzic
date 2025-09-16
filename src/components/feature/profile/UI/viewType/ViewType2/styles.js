@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -13,42 +13,42 @@ const getStyles = theme => {
       paddingLeft: 12,
       paddingRight: 16,
       paddingVertical: 14,
-      marginRight: 16
+      marginRight: 16,
     },
     leftWrapper: {
       justifyContent: 'space-between',
       alignItems: 'center',
-      width: '90%'
+      width: '90%',
     },
     leftIconWrapper: {
-      alignSelf: 'flex-start'
+      alignSelf: 'flex-start',
     },
     leftIcon: { width: 24, height: 24, marginRight: 8 },
     labelText: {
       fontSize: 16,
-      fontWeight: '600'
+      fontWeight: '600',
     },
     descriptionText: {
       fontSize: 8,
-      fontWeight: '500'
+      fontWeight: '500',
     },
     valueWrapper: {
       borderRadius: 8,
       paddingVertical: 4,
-      paddingHorizontal: 8
+      paddingHorizontal: 8,
     },
     valueText: {
       fontSize: 12,
-      fontWeight: '500'
+      fontWeight: '500',
     },
     actionBtnWrapper: {
-      marginLeft: 8
+      marginLeft: 8,
     },
     actionIcon: {
       width: 24,
       height: 24,
-      tintColor: '#FFF'
-    }
-  })
-}
-export default getStyles
+      tintColor: '#FFF',
+    },
+  });
+};
+export default getStyles;

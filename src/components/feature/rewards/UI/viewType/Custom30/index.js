@@ -1,14 +1,14 @@
-import React, { useMemo, useState } from 'react'
-import { Button, FlatList } from 'react-native'
-import AutoHeightImage from 'react-native-auto-height-image'
-import { screenWidth } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import CustomCard30 from '../../CustomView/Card30'
-import getStyles from './style'
-import { useTheme } from '@react-navigation/native'
+import React, { useMemo, useState } from 'react';
+import { Button, FlatList } from 'react-native';
+import AutoHeightImage from 'react-native-auto-height-image';
+import { screenWidth } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import CustomCard30 from '../../CustomView/Card30';
+import getStyles from './style';
+import { useTheme } from '@react-navigation/native';
 
-const customStyles = { spacing: 16 }
+const customStyles = { spacing: 16 };
 
 const Custom30 = ({
   label,
@@ -20,21 +20,21 @@ const Custom30 = ({
   handleGameAction,
   ...rest
 }) => {
-  const [isShowMoreItems, setIsShowItems] = useState(false)
+  const [isShowMoreItems, setIsShowItems] = useState(false);
 
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
 
-  const isGrid = false
+  const isGrid = false;
 
   useMemo(
     () => feedType === 'vertical' && items.length > visibleItems,
     [feedType, items.length, visibleItems]
-  )
+  );
 
   const renderItem = ({ item, index: idx }) => {
-    return <CustomCard30 item={item} metaData={items[idx]} />
-  }
+    return <CustomCard30 item={item} metaData={items[idx]} />;
+  };
 
   const renderGrid = (item, idx) => {
     return (
@@ -44,19 +44,19 @@ const Custom30 = ({
           width={screenWidth * 0.9}
         />
       </CView>
-    )
-  }
+    );
+  };
 
   const HorizontalItemSeparator = () => {
     return (
       <CView
         style={{
           width: customStyles.spacing,
-          ...(feedType == 'vertical' && { height: customStyles.spacing })
+          ...(feedType == 'vertical' && { height: customStyles.spacing }),
         }}
       />
-    )
-  }
+    );
+  };
 
   return (
     <CView style={styles.wrapper}>
@@ -81,11 +81,11 @@ const Custom30 = ({
             {!isShowMoreItems ? (
               <Button
                 title=" View more"
-                onPress={() => setIsShowItems(true)}></Button>
+                onPress={() => setIsShowItems(true)} />
             ) : (
               <Button
                 title="Show less"
-                onPress={() => setIsShowItems(false)}></Button>
+                onPress={() => setIsShowItems(false)} />
             )}
           </CView>
         ) : (
@@ -99,24 +99,24 @@ const Custom30 = ({
             style={{
               ...(feedType == 'vertical' && {
                 marginLeft: customStyles.spacing,
-                marginRight: customStyles.spacing
+                marginRight: customStyles.spacing,
               }),
               ...(feedType == 'horizontal' &&
                 items.length <= 3 && {
                   marginLeft: customStyles.spacing,
-                  marginRight: customStyles.spacing
-                })
+                  marginRight: customStyles.spacing,
+                }),
             }}
             contentContainerStyle={{
               ...(feedType == 'horizontal' &&
                 items.length > 3 && {
-                  paddingHorizontal: customStyles.spacing
-                })
+                  paddingHorizontal: customStyles.spacing,
+                }),
             }}
           />
         )}
       </CView>
     </CView>
-  )
-}
-export default Custom30
+  );
+};
+export default Custom30;

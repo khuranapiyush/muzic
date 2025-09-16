@@ -1,27 +1,27 @@
-import { useNavigation, useTheme } from '@react-navigation/native'
-import { useMutation } from '@tanstack/react-query'
-import React, { useCallback, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { Image, SafeAreaView, ScrollView } from 'react-native'
-import { useSelector } from 'react-redux'
-import { addBankAccounts } from '../../../../api/wallet'
-import useToaster from '../../../../hooks/useToaster'
-import appImages from '../../../../resource/images'
-import TextInputFC from '../../../common/FormComponents/TextInputFC'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import ROUTE_NAME from '../../../../navigator/config/routeName'
-import getStyles from './style'
-import Colors from '../../../common/Colors'
+import { useNavigation, useTheme } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
+import React, { useCallback, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { Image, SafeAreaView, ScrollView } from 'react-native';
+import { useSelector } from 'react-redux';
+import { addBankAccounts } from '../../../../api/wallet';
+import useToaster from '../../../../hooks/useToaster';
+import appImages from '../../../../resource/images';
+import TextInputFC from '../../../common/FormComponents/TextInputFC';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
+import getStyles from './style';
+import Colors from '../../../common/Colors';
 
 const AddAccount = () => {
-  const { nameOnPancard = '', userId } = useSelector(state => state.user)
-  const { showToaster } = useToaster()
+  const { nameOnPancard = '', userId } = useSelector(state => state.user);
+  const { showToaster } = useToaster();
 
-  const navigation = useNavigation()
+  const navigation = useNavigation();
 
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
 
   const { control, watch } = useForm({
     criteriaMode: 'all',
@@ -29,50 +29,50 @@ const AddAccount = () => {
     defaultValues: {
       accountNumber: '',
       accountIfsc: '',
-      accountHolderName: nameOnPancard
-    }
-  })
+      accountHolderName: nameOnPancard,
+    },
+  });
 
   const handleClose = useCallback(() => {
-    navigation.goBack()
-  }, [navigation])
+    navigation.goBack();
+  }, [navigation]);
 
-  const { accountNumber, accountIfsc, accountHolderName } = watch()
+  const { accountNumber, accountIfsc, accountHolderName } = watch();
 
   const { mutate: addAccount } = useMutation(data => addBankAccounts(data), {
     onSuccess: res => {
-      setIsLoading(false)
+      setIsLoading(false);
       showToaster({
         type: 'info',
         text1: 'Add Account',
-        text2: 'Account added successfully, please verify now'
-      })
-      navigation.navigate(ROUTE_NAME.Wallet)
+        text2: 'Account added successfully, please verify now',
+      });
+      navigation.navigate(ROUTE_NAME.Wallet);
     },
     onError: error => {
-      setIsLoading(false)
+      setIsLoading(false);
       showToaster({
         type: 'info',
         text1: 'Add Account',
-        text2: error.response.data.message
-      })
-    }
-  })
+        text2: error.response.data.message,
+      });
+    },
+  });
 
   const handleAddAccount = useCallback(() => {
-    setIsLoading(true)
+    setIsLoading(true);
     let payload = {
       type: 'bank',
       account: accountNumber,
       name: accountHolderName,
-      ifsc: accountIfsc
-    }
-    addAccount({ userId, payload })
-  }, [accountHolderName, accountIfsc, accountNumber, addAccount, userId])
+      ifsc: accountIfsc,
+    };
+    addAccount({ userId, payload });
+  }, [accountHolderName, accountIfsc, accountNumber, addAccount, userId]);
 
-  const { mode } = useTheme()
+  const { mode } = useTheme();
 
-  const styles = getStyles(mode)
+  const styles = getStyles(mode);
 
   return (
     <SafeAreaView style={styles.wrapper}>
@@ -158,7 +158,7 @@ const AddAccount = () => {
         </CView>
       </ScrollView>
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default AddAccount
+export default AddAccount;

@@ -1,11 +1,11 @@
-import { createSlice } from '@reduxjs/toolkit'
+import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
   coinStats: {},
   coinEarn: {},
   dailyStreak: {},
-  mode: 'max'
-}
+  mode: 'max',
+};
 
 const coinTxnStats = createSlice({
   name: 'coinTxnStats',
@@ -13,18 +13,18 @@ const coinTxnStats = createSlice({
 
   reducers: {
     setCoinStats: (state, action) => {
-      state.coinStats = action.payload
+      state.coinStats = action.payload;
     },
     setCoinEarn: (state, action) => {
-      state.coinEarn = action.payload
+      state.coinEarn = action.payload;
     },
     setDailyStreak: (state, action) => {
-      state.dailyStreak = action.payload
-    }
-  }
-})
+      state.dailyStreak = action.payload;
+    },
+  },
+});
 
 export const { setCoinStats, setCoinEarn, setDailyStreak } =
-  coinTxnStats.actions
+  coinTxnStats.actions;
 
-export default coinTxnStats.reducer
+export default coinTxnStats.reducer;

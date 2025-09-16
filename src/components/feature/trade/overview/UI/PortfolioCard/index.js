@@ -1,18 +1,18 @@
-import React from 'react'
-import CView from '../../../../../common/core/View'
-import CText from '../../../../../common/core/Text'
+import React from 'react';
+import CView from '../../../../../common/core/View';
+import CText from '../../../../../common/core/Text';
 import {
   calculateProfitLoss,
-  dollarToInrWithRupeeSign
-} from '../../../../../../utils/common'
-import getStyles from './style'
-import { Image } from 'react-native'
-import { Colors } from '../../../../../common/core/colors'
-import { useTheme } from '@react-navigation/native'
+  dollarToInrWithRupeeSign,
+} from '../../../../../../utils/common';
+import getStyles from './style';
+import { Image } from 'react-native';
+import { Colors } from '../../../../../common/core/colors';
+import { useTheme } from '@react-navigation/native';
 
 const PortFolioCard = ({ data }) => {
-  const { mode } = useTheme()
-  const styles = getStyles(mode)
+  const { mode } = useTheme();
+  const styles = getStyles(mode);
   return (
     <CView style={styles.wrapper}>
       <CView row style={styles.titleContainer}>
@@ -91,7 +91,7 @@ const PortFolioCard = ({ data }) => {
         </CView>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default PortFolioCard
+export default PortFolioCard;

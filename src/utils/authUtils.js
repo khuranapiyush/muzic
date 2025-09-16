@@ -54,7 +54,7 @@ export const logoutUser = async () => {
 const base64Decode = input => {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
-  let str = input.replace(/=+$/, '');
+  let str = input.replace(/[=]+$/, '');
   let output = '';
 
   if (str.length % 4 === 1) {
@@ -83,7 +83,7 @@ const base64Decode = input => {
  * @returns {boolean} True if token is expired or will expire within buffer time
  */
 export const isTokenExpired = (token, bufferSeconds = 60) => {
-  if (!token) return true;
+  if (!token) {return true;}
 
   try {
     // Handle token as object with access property
@@ -128,7 +128,7 @@ export const isTokenExpired = (token, bufferSeconds = 60) => {
 
     const {exp} = JSON.parse(jsonPayload);
 
-    if (!exp) return false;
+    if (!exp) {return false;}
 
     // Get current time with buffer
     const currentTime = Math.floor(Date.now() / 1000) + bufferSeconds;

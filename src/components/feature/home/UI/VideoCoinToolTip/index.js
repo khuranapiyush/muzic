@@ -1,31 +1,31 @@
-import React, { useRef, useState } from 'react'
-import { Image, Pressable, TouchableOpacity } from 'react-native'
-import appImages from '../../../../../resource/images'
-import CText from '../../../../common/core/Text'
-import styles from './style'
+import React, { useRef, useState } from 'react';
+import { Image, Pressable, TouchableOpacity } from 'react-native';
+import appImages from '../../../../../resource/images';
+import CText from '../../../../common/core/Text';
+import styles from './style';
 
 const VideoCoinToolTip = ({ coin }) => {
-  const touchable = useRef()
-  const [showPopover, setShowPopover] = useState(false)
-  const [popoverHeight, setPopoverHeight] = useState(0)
-  const hideTimeoutRef = useRef(null)
+  const touchable = useRef();
+  const [showPopover, setShowPopover] = useState(false);
+  const [popoverHeight, setPopoverHeight] = useState(0);
+  const hideTimeoutRef = useRef(null);
 
   const onTouchableLayout = e => {
-    const height = e.nativeEvent.layout.height
-    setPopoverHeight(height)
-  }
+    const height = e.nativeEvent.layout.height;
+    setPopoverHeight(height);
+  };
 
   const handlePopoverClick = () => {
-    setShowPopover(!showPopover)
+    setShowPopover(!showPopover);
 
     if (hideTimeoutRef.current) {
-      clearTimeout(hideTimeoutRef.current)
+      clearTimeout(hideTimeoutRef.current);
     }
 
     hideTimeoutRef.current = setTimeout(() => {
-      setShowPopover(false)
-    }, 5000)
-  }
+      setShowPopover(false);
+    }, 5000);
+  };
 
   return (
     <>
@@ -54,7 +54,7 @@ const VideoCoinToolTip = ({ coin }) => {
         </Pressable>
       )}
     </>
-  )
-}
+  );
+};
 
-export default VideoCoinToolTip
+export default VideoCoinToolTip;

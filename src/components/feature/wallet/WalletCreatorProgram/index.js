@@ -1,24 +1,24 @@
-import { useTheme } from '@react-navigation/native'
-import React from 'react'
-import { Image, Pressable } from 'react-native'
-import RenderHtml from 'react-native-render-html'
-import { screenWidth } from '../../../../utils/common'
-import Colors from '../../../common/Colors'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import getStyles from './style'
-import AutoHeightImage from 'react-native-auto-height-image'
-import appImages from '../../../../resource/images'
+import { useTheme } from '@react-navigation/native';
+import React from 'react';
+import { Image, Pressable } from 'react-native';
+import RenderHtml from 'react-native-render-html';
+import { screenWidth } from '../../../../utils/common';
+import Colors from '../../../common/Colors';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import getStyles from './style';
+import AutoHeightImage from 'react-native-auto-height-image';
+import appImages from '../../../../resource/images';
 
 const WalletCreatorProgram = ({
   joinYoutube,
   handleHowItWorks,
   theme,
-  data
+  data,
 }) => {
-  const styles = getStyles(theme)
-  const { mode } = useTheme()
+  const styles = getStyles(theme);
+  const { mode } = useTheme();
 
   const tagsStyles = {
     body: {
@@ -27,15 +27,15 @@ const WalletCreatorProgram = ({
       fontSize: 20,
       lineHeight: 24,
       fontWeight: '600',
-      fontFamily: 'Nohemi-Regular'
+      fontFamily: 'Nohemi-Regular',
     },
     a: {
-      color: 'green'
-    }
+      color: 'green',
+    },
     // span: {
     //   fontSize: 15
     // }
-  }
+  };
 
   return (
     <CView style={{ marginTop: 20 }}>
@@ -56,7 +56,7 @@ const WalletCreatorProgram = ({
             alignSelf: 'flex-start',
             height: 28,
             borderColor: '#FFF',
-            color: '#FE9BF3'
+            color: '#FE9BF3',
           }}>
           <CView row>
             <CText size="small" color="buttonBackground">
@@ -76,7 +76,7 @@ const WalletCreatorProgram = ({
             row
             style={{
               width: '100%',
-              justifyContent: 'space-between'
+              justifyContent: 'space-between',
             }}>
             {data?.body?.map((item, i) => (
               <CView key={item?.bannerUrl + i}>
@@ -102,7 +102,7 @@ const WalletCreatorProgram = ({
                     <RenderHtml
                       contentWidth={screenWidth}
                       source={{
-                        html: item.text
+                        html: item.text,
                       }}
                       tagsStyles={tagsStyles}
                     />
@@ -118,7 +118,7 @@ const WalletCreatorProgram = ({
                         lineHeight: 28,
                         fontWeight: '600',
                         fontFamily: 'Nohemi-Regular',
-                        color: Colors[mode].textBlack
+                        color: Colors[mode].textBlack,
                       }}>
                       {item.text}
                     </CText>
@@ -137,15 +137,15 @@ const WalletCreatorProgram = ({
                 buttonTextStyles: styles.submitBtn,
                 buttonStyle: {
                   minWidth: '45%',
-                  backgroundColor: Colors[mode].buttonBackground
-                }
+                  backgroundColor: Colors[mode].buttonBackground,
+                },
               }}
             />
           </CView>
         </CView>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default WalletCreatorProgram
+export default WalletCreatorProgram;

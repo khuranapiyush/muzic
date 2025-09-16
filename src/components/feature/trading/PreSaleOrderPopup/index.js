@@ -1,18 +1,18 @@
-import { useNavigation } from '@react-navigation/native'
-import { useMutation } from '@tanstack/react-query'
-import React, { useEffect, useState } from 'react'
-import { Image, ScrollView, TouchableOpacity } from 'react-native'
-import Modal from 'react-native-modal'
-import { useDispatch } from 'react-redux'
-import { getFanCardBuySellStatus } from '../../../../api/trade'
-import ROUTE_NAME from '../../../../navigator/config/routeName'
-import appImages from '../../../../resource/images'
-import { setChildTabIndex } from '../../../../stores/slices/trade'
-import Toaster from '../../../common/Toaster'
-import CButton from '../../../common/core/Button'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
+import { useNavigation } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { Image, ScrollView, TouchableOpacity } from 'react-native';
+import Modal from 'react-native-modal';
+import { useDispatch } from 'react-redux';
+import { getFanCardBuySellStatus } from '../../../../api/trade';
+import ROUTE_NAME from '../../../../navigator/config/routeName';
+import appImages from '../../../../resource/images';
+import { setChildTabIndex } from '../../../../stores/slices/trade';
+import Toaster from '../../../common/Toaster';
+import CButton from '../../../common/core/Button';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
 
 const PreSaleOrderPopup = ({
   isVisible,
@@ -22,64 +22,64 @@ const PreSaleOrderPopup = ({
   isOpen = '',
   handleClose = '',
   type = 'BUY',
-  setSnackbar = ''
+  setSnackbar = '',
 }) => {
   const handleSwipeComplete = () => {
-    onClose()
-  }
-  const dispatch = useDispatch()
-  const navigation = useNavigation()
-  const [orderResult, setOrderResult] = useState({})
-  const [orderStatus, setOrderStatus] = useState()
+    onClose();
+  };
+  const dispatch = useDispatch();
+  const navigation = useNavigation();
+  const [orderResult, setOrderResult] = useState({});
+  const [orderStatus, setOrderStatus] = useState();
 
-  const [isMinted, setIsMinted] = useState(false)
+  const [isMinted, setIsMinted] = useState(false);
 
-  const [nftInterval, setNftInterval] = useState(false)
+  const [nftInterval, setNftInterval] = useState(false);
 
   const { mutate: getStatus } = useMutation(
     () => getFanCardBuySellStatus(orderId),
     {
       onSuccess: ({ data }) => {
         if (data.results[0].status == 'SUCCESS') {
-          clearInterval(nftInterval)
-          setIsMinted(true)
+          clearInterval(nftInterval);
+          setIsMinted(true);
         }
-        setOrderStatus(data?.results?.[0]?.status)
-        setOrderResult(data?.results?.[0])
+        setOrderStatus(data?.results?.[0]?.status);
+        setOrderResult(data?.results?.[0]);
       },
       onError: error => {
-        alert(error?.response?.data?.message)
-      }
+        alert(error?.response?.data?.message);
+      },
     }
-  )
+  );
 
   useEffect(() => {
     if (orderId && !isMinted) {
-      getStatus()
+      getStatus();
       var interval = setInterval(() => {
-        getStatus()
-      }, 2000)
-      setNftInterval(interval)
+        getStatus();
+      }, 2000);
+      setNftInterval(interval);
       if (isMinted) {
-        clearInterval(interval)
+        clearInterval(interval);
       }
       return () => {
-        clearInterval(interval)
-      }
+        clearInterval(interval);
+      };
     }
-  }, [getStatus, isMinted, orderId])
+  }, [getStatus, isMinted, orderId]);
 
   const handleCheckPortfolio = () => {
-    onClose()
-    dispatch(setChildTabIndex(1))
-    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0 })
-  }
+    onClose();
+    dispatch(setChildTabIndex(1));
+    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0 });
+  };
 
   const handleCheckOrder = () => {
-    onClose()
-    dispatch(setChildTabIndex(2))
-    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0 })
-  }
+    onClose();
+    dispatch(setChildTabIndex(2));
+    navigation.navigate(ROUTE_NAME.Trade, { parentIdx: 0 });
+  };
 
   return (
     <Modal
@@ -156,8 +156,8 @@ const PreSaleOrderPopup = ({
                     customStyles={{
                       buttonTextStyles: styles.submitBtn,
                       buttonStyle: {
-                        minWidth: '45%'
-                      }
+                        minWidth: '45%',
+                      },
                     }}
                   />
                   <CButton
@@ -169,8 +169,8 @@ const PreSaleOrderPopup = ({
                     customStyles={{
                       buttonTextStyles: styles.submitBtn,
                       buttonStyle: {
-                        minWidth: '45%'
-                      }
+                        minWidth: '45%',
+                      },
                     }}
                   />
                 </CView>
@@ -181,7 +181,7 @@ const PreSaleOrderPopup = ({
         </ScrollView>
       </CView>
     </Modal>
-  )
-}
+  );
+};
 
-export default PreSaleOrderPopup
+export default PreSaleOrderPopup;

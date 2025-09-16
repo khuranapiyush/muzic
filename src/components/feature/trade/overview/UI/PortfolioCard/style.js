@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native'
-import Colors from '../../../../../common/Colors'
+import { StyleSheet } from 'react-native';
+import Colors from '../../../../../common/Colors';
 
 const getStyles = theme => {
   return StyleSheet.create({
@@ -8,53 +8,53 @@ const getStyles = theme => {
       borderColor: Colors[theme].cardBorderColor,
       borderWidth: 1,
       borderRadius: 8,
-      backgroundColor: Colors[theme].cardBg
+      backgroundColor: Colors[theme].cardBg,
     },
     container: {
       paddingTop: 20,
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
     },
     returnContainer: {
       paddingTop: 20,
-      justifyContent: 'space-around'
+      justifyContent: 'space-around',
     },
     contentContainer: {
-      padding: 10
+      padding: 10,
     },
     btnContainer: {
       alignSelf: 'center',
       height: 30,
       paddingHorizontal: 10,
       borderRadius: 4,
-      backgroundColor: '#6B61FF'
+      backgroundColor: '#6B61FF',
     },
 
     imageStyle: {
       borderRadius: 4,
       height: 50,
       width: 50,
-      marginRight: 5
+      marginRight: 5,
     },
 
     portfolioContainer: {
       paddingTop: 20,
-      justifyContent: 'space-around'
+      justifyContent: 'space-around',
     },
     itemContainer: {
-      marginTop: 2
+      marginTop: 2,
     },
     profit: {
-      color: '#3FBB5A'
+      color: '#3FBB5A',
     },
     loss: {
-      color: 'red'
+      color: 'red',
     },
     titleContainer: {
-      justifyContent: 'space-between'
+      justifyContent: 'space-between',
     },
     title: { alignSelf: 'flex-start', width: '70%' },
-    nameStyle: { flex: 1 }
-  })
-}
+    nameStyle: { flex: 1 },
+  });
+};
 
-export default getStyles
+export default getStyles;

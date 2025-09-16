@@ -1,64 +1,64 @@
-import React, { useCallback, useEffect, useState } from 'react'
-import CView from '../../../common/core/View'
-import CText from '../../../common/core/Text'
+import React, { useCallback, useEffect, useState } from 'react';
+import CView from '../../../common/core/View';
+import CText from '../../../common/core/Text';
 import {
   fetchReferralInfo,
-  fetchReferralList
-} from '../../../../api/referAndEarn'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { ActivityIndicator, FlatList, Image, SafeAreaView } from 'react-native'
-import getStyle from './styles'
-import { Colors } from '../../../common/core/colors'
-import { useTheme } from '@react-navigation/native'
+  fetchReferralList,
+} from '../../../../api/referAndEarn';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { ActivityIndicator, FlatList, Image, SafeAreaView } from 'react-native';
+import getStyle from './styles';
+import { Colors } from '../../../common/core/colors';
+import { useTheme } from '@react-navigation/native';
 
 const Referrals = () => {
-  const [referralInfo, setReferralInfo] = useState()
-  const [referralList, setReferralList] = useState()
+  const [referralInfo, setReferralInfo] = useState();
+  const [referralList, setReferralList] = useState();
 
-  const { mode } = useTheme()
-  const styles = getStyle(mode)
+  const { mode } = useTheme();
+  const styles = getStyle(mode);
 
-  const [currentIndex] = useState(0)
+  const [currentIndex] = useState(0);
   const [onEndReachedDuringMomentum, setOnEndReachedDuringMomentum] =
-    useState(false)
+    useState(false);
 
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [page, setPage] = useState(1)
+  const [page, setPage] = useState(1);
 
   useQuery({
     queryKey: ['fetchReferralInfo'],
     queryFn: fetchReferralInfo,
     refetchOnMount: true,
     onSuccess: res => {
-      const data = res.data.data
-      setReferralInfo(data)
-    }
-  })
+      const data = res.data.data;
+      setReferralInfo(data);
+    },
+  });
 
   const { mutate: getReferralList } = useMutation(
     () => fetchReferralList(page),
     {
       onSuccess: res => {
         if (page > 1) {
-          setReferralList([...referralList, ...res.data.data])
+          setReferralList([...referralList, ...res.data.data]);
         } else {
-          setReferralList(res?.data?.data)
+          setReferralList(res?.data?.data);
         }
-        setIsLoading(false)
+        setIsLoading(false);
       },
       onError: error => {
-        setIsLoading(false)
-      }
+        setIsLoading(false);
+      },
     }
-  )
+  );
 
   useEffect(() => {
-    setIsLoading(true)
-    getReferralList()
-  }, [getReferralList, page])
+    setIsLoading(true);
+    getReferralList();
+  }, [getReferralList, page]);
 
-  const keyExtractor = (item, index) => item?._id + index.toString()
+  const keyExtractor = (item, index) => item?._id + index.toString();
 
   const renderItem = useCallback(
     ({ item, index }) => (
@@ -83,18 +83,18 @@ const Referrals = () => {
       </CView>
     ),
     []
-  )
+  );
 
   const handleReachEnd = useCallback(() => {
     if (!onEndReachedDuringMomentum) {
-      setOnEndReachedDuringMomentum(true)
-      setPage(page + 1)
+      setOnEndReachedDuringMomentum(true);
+      setPage(page + 1);
     }
-  }, [onEndReachedDuringMomentum, page])
+  }, [onEndReachedDuringMomentum, page]);
 
   const handleScrollStart = useCallback(() => {
-    setOnEndReachedDuringMomentum(false)
-  }, [])
+    setOnEndReachedDuringMomentum(false);
+  }, []);
 
   return (
     <SafeAreaView style={styles.wrapper}>
@@ -139,7 +139,7 @@ const Referrals = () => {
         }
       />
     </SafeAreaView>
-  )
-}
+  );
+};
 
-export default Referrals
+export default Referrals;

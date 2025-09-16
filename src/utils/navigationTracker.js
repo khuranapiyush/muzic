@@ -6,7 +6,7 @@ import {getNavigationDetails} from './navigationUtils';
 let previousRouteName = null;
 
 export const handleNavigationStateChange = navigationState => {
-  if (!navigationState) return;
+  if (!navigationState) {return;}
 
   try {
     // Get navigation details

@@ -1,6 +1,6 @@
-import React from 'react'
-import { Controller } from 'react-hook-form'
-import CustomDropdown from '../../../feature/uploadContent/CustomDropdown'
+import React from 'react';
+import { Controller } from 'react-hook-form';
+import CustomDropdown from '../../../feature/uploadContent/CustomDropdown';
 
 const CustomDropdownFC = ({ control, name, rules, ...rest }) => {
   return (
@@ -16,7 +16,7 @@ const CustomDropdownFC = ({ control, name, rules, ...rest }) => {
         />
       )}
     />
-  )
-}
+  );
+};
 
-export default CustomDropdownFC
+export default CustomDropdownFC;

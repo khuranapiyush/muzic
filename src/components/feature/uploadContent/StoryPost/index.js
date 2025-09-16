@@ -258,7 +258,7 @@ const StoryPost = ({route}) => {
         <TouchableOpacity onPress={handleClose}>
           <Image
             source={appImages.closeIcon}
-            style={{height: 30, width: 30, tintColor: '#FFF'}}></Image>
+            style={{height: 30, width: 30, tintColor: '#FFF'}} />
         </TouchableOpacity>
       </CView>
 

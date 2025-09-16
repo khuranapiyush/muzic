@@ -1,21 +1,21 @@
-import React, { memo, useRef } from 'react'
-import { Dimensions, FlatList, Image, Pressable } from 'react-native'
-import { useDispatch } from 'react-redux'
-import { getAppConfig } from '../../../../constants/code'
-import appImages from '../../../../resource/images'
-import { setFullModePlayer } from '../../../../stores/slices/watch'
-import { numberFormatter } from '../../../../utils/common'
-import CText from '../../../common/core/Text'
-import CView from '../../../common/core/View'
-import styles from './style'
-import ProgressBar from '../../../common/ProgressBar'
+import React, { memo, useRef } from 'react';
+import { Dimensions, FlatList, Image, Pressable } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { getAppConfig } from '../../../../constants/code';
+import appImages from '../../../../resource/images';
+import { setFullModePlayer } from '../../../../stores/slices/watch';
+import { numberFormatter } from '../../../../utils/common';
+import CText from '../../../common/core/Text';
+import CView from '../../../common/core/View';
+import styles from './style';
+import ProgressBar from '../../../common/ProgressBar';
 
-export const SLIDER_WIDTH = Dimensions.get('window').width
-export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.95)
+export const SLIDER_WIDTH = Dimensions.get('window').width;
+export const ITEM_WIDTH = Math.round(SLIDER_WIDTH * 0.95);
 
 const Card30 = ({ data }) => {
-  const dispatch = useDispatch()
-  const cgRef = useRef()
+  const dispatch = useDispatch();
+  const cgRef = useRef();
 
   const handleCardClick = (item, index) => {
     const videoData = {
@@ -25,11 +25,11 @@ const Card30 = ({ data }) => {
         eventName: 'click',
         order: index + 1,
         viewType: data.viewType,
-        type: data?.items?.[0]?.type || 'video'
-      }
-    }
-    dispatch(setFullModePlayer({ isVisible: true, videoDetail: videoData }))
-  }
+        type: data?.items?.[0]?.type || 'video',
+      },
+    };
+    dispatch(setFullModePlayer({ isVisible: true, videoDetail: videoData }));
+  };
 
   const renderItem = ({ item, index }) => (
     <CView style={styles.Card30Container}>
@@ -63,7 +63,7 @@ const Card30 = ({ data }) => {
         </CView>
       </Pressable>
     </CView>
-  )
+  );
   return (
     <CView style={styles.container}>
       <CView style={styles.sectionTitleStyle}>
@@ -79,7 +79,7 @@ const Card30 = ({ data }) => {
         extraData={data}
       />
     </CView>
-  )
-}
+  );
+};
 
-export default memo(Card30)
+export default memo(Card30);

@@ -794,7 +794,7 @@ const clearPendingPurchases = async () => {
               )
               .catch(err =>
                 console.log(
-                  `Error clearing iOS purchase, but continuing:`,
+                  'Error clearing iOS purchase, but continuing:',
                   err.message,
                 ),
               );
@@ -1313,7 +1313,7 @@ const fetchPlayStoreProducts = async (
 
 // Helper function to extract features from description
 const extractFeaturesFromDescription = description => {
-  if (!description) return [];
+  if (!description) {return [];}
 
   // Look for bullet points or numbered lists in description
   const bulletPattern = /[•\-\*]\s*([^\n•\-\*]+)/g;
@@ -2447,7 +2447,7 @@ const SubscriptionScreen = () => {
                 // Show success message
                 Alert.alert(
                   'Purchase Successful',
-                  `Your purchase was successful! Credits have been added to your account.`,
+                  'Your purchase was successful! Credits have been added to your account.',
                 );
               } else {
                 console.warn(

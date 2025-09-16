@@ -1,7 +1,7 @@
-import React from 'react'
-import CView from '../../common/core/View'
-import CText from '../../common/core/Text'
-import getStyles from './style'
+import React from 'react';
+import CView from '../../common/core/View';
+import CText from '../../common/core/Text';
+import getStyles from './style';
 
 const FanCardDetail = ({ data, theme }) => {
   const {
@@ -9,13 +9,13 @@ const FanCardDetail = ({ data, theme }) => {
     royalty_payout_date,
     blockchain,
     total_tokens,
-    contract_address
-  } = data
-  let last3 = contract_address?.slice(-3)
-  let first4 = contract_address?.substring(0, 4)
-  let contractAddress = last3 + '...' + first4
+    contract_address,
+  } = data;
+  let last3 = contract_address?.slice(-3);
+  let first4 = contract_address?.substring(0, 4);
+  let contractAddress = last3 + '...' + first4;
 
-  const styles = getStyles(theme)
+  const styles = getStyles(theme);
   return (
     <CView style={styles.graphContainer}>
       <CText size="mediumBold" style={{ marginBottom: 10 }}>
@@ -60,7 +60,7 @@ const FanCardDetail = ({ data, theme }) => {
         </CView>
       </CView>
     </CView>
-  )
-}
+  );
+};
 
-export default FanCardDetail
+export default FanCardDetail;

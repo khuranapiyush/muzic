@@ -1,16 +1,16 @@
-import React from 'react'
-import { SafeAreaView, ScrollView } from 'react-native'
-import Modal from 'react-native-modal'
-import { screenHeight } from '../../../../../../utils/common'
-import CText from '../../../../../common/core/Text'
-import CView from '../../../../../common/core/View'
-import styles from './style'
+import React from 'react';
+import { SafeAreaView, ScrollView } from 'react-native';
+import Modal from 'react-native-modal';
+import { screenHeight } from '../../../../../../utils/common';
+import CText from '../../../../../common/core/Text';
+import CView from '../../../../../common/core/View';
+import styles from './style';
 
 const TermsAndConditionsModal = ({
   isVisible,
   onClose,
   config = { type: 'custom' },
-  terms
+  terms,
 }) => {
   return (
     <Modal
@@ -28,7 +28,7 @@ const TermsAndConditionsModal = ({
       <SafeAreaView
         style={{
           ...styles.modalContainer,
-          height: screenHeight * (config.type == 'max' ? 1 : 0.5)
+          height: screenHeight * (config.type == 'max' ? 1 : 0.5),
         }}>
         <CView style={styles.modalContent}>
           <CText
@@ -39,7 +39,7 @@ const TermsAndConditionsModal = ({
             showsVerticalScrollIndicator={false}
             style={{
               paddingHorizontal: 20,
-              flex: 1
+              flex: 1,
             }}>
             {terms.map((term, idx) => (
               <CView key={idx} style={{ marginBottom: 10 }}>
@@ -52,7 +52,7 @@ const TermsAndConditionsModal = ({
         </CView>
       </SafeAreaView>
     </Modal>
-  )
-}
+  );
+};
 
-export default TermsAndConditionsModal
+export default TermsAndConditionsModal;
