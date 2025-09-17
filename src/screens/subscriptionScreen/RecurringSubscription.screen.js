@@ -488,7 +488,6 @@ export default RecurringSubscriptionScreen;
 
 const styles = StyleSheet.create({
   headerTitleText: {
-    marginTop: 30,
     lineHeight: 30,
     letterSpacing: 0.2,
   },
@@ -563,6 +562,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingBottom: 10,
+    marginTop: 30,
   },
   headerTitle: {
     flex: 1,
@@ -644,12 +644,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     flexDirection: 'row',
     opacity: 0.6,
-    minHeight: 210,
+    minHeight: 160,
     shadowColor: '#000',
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    overflow: 'hidden',
+    padding: 16,
   },
   planHeader: {
     width: '100%',
@@ -671,7 +671,7 @@ const styles = StyleSheet.create({
     }),
   },
   priceContainer: {
-    paddingRight: 10,
+    paddingRight: 0,
     alignItems: 'flex-end',
     justifyContent: 'flex-end',
     minHeight: 45,
@@ -725,7 +725,6 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       justifyContent: 'center',
       marginBottom: 3,
-      // paddingHorizontal: 6,
       borderRadius: 4,
     }),
   },

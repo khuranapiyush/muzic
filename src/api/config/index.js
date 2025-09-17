@@ -159,12 +159,14 @@ export const getPlatformProductIds = async (
     if (type === 'oneTime') {
       productConfig = await fetchProductConfig();
 
+      console.log(productConfig, 'productConfig oneTime');
       if (productConfig.oneTime && productConfig.oneTime[platform]) {
         return productConfig.oneTime[platform];
       }
     } else if (type === 'subscription') {
       productConfig = await fetchSubscriptionConfig();
 
+      console.log(productConfig, 'productConfig subscription');
       if (productConfig.subscription && productConfig.subscription[platform]) {
         return productConfig.subscription[platform];
       }
