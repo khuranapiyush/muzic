@@ -54,7 +54,7 @@ const DrawerFooter = () => {
 
   const handleSubscribe = () => {
     setTimeout(() => {
-      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+      navigation.navigate(ROUTE_NAME.RecurringSubscriptionScreen);
     }, 300);
   };
 

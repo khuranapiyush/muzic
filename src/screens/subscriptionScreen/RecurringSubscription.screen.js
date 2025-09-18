@@ -20,8 +20,10 @@ import GradientBackground from '../../components/common/GradientBackground';
 import appImages from '../../resource/images';
 import {selectCreditsPerSong} from '../../stores/selector';
 import {useNavigation} from '@react-navigation/native';
+import {NativeModules} from 'react-native';
 
 const API_URL = config.API_BASE_URL;
+const {ReceiptManager} = NativeModules;
 
 const RecurringSubscriptionScreen = () => {
   const authState = useSelector(state => state.auth);
@@ -110,7 +112,27 @@ const RecurringSubscriptionScreen = () => {
   const verifySubscription = useCallback(
     async purchase => {
       try {
-        const receiptData = purchase?.transactionReceipt || '';
+        let receiptData = '';
+
+        // For iOS, get the proper app receipt
+        if (Platform.OS === 'ios') {
+          try {
+            receiptData = await ReceiptManager.getAppReceiptData();
+            console.log(
+              '📧 Got app receipt for subscription, length:',
+              receiptData?.length,
+            );
+          } catch (error) {
+            console.error(
+              '❌ Failed to get app receipt for subscription:',
+              error,
+            );
+            receiptData = purchase?.transactionReceipt || '';
+          }
+        } else {
+          receiptData = purchase?.transactionReceipt || '';
+        }
+
         const isSandbox = /sandbox/i.test(receiptData);
         const body = Platform.select({
           ios: {
@@ -133,6 +155,13 @@ const RecurringSubscriptionScreen = () => {
             packageName: config.GOOGLE_PLAY_PACKAGE_NAME,
           },
         });
+        console.log(
+          '🌐 Making subscription verification request to:',
+          `${API_URL}/v1/payments/subscription/verify`,
+        );
+        console.log('📝 Request body:', JSON.stringify(body, null, 2));
+        console.log('🔑 Auth token length:', authState?.accessToken?.length);
+
         const res = await fetch(`${API_URL}/v1/payments/subscription/verify`, {
           method: 'POST',
           headers: {
@@ -141,9 +170,33 @@ const RecurringSubscriptionScreen = () => {
           },
           body: JSON.stringify(body),
         });
+
+        console.log('📡 Response status:', res.status);
+        console.log(
+          '📡 Response headers:',
+          JSON.stringify([...res.headers.entries()]),
+        );
+
         if (!res.ok) {
-          const msg = await res.text();
-          throw new Error(msg || 'Verification failed');
+          const responseText = await res.text();
+          console.error(
+            '❌ API Error Response:',
+            responseText.substring(0, 500),
+          );
+
+          // Check if response is HTML (error page)
+          if (
+            responseText.includes('<!DOCTYPE html>') ||
+            responseText.includes('<html')
+          ) {
+            throw new Error(
+              `Server returned HTML error page (Status: ${res.status}). Check if API server is running and accessible.`,
+            );
+          }
+
+          throw new Error(
+            responseText || `Verification failed with status ${res.status}`,
+          );
         }
         await RNIap.finishTransaction({purchase, isConsumable: false});
         await refreshCredits(true);
@@ -457,27 +510,32 @@ const RecurringSubscriptionScreen = () => {
             )}
           </View>
 
-          <TouchableOpacity
-            style={[styles.createButton, styles.disabledButton]}
-            activeOpacity={0.8}
-            onPress={handleSubscribe}
-            disabled={!selectedId || pending}>
-            <LinearGradient
-              colors={[
-                'rgba(255, 255, 255, 0.20)',
-                'rgba(255, 255, 255, 0.40)',
-              ]}
-              start={{x: 0, y: 0}}
-              end={{x: 1, y: 1}}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
               style={[
-                styles.gradient,
-                (!selectedId || pending) && styles.disabledButtonText,
-              ]}>
-              <CText style={[styles.createButtonText]}>
-                {pending ? 'Processing…' : 'Continue'}
-              </CText>
-            </LinearGradient>
-          </TouchableOpacity>
+                styles.createButton,
+                (!selectedId || pending) && styles.disabledButton,
+              ]}
+              activeOpacity={0.8}
+              onPress={handleSubscribe}
+              disabled={!selectedId || pending}>
+              <LinearGradient
+                colors={[
+                  'rgba(255, 255, 255, 0.2)',
+                  'rgba(255, 255, 255, 0.40)',
+                ]}
+                start={{x: 0, y: 0}}
+                end={{x: 1, y: 1}}
+                style={[
+                  styles.gradient,
+                  (!selectedId || pending) && styles.disabledButtonText,
+                ]}>
+                <CText style={[styles.createButtonText]}>
+                  {pending ? 'Processing…' : 'Continue'}
+                </CText>
+              </LinearGradient>
+            </TouchableOpacity>
+          </View>
         </View>
       </GradientBackground>
     </ScrollView>
@@ -604,15 +662,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   buttonContainer: {
-    position: 'absolute',
+    position: 'relative',
     bottom: 10,
-    left: 16,
-    right: 16,
     alignItems: 'center',
     zIndex: 999,
+    marginTop: 20,
   },
   createButton: {
-    marginTop: 24,
     width: '100%',
     height: 56,
     overflow: 'hidden',
@@ -638,6 +694,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     ...(Platform.OS === 'ios' ? {paddingBottom: 3} : {}),
   },
+  disabledButton: {
+    opacity: 0.6,
+  },
   planCard: {
     borderRadius: 15,
     marginBottom: 10,
@@ -649,7 +708,14 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 2},
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    padding: 16,
+    ...Platform.select({
+      ios: {
+        padding: 0,
+      },
+      android: {
+        padding: 16,
+      },
+    }),
   },
   planHeader: {
     width: '100%',

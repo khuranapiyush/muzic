@@ -229,31 +229,18 @@ const PromoModal = ({visible, onClose}) => {
                     })()}
                   </View>
 
-                  {/* <Text style={styles.renewalText}>
+                  <Text style={styles.renewalText}>
                     Auto renewable. Cancel anytime.
-                  </Text> */}
+                  </Text>
 
-                  {/* <TouchableOpacity
-                    style={styles.createButton}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      onClose();
-                      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
-                    }}>
-                    <LinearGradient
-                      colors={['#F4A460', '#DEB887']}
-                      start={{x: 0, y: 0}}
-                      end={{x: 1, y: 1}}
-                      style={styles.buttonGradient}>
-                      <Text style={styles.createButtonText}>Continue</Text>
-                    </LinearGradient>
-                  </TouchableOpacity> */}
                   <TouchableOpacity
                     style={styles.createButton}
                     activeOpacity={0.8}
                     onPress={() => {
                       onClose();
-                      navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                      navigation.navigate(
+                        ROUTE_NAME.RecurringSubscriptionScreen,
+                      );
                     }}>
                     <LinearGradient
                       colors={[

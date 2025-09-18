@@ -30,6 +30,7 @@ import {
 import {trackMoEngageEvent} from '../../utils/moengageUtils';
 
 const API_URL = config.API_BASE_URL;
+const {ReceiptManager} = NativeModules;
 
 const processedPurchases = new Set();
 
@@ -148,16 +149,68 @@ const processPurchase = async (purchase, token, authState) => {
 
     // For iOS, we should use the validate-apple-receipt endpoint directly
     if (Platform.OS === 'ios') {
-      const receiptData = purchase.transactionReceipt;
+      let receiptData;
+
+      try {
+        // Get the proper app receipt (not transaction receipt)
+        receiptData = await ReceiptManager.getAppReceiptData();
+        console.log('📧 Got app receipt, length:', receiptData?.length);
+        console.log(
+          '📧 Receipt preview (first 40 chars):',
+          receiptData?.substring(0, 40),
+        );
+
+        // Verify it's not JSON (should not start with "eyJ")
+        if (receiptData?.startsWith('eyJ')) {
+          console.warn(
+            '⚠️ WARNING: Receipt appears to be JSON, not base64 receipt!',
+          );
+        }
+      } catch (error) {
+        console.error('❌ Failed to get app receipt:', error);
+
+        // Fallback to transaction receipt (though this is likely the cause of 21002)
+        receiptData = purchase.transactionReceipt;
+        console.log(
+          '📧 Falling back to transaction receipt:',
+          receiptData?.substring(0, 40),
+        );
+      }
 
       if (!receiptData) {
-        throw new Error('No receipt data available in purchase object');
+        throw new Error('No receipt data available');
       }
 
       // Check if it's likely a sandbox receipt
       const isSandbox = receiptData.includes('sandbox');
 
       try {
+        const requestBody = {
+          receiptData: receiptData,
+          productId: purchase.productId,
+          isSubscription: false,
+          environment: isSandbox ? 'sandbox' : 'production',
+          allowSandboxInProduction: true,
+          bundleId: config.APP_STORE_BUNDLE_ID || 'com.app.muzic',
+        };
+
+        console.log(
+          '🍎 Making Apple receipt validation request to:',
+          `${API_URL}/v1/payments/validate-apple-receipt`,
+        );
+        console.log(
+          '📝 Request body:',
+          JSON.stringify(
+            {
+              ...requestBody,
+              receiptData: receiptData.substring(0, 100) + '...',
+            },
+            null,
+            2,
+          ),
+        );
+        console.log('🔑 Auth token length:', token?.length);
+
         const response = await fetch(
           `${API_URL}/v1/payments/validate-apple-receipt`,
           {
@@ -166,20 +219,33 @@ const processPurchase = async (purchase, token, authState) => {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({
-              receiptData: receiptData,
-              productId: purchase.productId,
-              isSubscription: false,
-              environment: isSandbox ? 'sandbox' : 'production',
-              allowSandboxInProduction: true,
-              bundleId: config.APP_STORE_BUNDLE_ID || 'com.app.muzic',
-            }),
+            body: JSON.stringify(requestBody),
           },
+        );
+
+        console.log('📡 Apple validation response status:', response.status);
+        console.log(
+          '📡 Response headers:',
+          JSON.stringify([...response.headers.entries()]),
         );
 
         // Check if response is ok
         if (!response.ok) {
           const errorText = await response.text();
+          console.error(
+            '❌ Apple validation error response:',
+            errorText.substring(0, 500),
+          );
+
+          // Check if response is HTML (error page)
+          if (
+            errorText.includes('<!DOCTYPE html>') ||
+            errorText.includes('<html')
+          ) {
+            throw new Error(
+              `Apple validation server returned HTML error page (Status: ${response.status}). Check if API server is running and accessible.`,
+            );
+          }
 
           // Return a valid result object with error info instead of throwing
           return {
@@ -1313,7 +1379,9 @@ const fetchPlayStoreProducts = async (
 
 // Helper function to extract features from description
 const extractFeaturesFromDescription = description => {
-  if (!description) {return [];}
+  if (!description) {
+    return [];
+  }
 
   // Look for bullet points or numbered lists in description
   const bulletPattern = /[•\-\*]\s*([^\n•\-\*]+)/g;
@@ -1966,8 +2034,20 @@ const SubscriptionScreen = () => {
               // For iOS, use the new Apple receipt validation endpoint
               if (Platform.OS === 'ios') {
                 try {
-                  // Get the receipt data
-                  const receiptData = existingPurchase.transactionReceipt;
+                  // Get the proper app receipt (not transaction receipt)
+                  let receiptData;
+                  try {
+                    receiptData = await ReceiptManager.getAppReceiptData();
+                    console.log(
+                      '📧 Using app receipt for existing purchase validation',
+                    );
+                  } catch (error) {
+                    console.error(
+                      '❌ Failed to get app receipt, falling back to transaction receipt:',
+                      error,
+                    );
+                    receiptData = existingPurchase.transactionReceipt;
+                  }
 
                   // First try the new Apple-specific endpoint
                   verifyResult = await validateAppleReceipt(
@@ -2144,7 +2224,7 @@ const SubscriptionScreen = () => {
 
   // Add a new function to validate Apple receipt using the new endpoint
   const validateAppleReceipt = async (
-    receiptData,
+    receiptDataInput,
     productId,
     token,
     isSubscription = false,
@@ -2155,11 +2235,33 @@ const SubscriptionScreen = () => {
         throw new Error('Authentication token not found');
       }
 
+      let receiptData = receiptDataInput;
+
+      // If no receipt data provided, try to get app receipt
+      if (!receiptData && Platform.OS === 'ios') {
+        try {
+          receiptData = await ReceiptManager.getAppReceiptData();
+          console.log(
+            '📧 Retrieved app receipt for validation, length:',
+            receiptData?.length,
+          );
+        } catch (error) {
+          console.error(
+            '❌ Failed to get app receipt in validateAppleReceipt:',
+            error,
+          );
+        }
+      }
+
       if (!receiptData) {
         throw new Error('Receipt data is required for validation');
       }
 
       console.log(`Validating Apple receipt for ${productId}`);
+      console.log(
+        '📧 Receipt preview (first 40 chars):',
+        receiptData.substring(0, 40),
+      );
 
       // Check if it's likely a sandbox receipt
       const isSandbox = receiptData.includes('sandbox');
