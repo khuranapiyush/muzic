@@ -1,5 +1,5 @@
-import branch, {BranchEvent} from 'react-native-branch';
 import {Platform} from 'react-native';
+import branch, {BranchEvent} from 'react-native-branch';
 import {store} from '../stores';
 import DeviceInfo from 'react-native-device-info';
 
@@ -278,17 +278,16 @@ export const trackBranchPurchase = async purchaseData => {
 
     // Use Branch's standard Purchase event (this will show in dashboard)
     const purchaseEvent = new BranchEvent(BranchEvent.Purchase, {
-      // Standard fields for Purchase event
+      // Standard fields for Purchase event - these go directly in the event
       revenue: Number(revenue),
       currency: String(finalCurrency),
       transactionID: String(transaction_id || `tx_${Date.now()}`),
-      // Put extra fields under customData
-      customData: {
-        product_id: String(product_id),
-        tracked_at: new Date().toISOString(),
-        identity_set: !!identity,
-        ...otherData,
-      },
+      // Additional data as custom properties
+      product_id: String(product_id),
+      tracked_at: new Date().toISOString(),
+      identity_set: !!identity,
+      platform: Platform.OS,
+      ...otherData,
     });
 
     // Track the event with proper async handling
@@ -332,11 +331,10 @@ export const trackBranchPurchaseInitiation = async productId => {
     await ensureBranchIdentity();
 
     const event = new BranchEvent(BranchEvent.InitiatePurchase, {
-      // Put extra fields under customData so they show up properly
-      customData: {
-        product_id: String(productId),
-        tracked_at: new Date().toISOString(),
-      },
+      // Put extra fields directly in the event
+      product_id: String(productId),
+      tracked_at: new Date().toISOString(),
+      platform: Platform.OS,
     });
 
     event.logEvent(); // fire-and-forget is OK
@@ -357,11 +355,10 @@ export const trackBranchLogin = async (method = 'unknown') => {
     await ensureBranchIdentity();
 
     const event = new BranchEvent(BranchEvent.Login, {
-      // Put extra fields under customData so they show up properly
-      customData: {
-        method: String(method),
-        tracked_at: new Date().toISOString(),
-      },
+      // Put extra fields directly in the event
+      method: String(method),
+      tracked_at: new Date().toISOString(),
+      platform: Platform.OS,
     });
 
     event.logEvent(); // fire-and-forget is OK
@@ -385,12 +382,11 @@ export const trackBranchRegistration = async (
     await ensureBranchIdentity();
 
     const event = new BranchEvent(BranchEvent.CompleteRegistration, {
-      // Put extra fields under customData so they show up properly
-      customData: {
-        method: String(method),
-        tracked_at: new Date().toISOString(),
-        ...additionalData,
-      },
+      // Put extra fields directly in the event
+      method: String(method),
+      tracked_at: new Date().toISOString(),
+      platform: Platform.OS,
+      ...additionalData,
     });
 
     event.logEvent(); // fire-and-forget is OK

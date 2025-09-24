@@ -143,7 +143,7 @@ const CountryPickerDropdown = ({
           style={{
             modal: {
               height: 500,
-              width: '80%',
+              width: '100%',
               backgroundColor: themeColors.backgroundColor,
               borderRadius: 12,
               borderWidth: 1,
@@ -163,7 +163,7 @@ const CountryPickerDropdown = ({
             },
             countryButtonStyles: {
               height: 50,
-              backgroundColor: mode === 'dark' ? '#2A2A2A' : '#FFFFFF',
+              backgroundColor: themeColors.backgroundColor,
               borderBottomWidth: 1,
               borderBottomColor: themeColors.borderColor,
             },
@@ -217,7 +217,7 @@ const CountryPickerDropdown = ({
               },
               countryButtonStyles: {
                 height: 50,
-                backgroundColor: mode === 'dark' ? '#2A2A2A' : '#FFFFFF',
+                backgroundColor: themeColors.backgroundColor,
                 borderBottomWidth: 1,
                 borderBottomColor: themeColors.borderColor,
               },

@@ -6,7 +6,8 @@ export const MOENGAGE_CONFIG = {
 
   // Environment settings
   ENVIRONMENT: config.MOENGAGE_ENVIRONMENT || 'production',
-  ENABLE_LOGS: __DEV__ ? true : false,
+  ENABLE_LOGS: false, // Disabled for production
+  DEBUG_MODE: false, // Disabled for production
   DATA_CENTER: 'DATA_CENTER_4',
 
   // Event names constants - Muzic app specific
@@ -158,7 +159,7 @@ export const buildTrackingEvent = (eventName, properties = {}) => {
     properties: {
       ...properties,
       timestamp: new Date().toISOString(),
-      app_version: '2.0.0',
+      app_version: '3.2.0',
       platform: require('react-native').Platform.OS,
     },
   };
@@ -168,7 +169,7 @@ export const buildUserAttributes = (userAttributes = {}) => {
   return {
     ...userAttributes,
     last_updated: new Date().toISOString(),
-    app_version: '2.0.0',
+    app_version: '3.2.0',
   };
 };
 

@@ -305,15 +305,16 @@ const processPurchase = async (purchase, token, authState) => {
             });
 
             // Track purchase with Branch using enhanced utility
-            await trackBranchPurchase({
+            const branchResult = await trackBranchPurchase({
               revenue: amount,
               currency: currency,
               product_id: purchase.productId,
               transaction_id: purchase?.transactionId,
               platform: 'ios',
             });
+            console.log('Branch iOS purchase tracking result:', branchResult);
           } catch (fbError) {
-            // Silent fallback
+            console.warn('iOS purchase tracking failed:', fbError);
           }
         }
 
@@ -388,16 +389,20 @@ const processPurchase = async (purchase, token, authState) => {
             });
 
             // Track purchase with Branch using enhanced utility
-            await trackBranchPurchase({
+            const branchResult = await trackBranchPurchase({
               revenue: amount,
               currency: currency,
               product_id: purchase.productId,
               transaction_id: purchase?.orderId || purchase?.transactionId,
               platform: 'android',
             });
+            console.log(
+              'Branch Android purchase tracking result:',
+              branchResult,
+            );
           }
         } catch (fbError) {
-          // Silent fallback
+          console.warn('Android purchase tracking failed:', fbError);
         }
       }
 
@@ -597,8 +602,11 @@ const requestPurchase = async (
         platform: Platform.OS,
         source: 'subscription_screen',
       });
-      await trackBranchPurchaseInitiation(productId);
-    } catch (e) {}
+      const branchInitResult = await trackBranchPurchaseInitiation(productId);
+      console.log('Branch purchase initiation result:', branchInitResult);
+    } catch (e) {
+      console.warn('Purchase initiation tracking failed:', e);
+    }
 
     // Use different methods for Android vs iOS
     let purchase;

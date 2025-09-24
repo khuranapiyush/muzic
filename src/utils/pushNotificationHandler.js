@@ -72,9 +72,12 @@ export const initializePushNotificationHandlers = async () => {
         // MoEngage needs the FCM token to send push notifications
         console.log('🔄 Forwarding FCM token to MoEngage...');
 
-        // Note: MoEngage should automatically handle FCM token
-        // But we can manually ensure it's set if needed
-        console.log('✅ FCM token should be automatically handled by MoEngage');
+        const tokenResult = await moEngageService.registerPushToken(fcmToken);
+        if (tokenResult) {
+          console.log('✅ FCM token successfully registered with MoEngage');
+        } else {
+          console.warn('⚠️ FCM token registration with MoEngage failed');
+        }
       } catch (error) {
         console.error('❌ Failed to set FCM token in MoEngage:', error);
       }
@@ -149,13 +152,18 @@ export const initializePushNotificationHandlers = async () => {
     // Handle token refresh
     const unsubscribeTokenRefresh = onTokenRefresh(
       messagingInstance,
-      fcmToken => {
+      async fcmToken => {
         console.log('📬 FCM Token refreshed:', fcmToken);
 
         // Forward new token to MoEngage
         if (moEngageService.isAvailable()) {
           console.log('🔄 Forwarding refreshed FCM token to MoEngage...');
-          // MoEngage should handle this automatically
+          const tokenResult = await moEngageService.registerPushToken(fcmToken);
+          if (tokenResult) {
+            console.log('✅ Refreshed FCM token registered with MoEngage');
+          } else {
+            console.warn('⚠️ Refreshed FCM token registration failed');
+          }
         }
       },
     );

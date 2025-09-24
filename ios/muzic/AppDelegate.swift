@@ -42,10 +42,12 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
 
     // Initialize Branch session BEFORE React Native (keys are configured in Info.plist)
     
+    // Branch is configured for production mode via Info.plist (branch_use_test_key = false)
+    
     // Initialize Branch session with error handling
     do {
       RNBranch.initSession(launchOptions: launchOptions, isReferrable: true)
-      print("✅ Branch session initialized successfully in iOS")
+      print("✅ Branch session initialized successfully in iOS (PRODUCTION mode)")
     } catch {
       print("❌ Branch session initialization failed: \(error)")
     }
@@ -76,8 +78,12 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
 
   // Forward APNs token to MoEngage
   override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-    print("📬 APNs token registered: \(deviceToken.map { String(format: "%02.2hhx", $0) }.joined())")
+    let tokenString = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+    print("📬 APNs token registered: \(tokenString)")
+    
+    // Forward to MoEngage
     MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)
+    print("✅ APNs token forwarded to MoEngage")
   }
 
   // Handle APNs registration failure (optional)

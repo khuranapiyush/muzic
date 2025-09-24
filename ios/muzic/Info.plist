@@ -116,6 +116,10 @@
 		<string>audio</string>
 		<string>remote-notification</string>
 	</array>
+	<key>aps-environment</key>
+	<string>production</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>This app uses push notifications to keep you updated with new features and content</string>
 	<key>UIFileSharingEnabled</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>

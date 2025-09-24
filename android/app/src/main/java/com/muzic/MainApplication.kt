@@ -58,7 +58,7 @@ class MainApplication : Application(), ReactApplication {
       RNBranchModule.getAutoInstance(this)
       RNBranchModule.enableLogging()
       
-      android.util.Log.d("BranchInit", "Branch initialized successfully")
+      android.util.Log.d("BranchInit", "Branch initialized successfully in PRODUCTION mode")
     } catch (e: Exception) {
       android.util.Log.e("BranchInit", "Error initializing Branch: ${e.message}", e)
       // Don't let Branch initialization failure block app startup

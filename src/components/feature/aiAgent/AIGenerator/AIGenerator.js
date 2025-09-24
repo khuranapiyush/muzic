@@ -468,9 +468,6 @@ const AIGenerator = ({pageHeading}) => {
                       textStyle={{color: '#E5E7EB', fontWeight: '600'}}
                     />
                   </View>
-                  {errorMessage ? (
-                    <CText style={styles.errorText}>{errorMessage}</CText>
-                  ) : null}
                 </CView>
                 <GenreSelectionScreen
                   onGenreSelect={handleGenreSelect}

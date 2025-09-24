@@ -167,14 +167,23 @@ const initialize = () => {
         return false;
       }
 
+      // Initialize MoEngage (data center is set in native Android/iOS config)
       ReactMoE.initialize(APP_ID);
       serviceState.isInitialized = true;
-      console.log('✅ MoEngage initialized successfully with App ID:', APP_ID);
+      console.log(
+        '✅ MoEngage initialized successfully with App ID:',
+        APP_ID,
+        'and Data Center: DATA_CENTER_4',
+      );
 
       // Initialize event listeners
       setTimeout(() => {
         initializeEventListeners();
         setBasicAttributes();
+        // Force flush to ensure events are sent
+        if (typeof ReactMoE.flush === 'function') {
+          ReactMoE.flush();
+        }
       }, 100); // Small delay to ensure initialization is complete
 
       return true;
@@ -194,6 +203,30 @@ const initialize = () => {
       console.log('🔄 MoEngage: Will retry on next call');
     }
 
+    return false;
+  }
+};
+
+/**
+ * Register push token with MoEngage
+ */
+const registerPushToken = async fcmToken => {
+  try {
+    if (!fcmToken) {
+      console.warn('⚠️ MoEngage: No FCM token provided for push registration');
+      return false;
+    }
+
+    if (typeof ReactMoE.setPushToken === 'function') {
+      await ReactMoE.setPushToken(fcmToken);
+      console.log('✅ MoEngage: Push token registered successfully');
+      return true;
+    } else {
+      console.warn('⚠️ MoEngage: setPushToken method not available');
+      return false;
+    }
+  } catch (error) {
+    console.error('❌ MoEngage: Failed to register push token:', error);
     return false;
   }
 };
@@ -385,11 +418,21 @@ const trackEvent = (eventName, eventAttributes = {}) => {
 
       ReactMoE.trackEvent(eventName, properties);
       console.log(`✅ Event tracked: ${eventName}`);
+
+      // Force flush to ensure event is sent immediately
+      if (typeof ReactMoE.flush === 'function') {
+        ReactMoE.flush();
+      }
       return true;
     } else if (ReactMoE.trackEvent) {
       // Fallback without properties
       ReactMoE.trackEvent(eventName, null);
       console.log(`✅ Event tracked (no props): ${eventName}`);
+
+      // Force flush to ensure event is sent immediately
+      if (typeof ReactMoE.flush === 'function') {
+        ReactMoE.flush();
+      }
       return true;
     } else {
       console.warn('❌ trackEvent method not available');
@@ -708,6 +751,7 @@ const moEngageService = {
   initialize,
   initializeWithRetry,
   resetInitializationState,
+  registerPushToken,
   setUserId,
   setUserAttributes,
   trackEvent,

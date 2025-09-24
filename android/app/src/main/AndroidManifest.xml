@@ -54,7 +54,7 @@
         android:value="@string/default_web_client_id" />
       </activity>
       
-      <!-- Branch keys: set live key for production -->
+      <!-- Branch keys -->
       <meta-data android:name="io.branch.sdk.BranchKey"
           android:value="key_live_kvCkQaZ7PmJaZlgoR6zncllevwmSl3qs" />
       

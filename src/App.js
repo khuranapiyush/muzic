@@ -214,6 +214,15 @@ const AppContent = () => {
           // Track app open event after a short delay
           setTimeout(() => {
             moEngageService.trackAppOpen();
+
+            // Test MoEngage event (only in debug builds)
+            if (__DEV__) {
+              moEngageService.trackEvent('App_Initialized_Debug', {
+                source: 'debug_test',
+                timestamp: Date.now(),
+              });
+              console.log('✅ MoEngage test event sent');
+            }
           }, 500);
         } else {
           console.warn(
@@ -318,7 +327,34 @@ const AppContent = () => {
           // Check Branch status and environment
           await checkBranchStatus();
 
-          // No test event calls in production builds
+          // Test Branch event tracking (only in debug builds)
+          if (__DEV__) {
+            try {
+              console.log('🧪 Testing Branch event tracking...');
+              const {trackBranchEvent, trackBranchPurchase} = await import(
+                './utils/branchUtils'
+              );
+
+              // Test basic event
+              await trackBranchEvent('App_Initialized', {
+                source: 'debug_test',
+                timestamp: Date.now(),
+              });
+              console.log('✅ Branch test event sent');
+
+              // Test purchase event
+              await trackBranchPurchase({
+                revenue: 5.99,
+                currency: 'INR',
+                product_id: 'test_app_init_purchase',
+                transaction_id: `test_init_${Date.now()}`,
+                source: 'debug_test',
+              });
+              console.log('✅ Branch test purchase sent');
+            } catch (error) {
+              console.warn('⚠️ Branch test events failed:', error);
+            }
+          }
         } else {
           console.warn(
             '⚠️ Branch initialization failed, continuing without Branch features',
@@ -348,7 +384,9 @@ const AppContent = () => {
       // Wait a bit for Branch to be potentially initialized
       await new Promise(resolve => setTimeout(resolve, 3000));
 
-      if (!subscriptionActive) {return;}
+      if (!subscriptionActive) {
+        return;
+      }
 
       try {
         console.log('🔗 Setting up Branch subscription...');
