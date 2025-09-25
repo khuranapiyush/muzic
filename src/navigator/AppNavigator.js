@@ -14,6 +14,7 @@ import facebookEvents from '../utils/facebookEvents';
 import AppStackNavigatorDirect from './AppStackNavigator';
 import AuthStackNavigatorDirect from './AuthStackNavigator';
 import GlobalPlayer from '../components/common/GlobalPlayer';
+import NavigationService from '../utils/NavigationService';
 
 // Keep lazy loading for Android which works fine
 const AppStackNavigator =
@@ -78,7 +79,7 @@ const AppNavigator = () => {
   const [renderFailed, setRenderFailed] = useState(false);
   const dispatch = useDispatch();
   const routeNameRef = useRef();
-  const navigationRef = useRef();
+  const navigationRef = NavigationService.navigationRef;
 
   // Force navigation token check earlier on iOS
   useEffect(() => {

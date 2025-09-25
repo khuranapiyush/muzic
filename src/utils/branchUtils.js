@@ -252,16 +252,17 @@ export const trackBranchEvent = async (eventName, eventData = {}) => {
  */
 export const trackBranchPurchase = async purchaseData => {
   const {revenue, currency, product_id, transaction_id, ...otherData} =
-    purchaseData;
+    purchaseData || {};
 
-  // Validate required purchase data (currency can be optional with fallback)
-  if (!revenue || !product_id) {
-    console.warn('⚠️ Invalid purchase data for Branch tracking:', purchaseData);
+  // Require only product_id; allow revenue to be 0/undefined
+  if (!product_id) {
+    console.warn('⚠️ Missing product_id for Branch purchase tracking');
     return false;
   }
 
-  // Use fallback currency if not provided
   const finalCurrency = currency || 'INR';
+  const finalRevenue =
+    typeof revenue === 'number' ? revenue : revenue ? Number(revenue) : 0;
 
   try {
     // Check if Branch is ready
@@ -279,7 +280,7 @@ export const trackBranchPurchase = async purchaseData => {
     // Use Branch's standard Purchase event (this will show in dashboard)
     const purchaseEvent = new BranchEvent(BranchEvent.Purchase, {
       // Standard fields for Purchase event - these go directly in the event
-      revenue: Number(revenue),
+      revenue: Number(finalRevenue),
       currency: String(finalCurrency),
       transactionID: String(transaction_id || `tx_${Date.now()}`),
       // Additional data as custom properties
@@ -297,7 +298,7 @@ export const trackBranchPurchase = async purchaseData => {
         // Add a small delay to ensure event is processed
         setTimeout(() => {
           console.log('✅ Branch STANDARD Purchase event tracked:', {
-            revenue: Number(revenue),
+            revenue: Number(finalRevenue),
             currency: String(finalCurrency),
             product_id: String(product_id),
             transaction_id,

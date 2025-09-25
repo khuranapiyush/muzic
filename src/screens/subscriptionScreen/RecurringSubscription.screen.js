@@ -21,6 +21,10 @@ import appImages from '../../resource/images';
 import {selectCreditsPerSong} from '../../stores/selector';
 import {useNavigation} from '@react-navigation/native';
 import {NativeModules} from 'react-native';
+import {
+  trackBranchPurchase,
+  trackBranchPurchaseInitiation,
+} from '../../utils/branchUtils';
 
 const API_URL = config.API_BASE_URL;
 const {ReceiptManager} = NativeModules;
@@ -36,10 +40,35 @@ const RecurringSubscriptionScreen = () => {
   const [selectedId, setSelectedId] = useState('subplan_1');
   const [pending, setPending] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const {credits} = useCredits();
 
   const purchaseUpdateSub = useRef(null);
   const purchaseErrorSub = useRef(null);
+  const purchaseInProgress = useRef(false);
+  const retryTimeoutRef = useRef(null);
+  const successAlertShown = useRef(false);
+  // prevents multiple init + duplicate handling + alert storms
+  const listenerAttached = useRef(false);
+  const processedPurchaseIds = useRef(new Set());
+  const isAlertOpen = useRef(false);
+  // keep latest functions in refs so listeners are stable
+  const verifySubscriptionRef = useRef(null);
+  const onPurchaseErrorRef = useRef(null);
+
+  const showAlert = useCallback(
+    (title, message, buttons = [{text: 'OK', style: 'default'}]) => {
+      if (isAlertOpen.current) {
+        return;
+      }
+      isAlertOpen.current = true;
+      Alert.alert(title, message, buttons);
+      setTimeout(() => {
+        isAlertOpen.current = false;
+      }, 1200);
+    },
+    [],
+  );
 
   const productIdsPromise = useMemo(
     () => getPlatformProductIds(Platform.OS),
@@ -200,7 +229,38 @@ const RecurringSubscriptionScreen = () => {
         }
         await RNIap.finishTransaction({purchase, isConsumable: false});
         await refreshCredits(true);
-        Alert.alert('Success', 'Subscription activated');
+
+        // Track purchase success with Branch
+        try {
+          const currency = Platform.select({
+            ios: purchase?.currency || 'INR',
+            android: purchase?.transactionReceiptAndroid?.currency || 'INR',
+          });
+
+          await trackBranchPurchase({
+            revenue: purchase?.price || purchase?.transactionAmount || 0,
+            currency,
+            product_id: purchase?.productId,
+            transaction_id:
+              purchase?.transactionId ||
+              purchase?.originalTransactionIdentifier ||
+              purchase?.originalTransactionId ||
+              purchase?.purchaseToken,
+            source: 'recurring_subscription_screen',
+          });
+        } catch (e) {
+          // Do not block user on analytics failure
+          console.warn('Branch purchase tracking failed:', e?.message || e);
+        }
+
+        // Prevent multiple success alerts
+        if (!successAlertShown.current) {
+          successAlertShown.current = true;
+          showAlert('Success', 'Subscription activated');
+          setTimeout(() => {
+            successAlertShown.current = false;
+          }, 5000);
+        }
       } catch (e) {
         try {
           await RNIap.finishTransaction({purchase, isConsumable: false});
@@ -208,8 +268,13 @@ const RecurringSubscriptionScreen = () => {
         throw e;
       }
     },
-    [authState?.accessToken, refreshCredits],
+    [authState?.accessToken, refreshCredits, showAlert],
   );
+
+  // keep the latest function for the listener
+  useEffect(() => {
+    verifySubscriptionRef.current = verifySubscription;
+  }, [verifySubscription]);
 
   const onPurchaseUpdated = useCallback(
     async purchase => {
@@ -219,84 +284,343 @@ const RecurringSubscriptionScreen = () => {
         }
         await verifySubscription(purchase);
       } catch (err) {
-        Alert.alert(
+        showAlert(
           'Purchase Error',
           err?.message || 'Failed to complete purchase',
         );
       } finally {
         setPending(false);
+        purchaseInProgress.current = false;
+        setRetryCount(0);
+        // Clear any pending retry timeout
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+          retryTimeoutRef.current = null;
+        }
+        // Reset success alert flag on any completion
+        successAlertShown.current = false;
       }
     },
     [verifySubscription],
   );
 
-  const onPurchaseError = useCallback(error => {
-    if (error?.code !== 'E_USER_CANCELLED') {
-      Alert.alert('Purchase Error', error?.message || 'Failed');
-    }
-    setPending(false);
-  }, []);
+  const onPurchaseError = useCallback(
+    error => {
+      console.log('Purchase error received:', error);
+
+      // Reset purchase state
+      setPending(false);
+      purchaseInProgress.current = false;
+      setRetryCount(0);
+      successAlertShown.current = false;
+
+      // Clear any pending retry timeout
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+
+      if (error?.code === 'E_USER_CANCELLED') {
+        console.log('Purchase cancelled by user');
+        return;
+      }
+
+      // Handle specific error cases
+      if (error?.code === 'E_ALREADY_OWNED') {
+        showAlert(
+          'Already Subscribed',
+          'You already have an active subscription. Please check your subscription status or contact support if you need help.',
+          [
+            {
+              text: 'Check Status',
+              onPress: () => {
+                // Navigate to subscription status or refresh
+                onRefresh();
+              },
+            },
+            {text: 'OK', style: 'default'},
+          ],
+        );
+      } else if (error?.code === 'E_DEVELOPER_ERROR') {
+        showAlert(
+          'Configuration Error',
+          'There was an error with the purchase configuration. Please try again later or contact support.',
+          [{text: 'OK', style: 'default'}],
+        );
+      } else if (error?.message?.includes('Previous request was cancelled')) {
+        showAlert(
+          'Request Cancelled',
+          'The previous purchase request was cancelled. Please try again.',
+          [{text: 'OK', style: 'default'}],
+        );
+      } else {
+        showAlert(
+          'Purchase Error',
+          error?.message || 'An unknown error occurred. Please try again.',
+          [{text: 'OK', style: 'default'}],
+        );
+      }
+    },
+    [onRefresh],
+  );
+
+  // keep the latest error handler for the listener
+  useEffect(() => {
+    onPurchaseErrorRef.current = onPurchaseError;
+  }, [onPurchaseError]);
 
   const initIAP = useCallback(async () => {
     try {
       await RNIap.initConnection();
-      purchaseUpdateSub.current =
-        RNIap.purchaseUpdatedListener(onPurchaseUpdated);
-      purchaseErrorSub.current = RNIap.purchaseErrorListener(onPurchaseError);
+
+      // Remove old listeners just in case
+      purchaseUpdateSub.current?.remove?.();
+      purchaseErrorSub.current?.remove?.();
+
+      purchaseUpdateSub.current = RNIap.purchaseUpdatedListener(
+        async purchase => {
+          try {
+            const key =
+              purchase?.transactionId ||
+              purchase?.originalTransactionIdentifier ||
+              purchase?.originalTransactionId ||
+              purchase?.purchaseToken ||
+              purchase?.transactionReceipt;
+
+            if (!key) {
+              console.log('⚠️ Purchase event without unique key, ignoring.');
+              return;
+            }
+
+            if (processedPurchaseIds.current.has(key)) {
+              console.log('🔁 Duplicate purchase event dropped:', key);
+              return;
+            }
+            processedPurchaseIds.current.add(key);
+
+            await verifySubscriptionRef.current?.(purchase);
+          } catch (err) {
+            showAlert(
+              'Purchase Error',
+              err?.message || 'Failed to complete purchase',
+            );
+          } finally {
+            setPending(false);
+            purchaseInProgress.current = false;
+            setRetryCount(0);
+            if (retryTimeoutRef.current) {
+              clearTimeout(retryTimeoutRef.current);
+              retryTimeoutRef.current = null;
+            }
+            // NOTE: Do NOT reset successAlertShown here
+          }
+        },
+      );
+
+      purchaseErrorSub.current = RNIap.purchaseErrorListener(error => {
+        onPurchaseErrorRef.current?.(error);
+      });
+
       await fetchCatalog();
     } finally {
       setLoading(false);
     }
-  }, [fetchCatalog, onPurchaseError, onPurchaseUpdated]);
+  }, [fetchCatalog, showAlert]);
 
   useEffect(() => {
+    if (listenerAttached.current) return;
     console.log('Before the initIAP');
+    listenerAttached.current = true;
     initIAP();
     return () => {
       purchaseUpdateSub.current?.remove?.();
       purchaseErrorSub.current?.remove?.();
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+        retryTimeoutRef.current = null;
+      }
+      purchaseInProgress.current = false;
+      successAlertShown.current = false;
+      processedPurchaseIds.current.clear();
+      isAlertOpen.current = false;
+      listenerAttached.current = false;
       RNIap.endConnection();
     };
-  }, [initIAP]);
+  }, []);
+
+  // Check if user already has an active subscription
+  const checkExistingSubscription = useCallback(async () => {
+    try {
+      const purchases = await RNIap.getAvailablePurchases();
+      console.log('Checking existing subscriptions:', purchases);
+
+      // Check if any of the subscription products are already owned
+      const existingSubscription = purchases.find(
+        purchase =>
+          purchase.productId === selectedId &&
+          (purchase.transactionStateIOS === 'purchased' ||
+            purchase.purchaseStateAndroid === 1),
+      );
+
+      if (existingSubscription) {
+        console.log('Found existing subscription:', existingSubscription);
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking existing subscriptions:', error);
+      return false;
+    }
+  }, [selectedId]);
+
+  // Simple retry for cancellation errors only (no complex retry logic)
+  const retryPurchase = useCallback(async () => {
+    if (retryCount >= 1) {
+      // Only retry once
+      setRetryCount(0);
+      setPending(false);
+      purchaseInProgress.current = false;
+      Alert.alert(
+        'Purchase Failed',
+        'Unable to complete purchase. Please try again later.',
+        [{text: 'OK', style: 'default'}],
+      );
+      return;
+    }
+
+    console.log('Retrying purchase after cancellation...');
+
+    // Clear any existing timeout
+    if (retryTimeoutRef.current) {
+      clearTimeout(retryTimeoutRef.current);
+    }
+
+    retryTimeoutRef.current = setTimeout(async () => {
+      try {
+        setRetryCount(prev => prev + 1);
+        await performPurchase();
+      } catch (error) {
+        console.error('Retry purchase failed:', error);
+        setRetryCount(0);
+        setPending(false);
+        purchaseInProgress.current = false;
+        Alert.alert(
+          'Purchase Error',
+          error?.message || 'An unknown error occurred. Please try again.',
+          [{text: 'OK', style: 'default'}],
+        );
+      }
+    }, 1000); // Simple 1 second delay
+  }, [retryCount, performPurchase]);
+
+  // Perform the actual purchase
+  const performPurchase = useCallback(async () => {
+    if (Platform.OS === 'android') {
+      const offerToken = offerTokenByProduct[selectedId];
+      if (!offerToken) {
+        throw new Error(
+          'No subscription offer available for this plan. Please try again later.',
+        );
+      }
+      await RNIap.requestSubscription({
+        sku: selectedId,
+        subscriptionOffers: [
+          {
+            sku: selectedId,
+            offerToken,
+          },
+        ],
+      });
+    } else {
+      await RNIap.requestSubscription({
+        sku: selectedId,
+        andDangerouslyFinishTransactionAutomaticallyIOS: false,
+      });
+    }
+  }, [offerTokenByProduct, selectedId]);
 
   const handleSubscribe = useCallback(async () => {
     if (!selectedId) {
       return;
     }
+
+    // Prevent multiple simultaneous purchase requests
+    if (purchaseInProgress.current) {
+      console.log('Purchase already in progress, ignoring request');
+      return;
+    }
+
     try {
       setPending(true);
-      if (Platform.OS === 'android') {
-        const offerToken = offerTokenByProduct[selectedId];
-        if (!offerToken) {
-          setPending(false);
-          Alert.alert(
-            'Purchase Error',
-            'No subscription offer available for this plan. Please try again later.',
-          );
-          return;
-        }
-        await RNIap.requestSubscription({
-          sku: selectedId,
-          subscriptionOffers: [
+      setRetryCount(0);
+      purchaseInProgress.current = true;
+
+      // Check for existing subscription before attempting purchase
+      const hasExistingSubscription = await checkExistingSubscription();
+      if (hasExistingSubscription) {
+        setPending(false);
+        purchaseInProgress.current = false;
+        showAlert(
+          'Already Subscribed',
+          'You already have an active subscription for this plan. Please check your subscription status or contact support if you need help.',
+          [
             {
-              sku: selectedId,
-              offerToken,
+              text: 'Check Status',
+              onPress: () => onRefresh(),
             },
+            {text: 'OK', style: 'default'},
           ],
-        });
-      } else {
-        await RNIap.requestSubscription({
-          sku: selectedId,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-        });
+        );
+        return;
       }
+
+      // Track InitiatePurchase before triggering purchase
+      try {
+        await trackBranchPurchaseInitiation(selectedId);
+      } catch (_) {}
+
+      await performPurchase();
     } catch (err) {
-      if (err?.code !== 'E_USER_CANCELLED') {
-        Alert.alert('Purchase Error', err?.message || 'Failed');
+      console.error('Purchase request error:', err);
+      purchaseInProgress.current = false;
+
+      if (err?.code === 'E_ALREADY_OWNED') {
+        setPending(false);
+        showAlert(
+          'Already Subscribed',
+          'You already have an active subscription. Please check your subscription status or contact support if you need help.',
+          [
+            {
+              text: 'Check Status',
+              onPress: () => onRefresh(),
+            },
+            {text: 'OK', style: 'default'},
+          ],
+        );
+      } else if (err?.code === 'E_USER_CANCELLED') {
+        console.log('Purchase cancelled by user');
+        setPending(false);
+      } else if (err?.message?.includes('Previous request was cancelled')) {
+        // Simple retry for cancellation errors only
+        console.log('Previous request cancelled, retrying...');
+        retryPurchase();
+      } else {
+        setPending(false);
+        showAlert(
+          'Purchase Error',
+          err?.message || 'An unknown error occurred. Please try again.',
+          [{text: 'OK', style: 'default'}],
+        );
       }
-      setPending(false);
     }
-  }, [offerTokenByProduct, selectedId]);
+  }, [
+    selectedId,
+    checkExistingSubscription,
+    onRefresh,
+    performPurchase,
+    retryPurchase,
+  ]);
 
   const onRefresh = useCallback(async () => {
     try {

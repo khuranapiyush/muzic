@@ -21,7 +21,10 @@ import analyticsUtils from '../../../utils/analytics';
 import facebookEvents from '../../../utils/facebookEvents';
 import moEngageService from '../../../services/moengageService';
 import branch from 'react-native-branch';
-import {trackBranchRegistration} from '../../../utils/branchUtils';
+import {
+  trackBranchRegistration,
+  trackBranchLogin,
+} from '../../../utils/branchUtils';
 import {trackMoEngageUserRegistration} from '../../../utils/moengageUtils';
 
 const VerifyOtpScreen = ({route}) => {
@@ -125,10 +128,11 @@ const VerifyOtpScreen = ({route}) => {
           } catch (_) {}
         }
 
-        // Track Branch registration
+        // Track Branch registration and login
         await trackBranchRegistration('phone_otp', {
           country_code: countryCode,
         });
+        await trackBranchLogin('phone_otp');
       } catch (e) {
         console.warn('Registration tracking failed:', e);
       }

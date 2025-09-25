@@ -20,6 +20,10 @@ import com.moengage.core.DataCenter
 import com.moengage.core.config.NotificationConfig
 import com.moengage.react.MoEInitializer
 import io.branch.rnbranch.RNBranchModule
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+import android.content.Context
 
 
 class MainApplication : Application(), ReactApplication {
@@ -94,6 +98,18 @@ class MainApplication : Application(), ReactApplication {
       android.util.Log.d("MoEngageInit", "Starting MoEngage initialization...")
       
       val moEngageAppId = "BUP4RKUJZXQL8R2J9N61ZKEL"
+
+      // Ensure a default notification channel exists on Android 8+
+      val defaultChannelId = "muzic_general"
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        val channelName = "General"
+        val importance = NotificationManager.IMPORTANCE_HIGH
+        val channel = NotificationChannel(defaultChannelId, channelName, importance)
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+        android.util.Log.d("MoEngageInit", "Notification channel ensured: $defaultChannelId")
+      }
+
       val moEngageBuilder = MoEngage.Builder(this, moEngageAppId, DataCenter.DATA_CENTER_4)
         .configureLogs(LogConfig(LogLevel.VERBOSE, true))
         .configureNotificationMetaData(
@@ -101,7 +117,8 @@ class MainApplication : Application(), ReactApplication {
             R.mipmap.icon, // small icon
             R.mipmap.icon, // large icon (optional)
             0, // accent color (0 => default)
-            true // allow multiple notifications
+            true, // allow multiple notifications
+            defaultChannelId // default notification channel id
           )
         )
       

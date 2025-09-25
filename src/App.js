@@ -412,15 +412,63 @@ const AppContent = () => {
             console.log('✅ Branch opened successfully:', params);
 
             try {
-              const productId = params?.product_id || params?.product_id;
-              if (productId) {
-                console.log('🎵 Branch product_id:', productId, 'from', uri);
+              const clickedBranchLink =
+                params?.['+clicked_branch_link'] === true;
+              const isFirstOpen = params?.['+is_first_session'] === true;
+
+              // 1) Handle song deep links: expect either song_id or audio_url in params
+              if (clickedBranchLink) {
+                const songId = params?.song_id || params?.songId || params?.id;
+                const audioUrl =
+                  params?.audio_url || params?.audioUrl || params?.url;
+                const title = params?.title || params?.song_title;
+
+                if (songId || audioUrl) {
+                  try {
+                    const {store} = require('./stores');
+                    const {navigate} =
+                      require('./utils/NavigationService').default;
+                    const {playSong} = require('./utils/playerUtils');
+
+                    const state = store.getState();
+                    const isLoggedIn =
+                      state?.user?.isLoggedIn || state?.auth?.isLoggedIn;
+
+                    // If not logged in, send to login and stop handling
+                    if (!isLoggedIn) {
+                      console.log(
+                        '🔐 Not logged in; redirecting to Login for deep link',
+                      );
+                      navigate('AuthStack');
+                      return;
+                    }
+
+                    // Navigate to Discover tab
+                    navigate('HomeStack');
+
+                    // Prepare minimal song object for the player
+                    const song = {
+                      id: songId || audioUrl,
+                      title: title || 'Shared Song',
+                      audioUrl: audioUrl,
+                      url: audioUrl,
+                      uri: audioUrl,
+                    };
+
+                    // Play the song using global player
+                    playSong(song, 'BranchDeepLink');
+                    console.log('🎧 Playing song from Branch deep link');
+                  } catch (playErr) {
+                    console.warn(
+                      '⚠️ Failed to handle Branch song deep link:',
+                      playErr?.message || playErr,
+                    );
+                  }
+                }
               }
 
-              // Track install / open attribution once per session
-              const isFirstOpen = params?.['+is_first_session'];
-              const clickedBranchLink = params?.['+clicked_branch_link'];
-              if (isFirstOpen) {
+              // 2) Track attribution only when clicked_branch_link is true
+              if (isFirstOpen && clickedBranchLink) {
                 try {
                   const attribution = {
                     channel: params?.['~channel'],
@@ -428,7 +476,7 @@ const AppContent = () => {
                     feature: params?.['~feature'],
                     tags: params?.['~tags'],
                     ad_set: params?.ad_set || params?.$3p,
-                    clicked_branch_link: clickedBranchLink,
+                    clicked_branch_link: true,
                   };
                   new BranchEvent('INSTALL_ATTRIBUTED', attribution).logEvent();
                   moEngageService.trackEvent(
