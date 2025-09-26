@@ -25,13 +25,13 @@
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
+	<string>7.0</string>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>3.2.0</string>
+	<string>3.3.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -107,6 +107,8 @@
 	<string>MakeMySong needs microphone access to record your voice for creating voice notes and audio content</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>MakeMySong needs access to your photo library to allow you to select images for your profile and content creation</string>
+	<key>NSUserTrackingUsageDescription</key>
+	<string>MakeMySong uses your device advertising identifier to deliver relevant content, measure campaign performance, and reduce fraud.</string>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>This app uses notifications to keep you updated with new music and features</string>
 	<key>SKPaymentTransactionObserverHasMadeFirstPayment</key>
