@@ -4,15 +4,48 @@
  * This file provides methods to track events using the Facebook SDK
  */
 
-import {AppEventsLogger} from 'react-native-fbsdk-next';
+import {AppEventsLogger, Settings} from 'react-native-fbsdk-next';
+import {Platform} from 'react-native';
+import {requestTrackingPermission} from 'react-native-tracking-transparency';
 
 /**
  * Initialize the Facebook SDK
  * This should be called at app startup
  */
-export const initializeFacebookSDK = () => {
-  // React Native FBSDK Next handles initialization automatically
-  console.log('Facebook SDK initialized');
+export const initializeFacebookSDK = async () => {
+  try {
+    // Ensure SDK is initialized (safe to call multiple times)
+    if (Settings && typeof Settings.initializeSDK === 'function') {
+      try {
+        Settings.initializeSDK();
+      } catch (_) {}
+    }
+
+    // Enable auto log app events explicitly
+    if (Settings && typeof Settings.setAutoLogAppEventsEnabled === 'function') {
+      Settings.setAutoLogAppEventsEnabled(true);
+    }
+
+    // iOS 14+ requires ATT for advertiser tracking
+    if (Platform.OS === 'ios') {
+      try {
+        const status = await requestTrackingPermission();
+        const allowed = status === 'authorized' || status === 'unavailable';
+        if (
+          Settings &&
+          typeof Settings.setAdvertiserTrackingEnabled === 'function'
+        ) {
+          Settings.setAdvertiserTrackingEnabled(Boolean(allowed));
+        }
+      } catch (e) {
+        // Best-effort only
+      }
+    }
+
+    console.log('Facebook SDK initialized');
+  } catch (error) {
+    console.warn('Facebook SDK initialization error:', error?.message || error);
+  }
 };
 
 /**

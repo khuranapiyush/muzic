@@ -533,6 +533,8 @@ const RecurringSubscriptionScreen = () => {
         ],
       });
     } else {
+      // On iOS, minimize prep work to open the sheet ASAP
+      // Avoid extra network or state checks here
       await RNIap.requestSubscription({
         sku: selectedId,
         andDangerouslyFinishTransactionAutomaticallyIOS: false,
@@ -556,30 +558,41 @@ const RecurringSubscriptionScreen = () => {
       setRetryCount(0);
       purchaseInProgress.current = true;
 
-      // Check for existing subscription before attempting purchase
-      const hasExistingSubscription = await checkExistingSubscription();
-      if (hasExistingSubscription) {
-        setPending(false);
-        purchaseInProgress.current = false;
-        showAlert(
-          'Already Subscribed',
-          'You already have an active subscription for this plan. Please check your subscription status or contact support if you need help.',
-          [
-            {
-              text: 'Check Status',
-              onPress: () => onRefresh(),
-            },
-            {text: 'OK', style: 'default'},
-          ],
-        );
-        return;
-      }
-
-      // Track InitiatePurchase before triggering purchase
+      // IMPORTANT: Do not block the iOS purchase sheet behind slow checks
+      // 1) Fire-and-forget analytics so it never blocks UI
       try {
-        await trackBranchPurchaseInitiation(selectedId);
+        // Do not await; any failure should not delay the sheet
+        // eslint-disable-next-line no-floating-promises
+        trackBranchPurchaseInitiation(selectedId);
       } catch (_) {}
 
+      // 2) Only pre-check existing subscription on Android (Play often throws ALREADY_OWNED fast)
+      if (Platform.OS === 'android') {
+        try {
+          const hasExistingSubscription = await checkExistingSubscription();
+          if (hasExistingSubscription) {
+            setPending(false);
+            purchaseInProgress.current = false;
+            showAlert(
+              'Already Subscribed',
+              'You already have an active subscription for this plan. Please check your subscription status or contact support if you need help.',
+              [
+                {
+                  text: 'Check Status',
+                  onPress: () => onRefresh(),
+                },
+                {text: 'OK', style: 'default'},
+              ],
+            );
+            return;
+          }
+        } catch (e) {
+          // Never block purchase on pre-check failure
+          console.log('Skip pre-check due to error:', e?.message || e);
+        }
+      }
+
+      // 3) Immediately trigger the store UI
       await performPurchase();
     } catch (err) {
       console.error('Purchase request error:', err);
@@ -614,13 +627,7 @@ const RecurringSubscriptionScreen = () => {
         );
       }
     }
-  }, [
-    selectedId,
-    checkExistingSubscription,
-    onRefresh,
-    performPurchase,
-    retryPurchase,
-  ]);
+  }, [selectedId, onRefresh, performPurchase, retryPurchase]);
 
   const onRefresh = useCallback(async () => {
     try {

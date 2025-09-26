@@ -1,7 +1,10 @@
 import config from 'react-native-config';
 
 export const MOENGAGE_CONFIG = {
-  // App ID from your AndroidManifest.xml
+  // Platform-specific App IDs (prefer setting via env for production)
+  APP_ID_ANDROID: config.MOENGAGE_APP_ID_ANDROID || 'BUP4RKUJZXQL8R2J9N61ZKEL',
+  APP_ID_IOS: config.MOENGAGE_APP_ID_IOS || 'BUP4RKUJZXQL8R2J9N61ZKEL',
+  // Backward-compat default App ID (kept for legacy usage)
   APP_ID: 'BUP4RKUJZXQL8R2J9N61ZKEL',
 
   // Environment settings
@@ -141,7 +144,14 @@ export const MOENGAGE_CONFIG = {
 
 // Helper functions
 export const getMoEngageAppId = () => {
-  return MOENGAGE_CONFIG.APP_ID;
+  const platform = require('react-native').Platform.OS;
+  if (platform === 'ios') {
+    // Do NOT fallback to Android App ID on iOS; force explicit iOS App ID
+    return MOENGAGE_CONFIG.APP_ID_IOS || '';
+  }
+  return (
+    MOENGAGE_CONFIG.APP_ID_ANDROID || MOENGAGE_CONFIG.APP_ID // fallback to legacy if not set
+  );
 };
 
 export const isMoEngageLoggingEnabled = () => {

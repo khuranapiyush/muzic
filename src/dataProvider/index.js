@@ -11,6 +11,7 @@ import {
   isTokenExpired,
   refreshAccessToken,
   logoutUser,
+  isInvalidRefreshTokenError,
 } from '../utils/authUtils';
 import {store} from '../stores';
 import config from 'react-native-config';
@@ -485,6 +486,11 @@ export const setupResponseInterceptor = async injectedStore => {
         return Promise.reject(error);
       }
 
+      // Ensure only a single refresh attempt per original request
+      if (originalRequest._retry) {
+        return Promise.reject(error);
+      }
+
       if (!isRefreshing) {
         isRefreshing = true;
         originalRequest._retry = true;
@@ -511,18 +517,15 @@ export const setupResponseInterceptor = async injectedStore => {
             .catch(refreshError => {
               console.error('Token refresh error:', refreshError);
 
-              if (
-                refreshError.response &&
-                (refreshError.response.status === 401 ||
-                  refreshError.response.status === 403)
-              ) {
+              // Only log out when backend explicitly signals invalid/expired refresh token
+              if (isInvalidRefreshTokenError(refreshError)) {
                 console.log(
-                  'Refresh token is invalid or expired. Logging out user.',
+                  'Refresh token invalid/expired per backend code. Logging out user.',
                 );
                 logoutUser().catch(err => console.error('Logout error:', err));
               } else {
                 console.log(
-                  'Token refresh failed due to network or server error.',
+                  'Token refresh failed due to network/server issue. Will not log out.',
                 );
               }
 

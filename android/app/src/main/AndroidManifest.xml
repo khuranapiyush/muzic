@@ -69,12 +69,18 @@
       <!-- MoEngage Configuration -->
       <meta-data android:name="moengage_app_id" 
               android:value="BUP4RKUJZXQL8R2J9N61ZKEL"/>
+      <!-- MoEngage default notification channel id (for Android 8+) -->
+      <meta-data android:name="com.moe.push.default.notification.channel" 
+              android:value="muzic_general"/>
               
       <!-- Facebook SDK Configuration -->
       <meta-data android:name="com.facebook.sdk.ApplicationId" 
               android:value="@string/facebook_app_id"/>
       <meta-data android:name="com.facebook.sdk.ClientToken" 
               android:value="92768de7c1113f8b13f0b75766acda51"/>
+      <meta-data android:name="com.facebook.sdk.AutoInitEnabled" android:value="true" />
+      <meta-data android:name="com.facebook.sdk.AutoLogAppEventsEnabled" android:value="true" />
+      <meta-data android:name="com.facebook.sdk.AdvertiserIDCollectionEnabled" android:value="true" />
               
       <!-- Facebook Login Activity -->
       <activity android:name="com.facebook.FacebookActivity"

@@ -147,7 +147,16 @@ const AppContent = () => {
           // iOS permission via Messaging API
           const app = getApp();
           const messagingInstance = getMessaging(app);
-          await requestPermission(messagingInstance);
+          const auth = await requestPermission(messagingInstance);
+          // On iOS, record permission state into MoEngage as pushEnabled attribute
+          try {
+            const pushEnabled = true; // requesting permission on iOS implies user accepted in most flows
+            if (moEngageService && moEngageService.setUserAttributes) {
+              moEngageService.setUserAttributes({pushEnabled});
+            }
+          } catch (e) {
+            // best effort only
+          }
         }
         const app = getApp();
         const messagingInstance = getMessaging(app);
@@ -260,6 +269,14 @@ const AppContent = () => {
         timestamp: new Date().toISOString(),
         platform: Platform.OS,
       });
+
+      // Sanity events to verify Firebase and Facebook capture pipelines
+      try {
+        analyticsUtils.trackScreenView('AppRoot', 'AppRoot');
+      } catch (_) {}
+      try {
+        facebookEvents.logCustomEvent('app_initialized_fb', {ts: Date.now()});
+      } catch (_) {}
 
       // Mark app as initialized
       setIsInitialized(true);

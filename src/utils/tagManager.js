@@ -1,9 +1,4 @@
-import {
-  getAnalytics,
-  logEvent,
-  setAnalyticsCollectionEnabled,
-  setUserProperty as firebaseSetUserProperty,
-} from '@react-native-firebase/analytics';
+import analytics from '@react-native-firebase/analytics';
 import {Platform, NativeModules} from 'react-native';
 
 // Get the native GTM Container Bridge module if available
@@ -42,9 +37,8 @@ export const initializeTagManager = async () => {
   }
 
   try {
-    // Enable analytics collection using modular SDK
-    const analytics = getAnalytics();
-    await setAnalyticsCollectionEnabled(analytics, true);
+    // Enable analytics collection
+    await analytics().setAnalyticsCollectionEnabled(true);
 
     if (isContainerAvailable()) {
       console.log('Google Tag Manager initialized via native container');
@@ -79,8 +73,7 @@ export const pushEvent = async (eventName, params = {}) => {
       timestamp: Date.now(),
     };
 
-    // Get analytics instance once for reuse
-    const analytics = getAnalytics();
+    // Use RNFirebase analytics instance
 
     // Check if we should use the native container
     if (isContainerAvailable()) {
@@ -100,8 +93,8 @@ export const pushEvent = async (eventName, params = {}) => {
             ...enhancedParams,
           };
 
-          // Log the event using Firebase Analytics with modular SDK
-          await logEvent(analytics, eventName, mergedParams);
+          // Log the event using Firebase Analytics
+          await analytics().logEvent(eventName, mergedParams);
 
           if (__DEV__) {
             console.log(
@@ -122,11 +115,11 @@ export const pushEvent = async (eventName, params = {}) => {
           containerError,
         );
         // Fallback to direct Firebase Analytics if container fails
-        await logEvent(analytics, eventName, enhancedParams);
+        await analytics().logEvent(eventName, enhancedParams);
       }
     } else {
-      // Use Firebase Analytics directly with modular SDK
-      await logEvent(analytics, eventName, enhancedParams);
+      // Use Firebase Analytics directly
+      await analytics().logEvent(eventName, enhancedParams);
 
       if (__DEV__) {
         console.log(`📊 TAG MANAGER EVENT: ${eventName}`, enhancedParams);
@@ -153,9 +146,6 @@ export const setUserProperty = async (name, value) => {
       return Promise.resolve();
     }
 
-    // Get analytics instance
-    const analytics = getAnalytics();
-
     // Check if we should use container values
     if (isContainerAvailable()) {
       try {
@@ -164,7 +154,7 @@ export const setUserProperty = async (name, value) => {
 
         // If the container has a value for this variable, use it instead
         if (containerValue) {
-          await firebaseSetUserProperty(analytics, name, containerValue);
+          await analytics().setUserProperties({[name]: String(containerValue)});
 
           if (__DEV__) {
             console.log(
@@ -179,8 +169,8 @@ export const setUserProperty = async (name, value) => {
       }
     }
 
-    // Default behavior - use the provided value with modular SDK
-    await firebaseSetUserProperty(analytics, name, value);
+    // Default behavior - use the provided value
+    await analytics().setUserProperties({[name]: String(value)});
 
     if (__DEV__) {
       console.log(`📊 TAG MANAGER USER PROPERTY: ${name}=${value}`);

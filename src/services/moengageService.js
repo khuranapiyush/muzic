@@ -288,6 +288,16 @@ const setBasicAttributes = () => {
       );
       ReactMoE.setUserAttribute('app_name', 'Muzic');
       ReactMoE.setUserAttribute('environment', MOENGAGE_CONFIG.ENVIRONMENT);
+      // Persist a synthetic push enabled flag until iOS JS layer updates it after permission prompt
+      if (typeof ReactMoE.setUserAttribute === 'function') {
+        const assumedPushEnabled = Platform.OS === 'android' ? true : null;
+        if (assumedPushEnabled !== null) {
+          ReactMoE.setUserAttribute(
+            MOENGAGE_CONFIG.USER_ATTRIBUTES.PUSH_ENABLED,
+            assumedPushEnabled,
+          );
+        }
+      }
       console.log('✅ Basic MoEngage attributes set');
     }
   } catch (error) {

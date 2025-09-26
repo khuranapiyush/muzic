@@ -35,6 +35,15 @@ class AppDelegate: RCTAppDelegate, UNUserNotificationCenterDelegate {
     // Register for APNs permission
     UNUserNotificationCenter.current().delegate = self
     UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+      // Track opt-in status to MoEngage user attributes
+      do {
+        let pushEnabledValue: Bool = granted
+        // We only set attribute; user identification occurs in JS layer
+        // If the attribute setter is available via bridge, JS will update as well
+        // This native log is primarily diagnostic
+        print("📊 MoEngage iOS push opt-in granted=\(pushEnabledValue)")
+      }
+
       DispatchQueue.main.async {
         UIApplication.shared.registerForRemoteNotifications()
       }

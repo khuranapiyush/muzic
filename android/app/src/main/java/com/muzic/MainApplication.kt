@@ -117,8 +117,7 @@ class MainApplication : Application(), ReactApplication {
             R.mipmap.icon, // small icon
             R.mipmap.icon, // large icon (optional)
             0, // accent color (0 => default)
-            true, // allow multiple notifications
-            defaultChannelId // default notification channel id
+            true // allow multiple notifications
           )
         )
       

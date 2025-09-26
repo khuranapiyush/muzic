@@ -11,6 +11,59 @@ let isRefreshingToken = false;
 let refreshQueue = [];
 
 /**
+ * Determine if an error response explicitly indicates an invalid/expired refresh token
+ * Adjust the list of codes/fields below to match backend schema
+ * @param {any} error Axios-like error object
+ * @returns {boolean}
+ */
+export const isInvalidRefreshTokenError = error => {
+  try {
+    if (!error || !error.response) {
+      return false;
+    }
+    const {status, data} = error.response;
+
+    // Common HTTP statuses for invalid/expired tokens
+    const isAuthStatus = status === 401 || status === 403;
+    if (!isAuthStatus) {
+      return false;
+    }
+
+    // Try multiple common fields for backend error codes
+    const code = data?.code || data?.errorCode || data?.error?.code;
+    const message = (data?.message || data?.error?.message || '')
+      .toString()
+      .toLowerCase();
+
+    // Known/likely codes indicating refresh token issues
+    const refreshInvalidCodes = new Set([
+      'REFRESH_TOKEN_INVALID',
+      'REFRESH_TOKEN_EXPIRED',
+      'INVALID_REFRESH_TOKEN',
+      'TOKEN_EXPIRED',
+      'AUTH_INVALID_REFRESH_TOKEN',
+      'AUTH_REFRESH_EXPIRED',
+    ]);
+
+    if (code && refreshInvalidCodes.has(String(code).toUpperCase())) {
+      return true;
+    }
+
+    // Fallback to message heuristics if no explicit code
+    if (
+      message.includes('refresh') &&
+      (message.includes('expired') || message.includes('invalid'))
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch (_) {
+    return false;
+  }
+};
+
+/**
  * Process the queue of waiting requests with the new token
  * @param {Error|null} error - Error if token refresh failed
  * @param {string|null} token - New access token if refresh succeeded
@@ -83,7 +136,9 @@ const base64Decode = input => {
  * @returns {boolean} True if token is expired or will expire within buffer time
  */
 export const isTokenExpired = (token, bufferSeconds = 60) => {
-  if (!token) {return true;}
+  if (!token) {
+    return true;
+  }
 
   try {
     // Handle token as object with access property
@@ -128,7 +183,9 @@ export const isTokenExpired = (token, bufferSeconds = 60) => {
 
     const {exp} = JSON.parse(jsonPayload);
 
-    if (!exp) {return false;}
+    if (!exp) {
+      return false;
+    }
 
     // Get current time with buffer
     const currentTime = Math.floor(Date.now() / 1000) + bufferSeconds;
@@ -236,13 +293,11 @@ export const refreshAccessToken = async () => {
   } catch (error) {
     console.error('Failed to refresh token:', error);
 
-    // Only clear tokens if the refresh token is invalid/expired/revoked
-    // This is typically indicated by 401/403 status codes
-    if (
-      error.response &&
-      (error.response.status === 401 || error.response.status === 403)
-    ) {
-      console.log('Refresh token is invalid or expired. Logging out user.');
+    // Only clear tokens if backend explicitly signals invalid/expired refresh token
+    if (isInvalidRefreshTokenError(error)) {
+      console.log(
+        'Refresh token invalid/expired per backend code. Logging out user.',
+      );
       await logoutUser();
     } else {
       // For network errors or server issues, we keep the tokens
