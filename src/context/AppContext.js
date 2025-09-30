@@ -75,21 +75,18 @@ export const AppProvider = ({children}) => {
             if (validationResult) {
               // Token valid or successfully refreshed, set user state
               dispatch(setUser({isLoggedIn: true}));
-            } else {
-              // Token validation/refresh failed, set to logged out
-              dispatch(setUser({isLoggedIn: false}));
             }
+            // If validationResult is false, do NOT force logout here.
+            // It could be a transient network/server issue. Keep current state.
           } catch (error) {
-            // Token validation failed, set to logged out
+            // On unexpected errors, do not force logout. Keep current state.
             console.error('Token validation error:', error);
-            dispatch(setUser({isLoggedIn: false}));
           } finally {
             // Always mark token check as complete
             dispatch(setTokenChecked(true));
           }
         } catch (error) {
-          // Error in auth check, set to logged out state as fallback
-          dispatch(setUser({isLoggedIn: false}));
+          // Error in auth check - do not force logout; just mark as checked
           dispatch(setTokenChecked(true));
         }
       };

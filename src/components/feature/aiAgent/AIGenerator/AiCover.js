@@ -369,9 +369,10 @@ const CoverCreationScreen = () => {
 
   const {mutate: fetchUserRecordings} = useMutation(
     useCallback(async () => {
-      // Allow interceptor to attach/refresh Authorization automatically
+      const token = await getAuthToken();
       const headers = {
         'Content-Type': 'application/json',
+        ...(token ? {Authorization: `Bearer ${token}`} : {}),
       };
 
       setIsLoadingRecordings(true);
@@ -434,9 +435,6 @@ const CoverCreationScreen = () => {
         Alert.alert('Network Error', 'No internet connection available');
         return;
       }
-
-      // Pagination removed
-
       // Run refreshes in parallel for faster loading
       const promises = [
         // Reload voice models
@@ -1025,7 +1023,9 @@ const CoverCreationScreen = () => {
                           style={styles.bottomSheetButton}
                           onPress={() => {
                             setShowInsufficientCreditsModal(false);
-                            navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                            navigation.navigate(
+                              ROUTE_NAME.RecurringSubscriptionScreen,
+                            );
                           }}>
                           <LinearGradient
                             colors={['#F4A460', '#DEB887']}

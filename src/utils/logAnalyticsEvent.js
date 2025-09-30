@@ -3,7 +3,8 @@
  * This utility allows you to log events directly to Firebase without any abstractions
  */
 
-import analytics from '@react-native-firebase/analytics';
+import {getAnalytics, logEvent} from '@react-native-firebase/analytics';
+import {getApp} from '@react-native-firebase/app';
 import {Platform} from 'react-native';
 
 /**
@@ -22,8 +23,10 @@ export async function logDirectEvent(eventName, eventParams = {}) {
       ...eventParams,
     };
 
-    // Log the event directly
-    await analytics().logEvent(eventName, standardParams);
+    // Modular API usage
+    const app = getApp();
+    const analytics = getAnalytics(app);
+    await logEvent(analytics, eventName, standardParams);
 
     return true;
   } catch (error) {

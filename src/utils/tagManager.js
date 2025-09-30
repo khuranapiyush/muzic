@@ -1,4 +1,9 @@
-import analytics from '@react-native-firebase/analytics';
+import {
+  getAnalytics,
+  logEvent,
+  setUserProperties,
+} from '@react-native-firebase/analytics';
+import {getApp} from '@react-native-firebase/app';
 import {Platform, NativeModules} from 'react-native';
 
 // Get the native GTM Container Bridge module if available
@@ -37,8 +42,10 @@ export const initializeTagManager = async () => {
   }
 
   try {
-    // Enable analytics collection
-    await analytics().setAnalyticsCollectionEnabled(true);
+    // In modular API, enabling collection is usually global; keep default behavior
+    // Call getAnalytics to ensure analytics is initialized
+    const app = getApp();
+    getAnalytics(app);
 
     if (isContainerAvailable()) {
       console.log('Google Tag Manager initialized via native container');
@@ -93,8 +100,10 @@ export const pushEvent = async (eventName, params = {}) => {
             ...enhancedParams,
           };
 
-          // Log the event using Firebase Analytics
-          await analytics().logEvent(eventName, mergedParams);
+          // Log the event using Firebase Analytics (modular)
+          const app = getApp();
+          const analytics = getAnalytics(app);
+          await logEvent(analytics, eventName, mergedParams);
 
           if (__DEV__) {
             console.log(
@@ -114,12 +123,16 @@ export const pushEvent = async (eventName, params = {}) => {
           'Error using container, falling back to default:',
           containerError,
         );
-        // Fallback to direct Firebase Analytics if container fails
-        await analytics().logEvent(eventName, enhancedParams);
+        // Fallback to direct Firebase Analytics if container fails (modular)
+        const app = getApp();
+        const analytics = getAnalytics(app);
+        await logEvent(analytics, eventName, enhancedParams);
       }
     } else {
-      // Use Firebase Analytics directly
-      await analytics().logEvent(eventName, enhancedParams);
+      // Use Firebase Analytics directly (modular)
+      const app = getApp();
+      const analytics = getAnalytics(app);
+      await logEvent(analytics, eventName, enhancedParams);
 
       if (__DEV__) {
         console.log(`📊 TAG MANAGER EVENT: ${eventName}`, enhancedParams);
@@ -169,8 +182,10 @@ export const setUserProperty = async (name, value) => {
       }
     }
 
-    // Default behavior - use the provided value
-    await analytics().setUserProperties({[name]: String(value)});
+    // Default behavior - use the provided value (modular)
+    const app = getApp();
+    const analytics = getAnalytics(app);
+    await setUserProperties(analytics, {[name]: String(value)});
 
     if (__DEV__) {
       console.log(`📊 TAG MANAGER USER PROPERTY: ${name}=${value}`);

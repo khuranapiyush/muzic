@@ -20,6 +20,64 @@ import {Platform} from 'react-native';
 let isRefreshing = false;
 let failedQueue = [];
 
+// Normalize token string by removing Bearer prefix and wrapping quotes
+const normalizeTokenString = rawToken => {
+  if (!rawToken) {
+    return null;
+  }
+
+  let token = String(rawToken).trim();
+
+  // Strip Bearer prefix if present
+  if (token.startsWith('Bearer ')) {
+    token = token.slice('Bearer '.length).trim();
+  }
+
+  // Unwrap surrounding quotes if present
+  if (
+    (token.startsWith('"') && token.endsWith('"')) ||
+    (token.startsWith("'") && token.endsWith("'"))
+  ) {
+    token = token.slice(1, -1);
+  }
+
+  return token;
+};
+
+// Quick JWT shape validation (three dot-separated parts, no quotes/spaces)
+const looksLikeJwt = token => {
+  return (
+    typeof token === 'string' &&
+    token.split('.').length === 3 &&
+    !/["'\s]/.test(token)
+  );
+};
+
+// Apply Authorization default header across axios instances (currently unused; keep for future opt-in)
+// const setDefaultAuthHeader = token => {
+//   const bearer = `Bearer ${token}`;
+//   fanTvInstance.defaults.headers.common.Authorization = bearer;
+//   strapiInstance.defaults.headers.common.Authorization = bearer;
+//   defaultInstance.defaults.headers.common.Authorization = bearer;
+//   rawInstance.defaults.headers.common.Authorization = bearer;
+// };
+
+// Remove Authorization default header across axios instances
+const clearDefaultAuthHeader = () => {
+  try {
+    delete fanTvInstance.defaults.headers.common.Authorization;
+  } catch (_) {}
+  try {
+    delete strapiInstance.defaults.headers.common.Authorization;
+  } catch (_) {}
+  try {
+    delete defaultInstance.defaults.headers.common.Authorization;
+  } catch (_) {}
+  try {
+    delete rawInstance.defaults.headers.common.Authorization;
+  } catch (_) {}
+};
+
 // Helper to check if endpoint is auth-related (login, refresh tokens)
 const isAuthEndpoint = url => {
   return (
@@ -65,28 +123,28 @@ const fetcher = {
     try {
       if (!token) {
         console.warn('Attempted to set empty auth token');
+        // Ensure no default Authorization leaks into requests
+        clearDefaultAuthHeader();
         return;
       }
 
       console.log('Setting auth token in axios instances');
 
       // Determine token string value (handle object or string)
-      const tokenValue =
+      const rawTokenValue =
         typeof token === 'object' && token !== null && token.access
           ? token.access
           : token;
 
-      console.log('tokenValue', tokenValue);
-      // Update token in axios instances with the proper string value
-      if (typeof tokenValue === 'string') {
-        fanTvInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
-        strapiInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
-        defaultInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
-        rawInstance.defaults.headers.common.Authorization = `Bearer ${tokenValue}`;
-      }
+      const tokenValue = normalizeTokenString(rawTokenValue);
+
+      console.log('tokenValue (normalized)', tokenValue);
+      // Do NOT set axios defaults to avoid header bleed across requests.
+      // Always clear defaults; interceptor will attach headers per-request.
+      clearDefaultAuthHeader();
 
       // Check if token is already an object or a string
-      if (typeof tokenValue === 'string' && typeof token === 'string') {
+      if (looksLikeJwt(tokenValue) && typeof token === 'string') {
         // If it's a string, update Redux with proper structure
         store.dispatch(
           updateToken({
@@ -97,6 +155,14 @@ const fetcher = {
       } else if (token && token.access && token.refresh) {
         // If it's already the correct structure with access & refresh
         store.dispatch(updateToken(token));
+      } else if (!looksLikeJwt(tokenValue)) {
+        // If invalid token provided, ensure we don't keep an invalid access token in store
+        store.dispatch(
+          updateToken({
+            access: null,
+            refresh: store.getState()?.auth?.refreshToken,
+          }),
+        );
       }
 
       console.log('Auth token set successfully');
@@ -289,17 +355,35 @@ const fetcher = {
 export const addAuthInterceptor = async () => {
   // Define the interceptor function to reuse for multiple instances
   const authInterceptorFunction = async req => {
+    // If caller explicitly skips auth header, ensure it is removed from this request
+    if (req && req.skipAuthHeader) {
+      if (req.headers && req.headers.Authorization) {
+        delete req.headers.Authorization;
+      }
+    }
+
+    // Derive a safe pathname for checks (avoid matching '/api' in hostname like https://api.example.com)
+    let pathname = req.url || '';
+    try {
+      if (typeof pathname === 'string' && pathname.startsWith('http')) {
+        const parsed = new URL(pathname);
+        pathname = parsed.pathname || pathname;
+      }
+    } catch (_) {
+      // If URL parsing fails, keep original string
+    }
+
     const shouldAddAuthHeaders =
-      (req.url.includes('v1/') ||
-        req.url.includes('v2/') ||
-        req.url.includes('v3/') ||
-        req.url.includes(
+      (pathname.includes('v1/') ||
+        pathname.includes('v2/') ||
+        pathname.includes('v3/') ||
+        pathname.includes(
           'events.artistfirst.in/dev/rest-proxy/topics/video-event',
         )) &&
-      !req.url.includes('login') &&
-      !req.url.includes('/api') &&
-      !req.url.includes('verify-email') &&
-      !req.url.includes('refresh-tokens');
+      !pathname.includes('login') &&
+      !pathname.includes('/api/') &&
+      !pathname.includes('verify-email') &&
+      !pathname.includes('refresh-tokens');
 
     // Allow callers to skip auth header injection and token refresh
     const skipAuthHeader = Boolean(req.skipAuthHeader);
@@ -320,12 +404,18 @@ export const addAuthInterceptor = async () => {
             return req;
           }
 
-          const headerToken = authHeader.slice('Bearer '.length);
+          // Normalize header token to avoid sending quotes to backend
+          const headerToken = normalizeTokenString(
+            authHeader.slice('Bearer '.length),
+          );
 
           try {
             const state = store.getState();
             const refreshToken = state?.auth?.refreshToken;
-            const tokenInvalid = !headerToken || isTokenExpired(headerToken);
+            const tokenInvalid =
+              !headerToken ||
+              !looksLikeJwt(headerToken) ||
+              isTokenExpired(headerToken);
 
             // If header token invalid
             if (tokenInvalid) {
@@ -333,18 +423,26 @@ export const addAuthInterceptor = async () => {
                 // Try to refresh and overwrite header
                 const newAccess = await refreshAccessToken();
                 if (newAccess) {
-                  req.headers.Authorization = `Bearer ${newAccess}`;
+                  const normalizedNewAccess = normalizeTokenString(newAccess);
+                  if (looksLikeJwt(normalizedNewAccess)) {
+                    req.headers.Authorization = `Bearer ${normalizedNewAccess}`;
+                  } else {
+                    delete req.headers.Authorization;
+                  }
                 } else {
                   delete req.headers.Authorization;
                 }
               } else {
                 // No refresh token available - drop invalid header to avoid malformed JWT errors
                 delete req.headers.Authorization;
+                // Also clear defaults to prevent future invalid headers
+                clearDefaultAuthHeader();
               }
             }
           } catch (_) {
             // On any error, drop the invalid header so request proceeds unauthenticated
             delete req.headers.Authorization;
+            clearDefaultAuthHeader();
           }
 
           return req;
@@ -389,21 +487,22 @@ export const addAuthInterceptor = async () => {
 
           // Set the Authorization header only if the token looks like a valid JWT
           if (accessToken) {
-            const tokenValue =
+            const rawTokenValue =
               typeof accessToken === 'object' && accessToken.access
                 ? accessToken.access
                 : accessToken;
 
-            if (
-              typeof tokenValue === 'string' &&
-              tokenValue.split('.').length === 3
-            ) {
+            const tokenValue = normalizeTokenString(rawTokenValue);
+
+            if (looksLikeJwt(tokenValue)) {
               req.headers.Authorization = `Bearer ${tokenValue}`;
               console.log('Interceptor: Auth header set successfully');
             } else {
               console.warn(
                 'Interceptor: Skipping auth header due to invalid token format',
               );
+              // Ensure defaults are not poisoning future requests
+              clearDefaultAuthHeader();
             }
           } else {
             console.warn('Interceptor: No valid token available for request');

@@ -21,6 +21,8 @@ import appImages from '../../resource/images';
 import {selectCreditsPerSong} from '../../stores/selector';
 import {useNavigation} from '@react-navigation/native';
 import {NativeModules} from 'react-native';
+import analyticsUtils from '../../utils/analytics';
+import facebookEvents from '../../utils/facebookEvents';
 import {
   trackBranchPurchase,
   trackBranchPurchaseInitiation,
@@ -230,15 +232,65 @@ const RecurringSubscriptionScreen = () => {
         await RNIap.finishTransaction({purchase, isConsumable: false});
         await refreshCredits(true);
 
-        // Track purchase success with Branch
+        // Prepare amount and currency for analytics
+        const matchedProduct = products?.find(
+          p => p?.productId === purchase?.productId,
+        );
+        const inferredAmount = (() => {
+          try {
+            const fromPurchase =
+              purchase?.price || purchase?.transactionAmount || 0;
+            if (fromPurchase) {
+              return Number(fromPurchase);
+            }
+            if (matchedProduct) {
+              return Number(getProductPrice(matchedProduct)) || 0;
+            }
+            return 0;
+          } catch (_) {
+            return 0;
+          }
+        })();
+        const inferredCurrency = (() => {
+          try {
+            if (Platform.OS === 'ios') {
+              return purchase?.currency || 'INR';
+            }
+            // Android
+            return (
+              purchase?.transactionReceiptAndroid?.currency ||
+              matchedProduct?.subscriptionOfferDetails?.[0]?.pricingPhases
+                ?.pricingPhaseList?.[0]?.priceCurrencyCode ||
+              'INR'
+            );
+          } catch (_) {
+            return 'INR';
+          }
+        })();
+
+        // Track purchase success with Firebase + Facebook + Branch
         try {
-          const currency = Platform.select({
-            ios: purchase?.currency || 'INR',
-            android: purchase?.transactionReceiptAndroid?.currency || 'INR',
+          const currency = inferredCurrency;
+          const amount = inferredAmount;
+
+          // Firebase (Google Analytics)
+          analyticsUtils.trackCustomEvent('subscription_purchase_completed', {
+            product_id: purchase?.productId,
+            amount,
+            currency,
+            platform: Platform.OS,
+            source: 'recurring_subscription_screen',
+            timestamp: new Date().toISOString(),
           });
 
+          // Facebook App Events
+          if (amount && currency) {
+            facebookEvents.logPurchase(amount, currency, purchase?.productId);
+          }
+
+          // Branch
           await trackBranchPurchase({
-            revenue: purchase?.price || purchase?.transactionAmount || 0,
+            revenue: amount || 0,
             currency,
             product_id: purchase?.productId,
             transaction_id:
@@ -268,7 +320,13 @@ const RecurringSubscriptionScreen = () => {
         throw e;
       }
     },
-    [authState?.accessToken, refreshCredits, showAlert],
+    [
+      authState?.accessToken,
+      refreshCredits,
+      showAlert,
+      getProductPrice,
+      products,
+    ],
   );
 
   // keep the latest function for the listener
@@ -276,33 +334,7 @@ const RecurringSubscriptionScreen = () => {
     verifySubscriptionRef.current = verifySubscription;
   }, [verifySubscription]);
 
-  const onPurchaseUpdated = useCallback(
-    async purchase => {
-      try {
-        if (!purchase?.productId) {
-          return;
-        }
-        await verifySubscription(purchase);
-      } catch (err) {
-        showAlert(
-          'Purchase Error',
-          err?.message || 'Failed to complete purchase',
-        );
-      } finally {
-        setPending(false);
-        purchaseInProgress.current = false;
-        setRetryCount(0);
-        // Clear any pending retry timeout
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current);
-          retryTimeoutRef.current = null;
-        }
-        // Reset success alert flag on any completion
-        successAlertShown.current = false;
-      }
-    },
-    [verifySubscription],
-  );
+  // Removed unused onPurchaseUpdated to satisfy linter
 
   const onPurchaseError = useCallback(
     error => {
@@ -361,7 +393,7 @@ const RecurringSubscriptionScreen = () => {
         );
       }
     },
-    [onRefresh],
+    [onRefresh, showAlert],
   );
 
   // keep the latest error handler for the listener
@@ -428,10 +460,13 @@ const RecurringSubscriptionScreen = () => {
   }, [fetchCatalog, showAlert]);
 
   useEffect(() => {
-    if (listenerAttached.current) return;
+    if (listenerAttached.current) {
+      return;
+    }
     console.log('Before the initIAP');
     listenerAttached.current = true;
     initIAP();
+    const processedSet = processedPurchaseIds.current;
     return () => {
       purchaseUpdateSub.current?.remove?.();
       purchaseErrorSub.current?.remove?.();
@@ -441,12 +476,12 @@ const RecurringSubscriptionScreen = () => {
       }
       purchaseInProgress.current = false;
       successAlertShown.current = false;
-      processedPurchaseIds.current.clear();
+      processedSet.clear();
       isAlertOpen.current = false;
       listenerAttached.current = false;
       RNIap.endConnection();
     };
-  }, []);
+  }, [initIAP]);
 
   // Check if user already has an active subscription
   const checkExistingSubscription = useCallback(async () => {
@@ -562,7 +597,18 @@ const RecurringSubscriptionScreen = () => {
       // 1) Fire-and-forget analytics so it never blocks UI
       try {
         // Do not await; any failure should not delay the sheet
-        // eslint-disable-next-line no-floating-promises
+        // Firebase (Google Analytics)
+        analyticsUtils.trackPurchaseInitiated('recurring_subscription_screen', {
+          product_id: selectedId,
+          platform: Platform.OS,
+        });
+        // Facebook custom event for initiation
+        facebookEvents.logCustomEvent('subscription_purchase_initiated', {
+          product_id: selectedId,
+          platform: Platform.OS,
+          source: 'recurring_subscription_screen',
+        });
+        // Branch (fire-and-forget)
         trackBranchPurchaseInitiation(selectedId);
       } catch (_) {}
 
@@ -625,9 +671,32 @@ const RecurringSubscriptionScreen = () => {
           err?.message || 'An unknown error occurred. Please try again.',
           [{text: 'OK', style: 'default'}],
         );
+        // Track initiation failure
+        try {
+          analyticsUtils.trackCustomEvent('subscription_purchase_failed', {
+            stage: 'initiation',
+            product_id: selectedId,
+            code: err?.code,
+            reason: err?.message,
+            platform: Platform.OS,
+          });
+          facebookEvents.logCustomEvent('subscription_purchase_failed', {
+            stage: 'initiation',
+            product_id: selectedId,
+            code: err?.code,
+            reason: err?.message,
+          });
+        } catch (_) {}
       }
     }
-  }, [selectedId, onRefresh, performPurchase, retryPurchase]);
+  }, [
+    selectedId,
+    onRefresh,
+    performPurchase,
+    retryPurchase,
+    checkExistingSubscription,
+    showAlert,
+  ]);
 
   const onRefresh = useCallback(async () => {
     try {

@@ -3,6 +3,12 @@
  */
 
 import {AppRegistry, LogBox} from 'react-native';
+// Silence RNFB modular deprecation warnings globally (set before any RNFB import/use)
+// See: https://rnfirebase.io/migrating-to-v22
+// eslint-disable-next-line no-undef
+globalThis.RNFB_SILENCE_MODULAR_DEPRECATION_WARNINGS = true;
+// Optional strict mode to find legacy calls (commented by default)
+// globalThis.RNFB_MODULAR_DEPRECATION_STRICT_MODE = true;
 import 'react-native-get-random-values';
 import {registerGlobals} from 'react-native-webrtc';
 import App from './src/App';

@@ -60,7 +60,7 @@ const AIGenerator = ({pageHeading}) => {
     status: 'COMPLETED',
     isGenerated: true,
   });
-  const [errorMessage, setErrorMessage] = useState('');
+  const [, setErrorMessage] = useState('');
   const [generatedListResponse, setGeneratedListResponse] = useState(null);
   const [, setPrompt] = useState('');
   const [showBottomSheet, setShowBottomSheet] = useState(false);
@@ -181,7 +181,7 @@ const AIGenerator = ({pageHeading}) => {
             song_id: data._id || 'unknown',
             prompt: data.prompt,
             screen: 'ai_generator',
-            word_count: data.prompt.split(' ').length,
+            word_count: data && data.prompt ? data.prompt.split(' ').length : 0,
             title: data.title || 'Untitled',
             singer: data.singer || 'Unknown',
             genre: data.genre || 'Not specified',
@@ -197,7 +197,8 @@ const AIGenerator = ({pageHeading}) => {
               song_id: data._id || 'unknown',
               screen: 'ai_generator',
               prompt: data.prompt,
-              word_count: data.prompt.split(' ').length,
+              word_count:
+                data && data.prompt ? data.prompt.split(' ').length : 0,
               title: data.title || 'Untitled',
               singer: data.singer || 'Unknown',
               genre: data.genre || 'Not specified',
@@ -576,7 +577,7 @@ const AIGenerator = ({pageHeading}) => {
                 activeOpacity={0.8}
                 onPress={() => {
                   setShowInsufficientCreditsModal(false);
-                  navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+                  navigation.navigate(ROUTE_NAME.RecurringSubscriptionScreen);
                 }}>
                 <LinearGradient
                   colors={[

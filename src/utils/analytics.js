@@ -1,5 +1,11 @@
 import {Platform} from 'react-native';
-import analytics from '@react-native-firebase/analytics';
+import {
+  getAnalytics,
+  logEvent,
+  logScreenView,
+  setAnalyticsCollectionEnabled,
+} from '@react-native-firebase/analytics';
+import {getApp} from '@react-native-firebase/app';
 
 // Flag for debugging analytics - set to true to see log messages
 const DEBUG_ANALYTICS = __DEV__;
@@ -7,8 +13,10 @@ const DEBUG_ANALYTICS = __DEV__;
 // Helper function to enable analytics collection
 export const initializeAnalytics = async () => {
   try {
-    // Enable analytics collection using React Native Firebase API
-    await analytics().setAnalyticsCollectionEnabled(true);
+    const app = getApp();
+    const analytics = getAnalytics(app);
+    // Enable analytics collection using modular API
+    await setAnalyticsCollectionEnabled(analytics, true);
 
     if (DEBUG_ANALYTICS) {
       console.log('Firebase Analytics initialized successfully');
@@ -30,12 +38,14 @@ const logAnalyticsEvent = (eventName, params) => {
       platform: Platform.OS,
     };
 
-    // Use Firebase Analytics with modular SDK
+    // Use Firebase Analytics with modular API
     if (DEBUG_ANALYTICS) {
       console.log(`📊 ANALYTICS EVENT: ${eventName}`, analyticsParams);
     }
 
-    return analytics().logEvent(eventName, analyticsParams);
+    const app = getApp();
+    const analytics = getAnalytics(app);
+    return logEvent(analytics, eventName, analyticsParams);
   } catch (error) {
     // Silent fail for analytics errors, never block app functionality
     console.log(`Failed to log event ${eventName}:`, error);
@@ -44,11 +54,21 @@ const logAnalyticsEvent = (eventName, params) => {
 };
 
 // Track app screen views
-export const trackScreenView = (screenName, screenClass) => {
-  return logAnalyticsEvent('screen_view', {
-    screen_name: screenName,
-    screen_class: screenClass,
-  });
+export const trackScreenView = async (screenName, screenClass) => {
+  try {
+    const app = getApp();
+    const analytics = getAnalytics(app);
+    return await logScreenView(analytics, {
+      screen_name: screenName,
+      screen_class: screenClass,
+    });
+  } catch (error) {
+    // Fallback to generic event if modular call fails for any reason
+    return logAnalyticsEvent('screen_view', {
+      screen_name: screenName,
+      screen_class: screenClass,
+    });
+  }
 };
 
 // Track user login method
