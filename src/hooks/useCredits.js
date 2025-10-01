@@ -137,7 +137,7 @@ export const useCredits = () => {
         return true;
       } else {
         // User doesn't have enough credits, navigate to subscription screen
-        navigation.navigate(ROUTE_NAME.SubscriptionScreen);
+        navigation.navigate(ROUTE_NAME.RecurringSubscriptionScreen);
         return false;
       }
     },

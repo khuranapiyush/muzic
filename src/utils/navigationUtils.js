@@ -86,6 +86,7 @@ export const getNavigationDetails = navigationState => {
         ROUTE_NAME.TermsAndConditions,
         ROUTE_NAME.TrendingSongs,
         ROUTE_NAME.AllRecordings,
+        ROUTE_NAME.RecurringSubscriptionScreen,
       ];
       if (mainAppPages.includes(currentPage)) {
         isInMainStack = true;
