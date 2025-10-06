@@ -272,8 +272,13 @@ const RecurringSubscriptionScreen = () => {
         try {
           const currency = inferredCurrency;
           const amount = inferredAmount;
+          const transactionId =
+            purchase?.transactionId ||
+            purchase?.originalTransactionIdentifier ||
+            purchase?.originalTransactionId ||
+            purchase?.purchaseToken;
 
-          // Firebase (Google Analytics)
+          // Firebase (Google Analytics) - custom event
           analyticsUtils.trackCustomEvent('subscription_purchase_completed', {
             product_id: purchase?.productId,
             amount,
@@ -281,6 +286,23 @@ const RecurringSubscriptionScreen = () => {
             platform: Platform.OS,
             source: 'recurring_subscription_screen',
             timestamp: new Date().toISOString(),
+          });
+
+          // Firebase (Google Analytics) - GA4 standard purchase event
+          const gaItems = [
+            {
+              item_id: purchase?.productId,
+              item_name: purchase?.productId,
+              price: amount,
+              quantity: 1,
+            },
+          ];
+          analyticsUtils.trackPurchase({
+            transaction_id: String(transactionId || `tx_${Date.now()}`),
+            value: amount,
+            currency,
+            items: gaItems,
+            source: 'recurring_subscription_screen',
           });
 
           // Facebook App Events
@@ -293,11 +315,7 @@ const RecurringSubscriptionScreen = () => {
             revenue: amount || 0,
             currency,
             product_id: purchase?.productId,
-            transaction_id:
-              purchase?.transactionId ||
-              purchase?.originalTransactionIdentifier ||
-              purchase?.originalTransactionId ||
-              purchase?.purchaseToken,
+            transaction_id: transactionId,
             source: 'recurring_subscription_screen',
           });
         } catch (e) {
@@ -598,10 +616,13 @@ const RecurringSubscriptionScreen = () => {
       try {
         // Do not await; any failure should not delay the sheet
         // Firebase (Google Analytics)
-        analyticsUtils.trackPurchaseInitiated('recurring_subscription_screen', {
-          product_id: selectedId,
-          platform: Platform.OS,
-        });
+        analyticsUtils.trackPurchaseInitiated(
+          'subscription_purchase_initiated',
+          {
+            product_id: selectedId,
+            platform: Platform.OS,
+          },
+        );
         // Facebook custom event for initiation
         facebookEvents.logCustomEvent('subscription_purchase_initiated', {
           product_id: selectedId,

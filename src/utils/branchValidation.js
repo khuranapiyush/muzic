@@ -140,10 +140,12 @@ export const validateBranchSetup = async () => {
     // 7. Test direct BranchEvent
     console.log('7️⃣ Testing direct BranchEvent...');
     try {
-      const directEvent = new BranchEvent('Direct_Validation_Test', {
-        test: true,
-        timestamp: Date.now(),
-        platform: Platform.OS,
+      const directEvent = new BranchEvent('Direct_Validation_Test', null, {
+        customData: {
+          test: String(true),
+          timestamp: String(Date.now()),
+          platform: String(Platform.OS),
+        },
       });
 
       await new Promise((resolve, reject) => {
@@ -239,11 +241,15 @@ export const testAllBranchPurchaseTypes = async () => {
     console.log(`\n${index + 1}. Testing ${purchaseType.name}...`);
 
     try {
-      const event = new BranchEvent(purchaseType.event, {
-        ...purchaseType.data,
-        test: true,
-        timestamp: Date.now(),
-        platform: Platform.OS,
+      const event = new BranchEvent(purchaseType.event, null, {
+        customData: {
+          ...Object.fromEntries(
+            Object.entries(purchaseType.data).map(([k, v]) => [k, String(v)]),
+          ),
+          test: String(true),
+          timestamp: String(Date.now()),
+          platform: String(Platform.OS),
+        },
       });
 
       await new Promise((resolve, reject) => {

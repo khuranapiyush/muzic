@@ -136,7 +136,13 @@ export const trackStartRecording = (recordingType, params = {}) => {
 
 // Track purchase initiated
 export const trackPurchaseInitiated = (source, params = {}) => {
-  return logAnalyticsEvent('purchase_initiated', {
+  // Log custom event
+  logAnalyticsEvent('purchase_initiated', {
+    source: source,
+    ...params,
+  });
+  // Also log GA4 standard event for better reporting
+  return logAnalyticsEvent('begin_checkout', {
     source: source,
     ...params,
   });

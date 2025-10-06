@@ -495,7 +495,9 @@ const AppContent = () => {
                     ad_set: params?.ad_set || params?.$3p,
                     clicked_branch_link: true,
                   };
-                  new BranchEvent('INSTALL_ATTRIBUTED', attribution).logEvent();
+                  new BranchEvent('INSTALL_ATTRIBUTED', null, {
+                    customData: attribution,
+                  }).logEvent();
                   moEngageService.trackEvent(
                     'Install_Attribution',
                     attribution,

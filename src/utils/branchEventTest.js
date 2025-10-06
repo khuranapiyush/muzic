@@ -100,11 +100,13 @@ export const testAllBranchEvents = async () => {
     // 5. Test Direct BranchEvent Creation
     console.log('\n5️⃣ Testing Direct BranchEvent Creation...');
     try {
-      const directEvent = new BranchEvent('Comprehensive_Test_Event', {
-        test: true,
-        timestamp: Date.now(),
-        platform: Platform.OS,
-        source: 'comprehensive_test',
+      const directEvent = new BranchEvent('Comprehensive_Test_Event', null, {
+        customData: {
+          test: String(true),
+          timestamp: String(Date.now()),
+          platform: String(Platform.OS),
+          source: 'comprehensive_test',
+        },
       });
 
       await new Promise((resolve, reject) => {
@@ -220,10 +222,14 @@ export const testBranchEventDataTypes = async () => {
     console.log(`\n${index + 1}. Testing ${testCase.name}...`);
 
     try {
-      const event = new BranchEvent(testCase.event, {
-        ...testCase.data,
-        timestamp: Date.now(),
-        platform: Platform.OS,
+      const event = new BranchEvent(testCase.event, null, {
+        customData: {
+          ...Object.fromEntries(
+            Object.entries(testCase.data).map(([k, v]) => [k, String(v)]),
+          ),
+          timestamp: String(Date.now()),
+          platform: String(Platform.OS),
+        },
       });
 
       await new Promise((resolve, reject) => {
@@ -263,10 +269,12 @@ export const testBranchEventTiming = async () => {
   for (const [index, event] of events.entries()) {
     setTimeout(async () => {
       try {
-        const branchEvent = new BranchEvent(event.name, {
-          sequence: index + 1,
-          timestamp: Date.now(),
-          platform: Platform.OS,
+        const branchEvent = new BranchEvent(event.name, null, {
+          customData: {
+            sequence: String(index + 1),
+            timestamp: String(Date.now()),
+            platform: String(Platform.OS),
+          },
         });
 
         branchEvent.logEvent();

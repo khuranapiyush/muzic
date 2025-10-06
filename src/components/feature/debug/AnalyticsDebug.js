@@ -90,19 +90,17 @@ const AnalyticsDebug = () => {
     try {
       addLog('🔄 Sending Branch events...');
 
-      // Standard purchase event
-      await new BranchEvent(BranchEvent.Purchase, {
+      // Standard purchase event (correct param position + customData)
+      await new BranchEvent(BranchEvent.Purchase, null, {
         revenue: 1.99,
         currency: 'INR',
-        custom_data: {source: 'debug', ts: Date.now()},
+        customData: {source: String('debug'), ts: String(Date.now())},
       }).logEvent();
       addLog('✅ Branch Purchase event sent');
 
-      // Custom event
-      await new BranchEvent('custom_debug_event', {
-        foo: 'bar',
-        ts: Date.now(),
-        test: true,
+      // Custom event (correct param position + customData)
+      await new BranchEvent('custom_debug_event', null, {
+        customData: {foo: 'bar', ts: String(Date.now()), test: String(true)},
       }).logEvent();
       addLog('✅ Branch custom event sent');
     } catch (error) {

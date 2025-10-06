@@ -34,13 +34,15 @@ export const testBranchPurchaseTracking = async () => {
     // Step 3: Test direct BranchEvent.Purchase
     console.log('3️⃣ Testing direct BranchEvent.Purchase...');
     try {
-      const directPurchaseEvent = new BranchEvent(BranchEvent.Purchase, {
+      const directPurchaseEvent = new BranchEvent(BranchEvent.Purchase, null, {
         revenue: 9.99,
         currency: 'INR',
         transactionID: `test_tx_${Date.now()}`,
-        product_id: 'test_product_direct',
-        test_mode: true,
-        platform: Platform.OS,
+        customData: {
+          product_id: 'test_product_direct',
+          test_mode: String(true),
+          platform: String(Platform.OS),
+        },
       });
 
       await new Promise((resolve, reject) => {
@@ -84,11 +86,13 @@ export const testBranchPurchaseTracking = async () => {
     // Step 6: Test custom purchase event
     console.log('6️⃣ Testing custom purchase event...');
     try {
-      const customEvent = new BranchEvent('Custom_Purchase', {
-        amount: 29.99,
-        currency: 'INR',
-        product: 'test_custom_product',
-        test: true,
+      const customEvent = new BranchEvent('Custom_Purchase', null, {
+        customData: {
+          amount: String(29.99),
+          currency: 'INR',
+          product: 'test_custom_product',
+          test: String(true),
+        },
       });
 
       await new Promise((resolve, reject) => {

@@ -118,6 +118,58 @@ export const initializeBranchWithRetry = async (
 };
 
 /**
+ * Ensure all customData values are strings as required by Branch SDK.
+ */
+const coerceCustomDataStrings = (data = {}) => {
+  const result = {};
+  Object.keys(data || {}).forEach(key => {
+    const value = data[key];
+    if (value === undefined || value === null) {
+      return;
+    }
+    if (typeof value === 'object') {
+      try {
+        result[key] = JSON.stringify(value);
+      } catch (_) {
+        result[key] = String(value);
+      }
+    } else {
+      result[key] = String(value);
+    }
+  });
+  return result;
+};
+
+/**
+ * Optionally create a BranchUniversalObject for purchase/content events.
+ * Returns null on failure.
+ */
+const createPurchaseBUO = async ({
+  product_id,
+  revenue,
+  currency,
+  extra = {},
+}) => {
+  try {
+    const canonicalIdentifier = `product/${String(product_id)}`;
+    const buo = await branch.createBranchUniversalObject(canonicalIdentifier, {
+      title: String(product_id),
+      contentMetadata: {
+        sku: String(product_id),
+        price: typeof revenue === 'number' ? revenue : Number(revenue) || 0,
+        quantity: 1,
+        currency: String(currency || 'INR'),
+        customMetadata: coerceCustomDataStrings(extra),
+      },
+    });
+    return buo;
+  } catch (e) {
+    console.warn('⚠️ Failed to create BranchUniversalObject:', e?.message || e);
+    return null;
+  }
+};
+
+/**
  * Global helper to ensure Branch user identity is set before tracking events
  * This should be called before any Branch event to ensure proper attribution
  */
@@ -208,12 +260,13 @@ export const trackBranchEvent = async (eventName, eventData = {}) => {
       return false;
     }
 
-    // Create the event
-    const event = new BranchEvent(eventName, {
-      ...eventData,
-      // Add tracking metadata
-      tracked_at: new Date().toISOString(),
-      identity_set: !!identity,
+    // Create the event with params as the THIRD argument and custom data nested
+    const event = new BranchEvent(eventName, null, {
+      customData: coerceCustomDataStrings({
+        tracked_at: new Date().toISOString(),
+        identity_set: !!identity,
+        ...(eventData || {}),
+      }),
     });
 
     console.log(`📊 Created Branch event: ${eventName}`, event);
@@ -275,21 +328,33 @@ export const trackBranchPurchase = async purchaseData => {
     // Ensure identity is set first
     const identity = await ensureBranchIdentity();
 
-    // BranchEvent is already imported at the top
+    // Build BUO for purchase (recommended by Branch docs)
+    const buo = await createPurchaseBUO({
+      product_id,
+      revenue: finalRevenue,
+      currency: finalCurrency,
+      extra: {platform: Platform.OS, ...otherData},
+    });
 
     // Use Branch's standard Purchase event (this will show in dashboard)
-    const purchaseEvent = new BranchEvent(BranchEvent.Purchase, {
-      // Standard fields for Purchase event - these go directly in the event
-      revenue: Number(finalRevenue),
-      currency: String(finalCurrency),
-      transactionID: String(transaction_id || `tx_${Date.now()}`),
-      // Additional data as custom properties
-      product_id: String(product_id),
-      tracked_at: new Date().toISOString(),
-      identity_set: !!identity,
-      platform: Platform.OS,
-      ...otherData,
-    });
+    const purchaseEvent = new BranchEvent(
+      BranchEvent.Purchase,
+      buo ? [buo] : null,
+      {
+        // Standard fields for Purchase event - these go directly in the event
+        revenue: Number(finalRevenue),
+        currency: String(finalCurrency),
+        transactionID: String(transaction_id || `tx_${Date.now()}`),
+        // Additional data must be nested under customData
+        customData: coerceCustomDataStrings({
+          product_id: String(product_id),
+          platform: Platform.OS,
+          tracked_at: new Date().toISOString(),
+          identity_set: !!identity,
+          ...(otherData || {}),
+        }),
+      },
+    );
 
     // Track the event with proper async handling
     await new Promise((resolve, reject) => {
@@ -331,11 +396,13 @@ export const trackBranchPurchaseInitiation = async productId => {
     // Ensure identity is set first
     await ensureBranchIdentity();
 
-    const event = new BranchEvent(BranchEvent.InitiatePurchase, {
-      // Put extra fields directly in the event
-      product_id: String(productId),
-      tracked_at: new Date().toISOString(),
-      platform: Platform.OS,
+    const event = new BranchEvent(BranchEvent.InitiatePurchase, null, {
+      // Put extra fields under customData
+      customData: {
+        product_id: String(productId),
+        platform: Platform.OS,
+        tracked_at: new Date().toISOString(),
+      },
     });
 
     event.logEvent(); // fire-and-forget is OK
@@ -355,11 +422,13 @@ export const trackBranchLogin = async (method = 'unknown') => {
     // Ensure identity is set first
     await ensureBranchIdentity();
 
-    const event = new BranchEvent(BranchEvent.Login, {
-      // Put extra fields directly in the event
-      method: String(method),
-      tracked_at: new Date().toISOString(),
-      platform: Platform.OS,
+    const event = new BranchEvent(BranchEvent.Login, null, {
+      // Put extra fields under customData
+      customData: {
+        method: String(method),
+        platform: Platform.OS,
+        tracked_at: new Date().toISOString(),
+      },
     });
 
     event.logEvent(); // fire-and-forget is OK
@@ -382,12 +451,14 @@ export const trackBranchRegistration = async (
     // Ensure identity is set first
     await ensureBranchIdentity();
 
-    const event = new BranchEvent(BranchEvent.CompleteRegistration, {
-      // Put extra fields directly in the event
-      method: String(method),
-      tracked_at: new Date().toISOString(),
-      platform: Platform.OS,
-      ...additionalData,
+    const event = new BranchEvent(BranchEvent.CompleteRegistration, null, {
+      // Put extra fields under customData
+      customData: {
+        method: String(method),
+        platform: Platform.OS,
+        tracked_at: new Date().toISOString(),
+        ...(additionalData || {}),
+      },
     });
 
     event.logEvent(); // fire-and-forget is OK
