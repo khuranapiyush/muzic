@@ -1,4 +1,3 @@
-
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import React, {useMemo, useCallback} from 'react';
 import {
@@ -18,6 +17,7 @@ import AIGenerator from '../components/feature/aiAgent/AIGenerator/AIGenerator';
 import CoverCreationScreen from '../components/feature/aiAgent/AIGenerator/AiCover';
 import LibraryScreen from '../components/feature/library';
 import LinearGradient from 'react-native-linear-gradient';
+import mixpanelAnalytics from '../utils/mixpanelAnalytics';
 
 const Tab = createBottomTabNavigator();
 
@@ -115,6 +115,21 @@ const HomeStackNavigator = () => {
         <TabIcon iconSource={icon} focused={focused} />
       ),
       tabBarLabel: ({focused}) => <TabLabel label={label} focused={focused} />,
+      tabBarButton: props => (
+        <TouchableOpacity
+          {...props}
+          onPress={e => {
+            try {
+              mixpanelAnalytics.trackEvent('bottom_nav_clicked', {
+                nav_option: label,
+              });
+            } catch (_) {}
+            props?.onPress?.(e);
+          }}
+          activeOpacity={1}
+          style={props.style}
+        />
+      ),
     }),
     [],
   );

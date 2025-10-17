@@ -21,7 +21,6 @@ import {getAuthToken} from '../../../utils/authUtils';
 import useMusicPlayer from '../../../hooks/useMusicPlayer';
 import {useNavigation} from '@react-navigation/native';
 import {useSelector, useDispatch} from 'react-redux';
-import LinearGradient from 'react-native-linear-gradient';
 import appImages from '../../../resource/images';
 import RNFS from 'react-native-fs';
 import {PermissionsAndroid} from 'react-native';
@@ -31,23 +30,20 @@ import {
   setShouldRefreshLibrary,
 } from '../../../stores/slices/player';
 import GradientBackground from '../../common/GradientBackground';
+import mixpanelAnalytics from '../../../utils/mixpanelAnalytics';
 
 const {width} = Dimensions.get('window');
 const CARD_WIDTH = (width - 48) / 2;
 
-// Memoized Empty Library Component
 const EmptyLibrary = React.memo(() => {
-  // const navigation = useNavigation();
-
   return (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyImageContainer}>
-        <Text style={styles.musicEmoji}>🎵</Text>
+        <Image source={appImages.emptyLibraryIcon} style={styles.emptyImage} />
       </View>
       <Text style={styles.emptyTitle}>Your Library is Empty</Text>
       <Text style={styles.emptyText}>
-        Create your first AI cover to start building your personal music
-        collection
+        Create your first song to start building your personal music collection
       </Text>
     </View>
   );
@@ -55,48 +51,11 @@ const EmptyLibrary = React.memo(() => {
 
 // Add helper function to clean song titles
 const cleanSongTitle = title => {
-  if (!title) {return 'Untitled Song';}
+  if (!title) {
+    return 'Untitled Song';
+  }
   return title.replace(/"/g, '').trim();
 };
-
-// Memoized Song Item Component
-const SongItem = React.memo(
-  ({song, isCurrentlyPlaying, onPress, onDownload}) => {
-    return (
-      <TouchableOpacity
-        style={[styles.songItem, isCurrentlyPlaying && styles.playingSongItem]}
-        onPress={onPress}>
-        <Image
-          source={{uri: song.imageUrl}}
-          style={styles.songImage}
-          resizeMode="cover"
-          onError={e => {
-            console.log('Image failed to load:', song.title);
-          }}
-        />
-        {isCurrentlyPlaying && (
-          <View style={styles.playingIndicator}>
-            <Image
-              source={appImages.playerPauseIcon}
-              style={styles.playingIcon}
-            />
-          </View>
-        )}
-        <View style={styles.songInfo}>
-          <Text style={styles.songTitle} numberOfLines={1}>
-            {cleanSongTitle(song.title)}
-          </Text>
-          <Text style={styles.songGenres}>{formatTime(song.duration)}</Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => onDownload(song)}
-          style={styles.menuButton}>
-          <Image source={appImages.downloadIcon} style={styles.menuIcon} />
-        </TouchableOpacity>
-      </TouchableOpacity>
-    );
-  },
-);
 
 const LibraryScreen = () => {
   const {API_BASE_URL} = config;
@@ -247,25 +206,6 @@ const LibraryScreen = () => {
     setPrevGeneratingState(isGeneratingSong);
   }, [isGeneratingSong]);
 
-  // Add effect to handle the generating toast
-  // useEffect(() => {
-  //   // Show toast when song generation starts
-  //   if (isGeneratingSong && isLibraryScreen.current) {
-  //     showToaster({
-  //       type: 'info',
-  //       text1: 'Song Generation in Progress',
-  //       text2:
-  //         'Your song is being created. It will appear in your library soon.',
-  //       visibilityTime: 4000,
-  //       autoHide: false,
-  //       topOffset: 50,
-  //     });
-  //   } else if (!isGeneratingSong && prevGeneratingState) {
-  //     // Song generation completed or was canceled
-  //     hideToaster();
-  //   }
-  // }, [isGeneratingSong, prevGeneratingState, showToaster, hideToaster]);
-
   // Effect to refresh library when song generation completes
   useEffect(() => {
     if (shouldRefreshLibrary && isLibraryScreen.current) {
@@ -323,7 +263,9 @@ const LibraryScreen = () => {
   // Updated permission handler that works better for Android 11+
   const requestAndroidPermissions = async () => {
     try {
-      if (Platform.OS !== 'android') {return true;}
+      if (Platform.OS !== 'android') {
+        return true;
+      }
 
       console.log('Android SDK Version:', Platform.Version);
 
@@ -507,6 +449,12 @@ const LibraryScreen = () => {
 
               console.log('Share response:', shareResponse);
 
+              mixpanelAnalytics.trackEvent('song_downloaded', {
+                song_title: song.title,
+                song_id: song._id,
+                timestamp: Date.now(),
+              });
+
               // Show success message without share prompt
               Alert.alert(
                 'Download Complete',
@@ -642,30 +590,7 @@ const LibraryScreen = () => {
     [],
   );
 
-  // Memoize the list empty component
   const ListEmptyComponent = useMemo(() => <EmptyLibrary />, []);
-
-  // Create a generation indicator component
-  const GenerationIndicator = () => {
-    if (!isGeneratingSong || !generatingSongId) {return null;}
-
-    return (
-      <LinearGradient
-        colors={['#FE954A', '#FC6C14']}
-        start={{x: 0, y: 0}}
-        end={{x: 0, y: 1}}
-        style={styles.generationIndicator}>
-        <ActivityIndicator
-          size="small"
-          color="#FFFFFF"
-          style={{marginRight: 10}}
-        />
-        <Text style={styles.generationIndicatorText}>
-          Your song is being generated...
-        </Text>
-      </LinearGradient>
-    );
-  };
 
   return (
     <SafeAreaView style={[styles.container, {backgroundColor: 'transparent'}]}>
@@ -863,7 +788,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   emptyText: {
-    color: '#666',
+    color: '#FFD5A9',
     fontSize: 16,
     textAlign: 'center',
   },
@@ -871,20 +796,21 @@ const styles = StyleSheet.create({
     width: 150,
     height: 150,
     borderRadius: 75,
-    backgroundColor: '#222',
+    // backgroundColor: '#222',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#333',
+    // borderWidth: 1,
+    // borderColor: '#333',
   },
   musicEmoji: {
     fontSize: 80,
+    tintColor: '#F4A460',
   },
   emptyTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#F4A460',
+    color: '#FEB680',
     marginBottom: 12,
     textAlign: 'center',
   },
@@ -1009,6 +935,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     tintColor: '#FEB680',
+  },
+  emptyImage: {
+    width: 120,
+    height: 120,
   },
 });
 

@@ -217,11 +217,19 @@ const registerPushToken = async fcmToken => {
       return false;
     }
 
+    // Some SDK versions handle FCM token natively on Android via MoEFireBaseMessagingService.
+    // Only call into JS bridge if the API exists; otherwise treat as handled.
     if (typeof ReactMoE.setPushToken === 'function') {
       await ReactMoE.setPushToken(fcmToken);
       console.log('✅ MoEngage: Push token registered successfully');
       return true;
     } else {
+      if (Platform.OS === 'android') {
+        console.log(
+          'ℹ️ MoEngage: setPushToken API not present; token is handled by native MoEngage Firebase service on Android.',
+        );
+        return true;
+      }
       console.warn('⚠️ MoEngage: setPushToken method not available');
       return false;
     }
@@ -317,7 +325,17 @@ const setUserId = userId => {
     }
 
     console.log('🔍 MoEngage: setUserId called with userId:', userId);
-    ReactMoE.identifyUser(userId);
+    // Prefer modern APIs if available; gracefully fallback for older SDKs
+    if (ReactMoE && typeof ReactMoE.setUserUniqueID === 'function') {
+      ReactMoE.setUserUniqueID(userId);
+    } else if (ReactMoE && typeof ReactMoE.setUniqueId === 'function') {
+      ReactMoE.setUniqueId(userId);
+    } else if (ReactMoE && typeof ReactMoE.identifyUser === 'function') {
+      ReactMoE.identifyUser(userId);
+    } else {
+      console.warn('⚠️ MoEngage identify API not found on this SDK build');
+      return false;
+    }
     serviceState.lastUserIdTracked = userId;
     console.log('✅ MoEngage: User ID set successfully:', userId);
     return true;
@@ -644,6 +662,12 @@ const registerUserFromLogin = (userLoginData, loginSource = 'unknown') => {
       firstName: firstName,
       lastName: lastName,
       phoneNumber: phoneNumber,
+      // Include Google ID if available in login payloads
+      googleId:
+        userLoginData.googleId ||
+        userLoginData.google_id ||
+        userLoginData.user?.googleId ||
+        userLoginData.user?.google_id,
       method: loginSource,
       userType: 'registered_user',
       signupDate: new Date().toISOString(),

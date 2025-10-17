@@ -41,7 +41,7 @@ import {
 import {check, request, PERMISSIONS, RESULTS} from 'react-native-permissions';
 import moEngageService from './services/moengageService';
 import useMoEngageUser from './hooks/useMoEngageUser';
-import branch, {BranchEvent} from 'react-native-branch';
+import branch from 'react-native-branch';
 import {
   configureBranchTimeouts,
   initializeBranchWithRetry,
@@ -50,6 +50,8 @@ import {
 
 import ErrorBoundary from './components/common/ErrorBoundary';
 import {initializePushNotificationHandlers} from './utils/pushNotificationHandler';
+import mixpanelAnalytics from './utils/mixpanelAnalytics';
+import {requestTrackingPermission} from 'react-native-tracking-transparency';
 
 // Default credit settings in case API fails
 const DEFAULT_CREDIT_SETTINGS = {
@@ -79,7 +81,7 @@ const AppContent = () => {
   const [theme, setTheme] = useState({
     mode: 'dark',
   });
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false); // reserved for future use
   const [initError, setInitError] = useState(null);
   const [splashHidden, setSplashHidden] = useState(false);
 
@@ -115,39 +117,45 @@ const AppContent = () => {
   // Initialize app services - should only be called once at app startup
   const initializeApp = useCallback(async () => {
     try {
+      // iOS: Request ATT permission early to enable IDFA for SAN claims
+      if (Platform.OS === 'ios') {
+        try {
+          const status = await requestTrackingPermission();
+          if (__DEV__) {
+            console.log('[ATT] Authorization status:', status);
+          }
+        } catch (e) {
+          if (__DEV__) {
+            console.log('[ATT] Request error:', e?.message || e);
+          }
+        }
+      }
       // Initialize Firebase
-      const firebaseReady = await initializeFirebase();
+      await initializeFirebase();
       // Runtime notification permission and token (platform-aware)
       try {
         if (Platform.OS === 'android') {
-          // Only request POST_NOTIFICATIONS on Android 13+ (API 33)
-          const sdk = Platform.Version;
-          const canRequestPostNotifications =
-            typeof sdk === 'number' &&
-            sdk >= 33 &&
-            PERMISSIONS?.ANDROID?.POST_NOTIFICATIONS;
-          if (canRequestPostNotifications) {
-            try {
+          // Always attempt to request POST_NOTIFICATIONS when available, regardless of SDK version
+          try {
+            if (PERMISSIONS?.ANDROID?.POST_NOTIFICATIONS) {
               const status = await check(
                 PERMISSIONS.ANDROID.POST_NOTIFICATIONS,
               );
               if (status !== RESULTS.GRANTED) {
                 await request(PERMISSIONS.ANDROID.POST_NOTIFICATIONS);
               }
-            } catch (permErr) {
-              console.warn(
-                '[App] POST_NOTIFICATIONS check/request error:',
-                permErr?.message || permErr,
-              );
             }
-          } else {
-            console.log('[App] Skipping POST_NOTIFICATIONS (SDK < 33)');
+          } catch (permErr) {
+            console.warn(
+              '[App] POST_NOTIFICATIONS check/request error:',
+              permErr?.message || permErr,
+            );
           }
         } else {
           // iOS permission via Messaging API
           const app = getApp();
           const messagingInstance = getMessaging(app);
-          const auth = await requestPermission(messagingInstance);
+          await requestPermission(messagingInstance);
           // On iOS, record permission state into MoEngage as pushEnabled attribute
           try {
             const pushEnabled = true; // requesting permission on iOS implies user accepted in most flows
@@ -182,6 +190,20 @@ const AppContent = () => {
         await analyticsUtils.initializeAnalytics();
       } catch (analyticsError) {
         // Silent error handling
+      }
+
+      // Initialize Mixpanel (ATT-aware on iOS)
+      try {
+        const result = await mixpanelAnalytics.initializeMixpanel();
+        if (__DEV__) {
+          console.log('Mixpanel init result:', result);
+        }
+        // Try to identify user and set profile if already logged in
+        try {
+          await mixpanelAnalytics.ensureMixpanelUserIdentified();
+        } catch (_) {}
+      } catch (mpError) {
+        // Silent error handling for Mixpanel
       }
 
       // Initialize Tag Manager
@@ -426,95 +448,26 @@ const AppContent = () => {
               return;
             }
 
-            console.log('✅ Branch opened successfully:', params);
+            console.log('✅ Branch opened successfully');
 
+            // Minimal safe handling for existing users: just open Home if logged in
             try {
-              const clickedBranchLink =
-                params?.['+clicked_branch_link'] === true;
-              const isFirstOpen = params?.['+is_first_session'] === true;
+              const {navigate} = require('./utils/NavigationService').default;
+              const state = store.getState();
+              const isLoggedIn =
+                state?.user?.isLoggedIn || state?.auth?.isLoggedIn;
 
-              // 1) Handle song deep links: expect either song_id or audio_url in params
-              if (clickedBranchLink) {
-                const songId = params?.song_id || params?.songId || params?.id;
-                const audioUrl =
-                  params?.audio_url || params?.audioUrl || params?.url;
-                const title = params?.title || params?.song_title;
-
-                if (songId || audioUrl) {
-                  try {
-                    const {store} = require('./stores');
-                    const {navigate} =
-                      require('./utils/NavigationService').default;
-                    const {playSong} = require('./utils/playerUtils');
-
-                    const state = store.getState();
-                    const isLoggedIn =
-                      state?.user?.isLoggedIn || state?.auth?.isLoggedIn;
-
-                    // If not logged in, send to login and stop handling
-                    if (!isLoggedIn) {
-                      console.log(
-                        '🔐 Not logged in; redirecting to Login for deep link',
-                      );
-                      navigate('AuthStack');
-                      return;
-                    }
-
-                    // Navigate to Discover tab
-                    navigate('HomeStack');
-
-                    // Prepare minimal song object for the player
-                    const song = {
-                      id: songId || audioUrl,
-                      title: title || 'Shared Song',
-                      audioUrl: audioUrl,
-                      url: audioUrl,
-                      uri: audioUrl,
-                    };
-
-                    // Play the song using global player
-                    playSong(song, 'BranchDeepLink');
-                    console.log('🎧 Playing song from Branch deep link');
-                  } catch (playErr) {
-                    console.warn(
-                      '⚠️ Failed to handle Branch song deep link:',
-                      playErr?.message || playErr,
-                    );
-                  }
-                }
+              if (isLoggedIn) {
+                navigate('HomeStack');
+                return; // short-circuit further deep link handling
               }
 
-              // 2) Track attribution only when clicked_branch_link is true
-              if (isFirstOpen && clickedBranchLink) {
-                try {
-                  const attribution = {
-                    channel: params?.['~channel'],
-                    campaign: params?.['~campaign'],
-                    feature: params?.['~feature'],
-                    tags: params?.['~tags'],
-                    ad_set: params?.ad_set || params?.$3p,
-                    clicked_branch_link: true,
-                  };
-                  new BranchEvent('INSTALL_ATTRIBUTED', null, {
-                    customData: attribution,
-                  }).logEvent();
-                  moEngageService.trackEvent(
-                    'Install_Attribution',
-                    attribution,
-                  );
-                  console.log('📊 Branch attribution tracked:', attribution);
-                } catch (attributionError) {
-                  console.warn(
-                    '⚠️ Branch attribution tracking failed:',
-                    attributionError.message,
-                  );
-                }
-              }
-            } catch (processingError) {
-              console.warn(
-                '⚠️ Branch parameter processing failed:',
-                processingError.message,
-              );
+              // Not logged in → send to Auth
+              navigate('AuthStack');
+              return; // short-circuit further deep link handling
+            } catch (safeRouteErr) {
+              console.warn('⚠️ Safe deep link routing failed:', safeRouteErr);
+              return; // fail-safe: do nothing else to avoid crashes
             }
           },
         });

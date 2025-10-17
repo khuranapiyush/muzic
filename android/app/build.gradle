@@ -93,8 +93,8 @@ android {
         applicationId "com.muzic"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 20
-        versionName "3.3.1"
+        versionCode 21
+        versionName "3.3.2"
         missingDimensionStrategy 'store', 'play'
         multiDexEnabled true
         manifestPlaceholders = [firebase_analytics_collection_enabled: "true", firebase_analytics_collection_deactivated: "false"]
@@ -176,6 +176,11 @@ dependencies {
     // Emoji2 support (fix crashes related to androidx.emoji2)
     implementation 'androidx.emoji2:emoji2:1.5.0'
     implementation 'androidx.emoji2:emoji2-views:1.5.0'
+
+    // Google Ads Identifier for AAID access
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0'
+    // Play Install Referrer API for secure referrer retrieval
+    implementation 'com.android.installreferrer:installreferrer:2.2'
 
     if (project.hasProperty('hermesEnabled') && hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

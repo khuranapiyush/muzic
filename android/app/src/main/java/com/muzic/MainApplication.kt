@@ -24,6 +24,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import android.content.Context
+import com.google.android.gms.ads.identifier.AdvertisingIdClient
 
 
 class MainApplication : Application(), ReactApplication {
@@ -68,6 +69,22 @@ class MainApplication : Application(), ReactApplication {
       // Don't let Branch initialization failure block app startup
     }
     
+    // Log AAID to verify availability (debug-level)
+    try {
+      Thread {
+        try {
+          val info = AdvertisingIdClient.getAdvertisingIdInfo(applicationContext)
+          val aaid = info?.id ?: ""
+          val limitAdTracking = info?.isLimitAdTrackingEnabled ?: false
+          android.util.Log.d("AAID", "AAID length=${aaid.length}, LAT=$limitAdTracking")
+        } catch (e: Exception) {
+          android.util.Log.w("AAID", "Failed to fetch AAID: ${e.message}")
+        }
+      }.start()
+    } catch (e: Exception) {
+      android.util.Log.w("AAID", "Error starting AAID fetch thread: ${e.message}")
+    }
+
     // Initialize Firebase
     try {
       // Initialize Firebase if not already initialized

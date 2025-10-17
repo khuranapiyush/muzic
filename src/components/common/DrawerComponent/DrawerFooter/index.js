@@ -10,6 +10,7 @@ import analyticsUtils from '../../../../utils/analytics';
 import facebookEvents from '../../../../utils/facebookEvents';
 import CText from '../../core/Text';
 import DeviceInfo from 'react-native-device-info';
+import mixpanelAnalytics from '../../../../utils/mixpanelAnalytics';
 
 const DrawerFooter = () => {
   const navigation = useNavigation();
@@ -33,14 +34,14 @@ const DrawerFooter = () => {
 
   const handleLogout = async () => {
     // Track logout event
-    analyticsUtils.trackCustomEvent('user_logout', {
+    analyticsUtils.trackCustomEvent('logout_successful', {
       method: 'drawer_menu',
       timestamp: Date.now(),
     });
 
     // Track logout with Facebook Events
     try {
-      facebookEvents.logCustomEvent('user_logout', {
+      facebookEvents.logCustomEvent('logout_successful', {
         method: 'drawer_menu',
       });
     } catch (error) {
@@ -59,6 +60,14 @@ const DrawerFooter = () => {
   };
 
   const handleDeleteAccount = () => {
+    try {
+      mixpanelAnalytics.trackEvent('button_clicked', {
+        button_text: 'Delete Account',
+        screen_name: 'Settings',
+        interaction_type: 'Standard Button',
+        button_id: 'settings_del_btn',
+      });
+    } catch (_) {}
     setTimeout(() => {
       showModal('deleteAccount');
     }, 300);

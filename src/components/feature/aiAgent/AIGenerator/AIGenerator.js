@@ -46,6 +46,7 @@ import facebookEvents from '../../../../utils/facebookEvents';
 import moEngageService from '../../../../services/moengageService';
 import {trackBranchAIEvent} from '../../../../utils/branchUtils';
 // import {getNavigationDetails} from '../../../../utils/navigationUtils';
+import mixpanelAnalytics from '../../../../utils/mixpanelAnalytics';
 
 const AIGenerator = ({pageHeading}) => {
   const dispatch = useDispatch();
@@ -300,6 +301,15 @@ const AIGenerator = ({pageHeading}) => {
       timestamp: Date.now(),
     });
 
+    mixpanelAnalytics.trackEvent('create_song_button_click', {
+      screen: 'ai_generator',
+      prompt_length: promptText.trim().length,
+      genre: selectedGenre || 'not_selected',
+      voice: selectedVoice || 'not_selected',
+      language: selectedLanguage || 'English',
+      timestamp: Date.now(),
+    });
+
     // Track with Facebook Events
     try {
       facebookEvents.logCustomEvent('create_song_button_click', {
@@ -391,11 +401,27 @@ const AIGenerator = ({pageHeading}) => {
   // Handle genre selection from the GenreSelectionScreen
   const handleGenreSelect = genre => {
     setSelectedGenre(genre);
+    try {
+      if (genre) {
+        mixpanelAnalytics.trackEvent('genre_clicked', {
+          genre: genre,
+          genre_id: String(genre).toLowerCase(),
+        });
+      }
+    } catch (_) {}
   };
 
   // Handle voice selection from the GenreSelectionScreen
   const handleVoiceSelect = voice => {
     setSelectedVoice(voice);
+    try {
+      if (voice) {
+        mixpanelAnalytics.trackEvent('voice_clicked', {
+          voice: voice,
+          voice_id: String(voice).toLowerCase(),
+        });
+      }
+    } catch (_) {}
   };
 
   const {credits} = useCredits();

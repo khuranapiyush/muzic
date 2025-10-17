@@ -24,6 +24,7 @@ import {
 } from '../../api/voiceRecordings';
 import {Image} from 'react-native-elements';
 import appImages from '../../resource/images';
+import mixpanelAnalytics from '../../utils/mixpanelAnalytics';
 
 // RecordingCard component - moved outside to avoid recreation on every render
 const RecordingCard = ({
@@ -216,6 +217,19 @@ const AllRecordingsScreen = () => {
     try {
       const response = await deleteVoiceRecording(selectedRecording._id);
       if (response?.status === 200 || response?.data?.success) {
+        try {
+          mixpanelAnalytics.trackEvent('recording_deleted', {
+            recording_duration: selectedRecording?.duration || 0,
+            recording_url:
+              selectedRecording?.audioUrl ||
+              selectedRecording?.url ||
+              selectedRecording?.fileUrl ||
+              selectedRecording?.audio_url ||
+              '',
+            recording_id: selectedRecording?._id,
+            source: 'all_recordings',
+          });
+        } catch (_) {}
         setUserRecordings(prev =>
           prev.filter(rec => rec._id !== selectedRecording._id),
         );
@@ -264,6 +278,14 @@ const AllRecordingsScreen = () => {
   const handleRecordingPress = useCallback(
     recording => {
       if (recording.audioUrl) {
+        try {
+          mixpanelAnalytics.trackEvent('recording_played', {
+            recording_duration: recording.duration || 0,
+            recording_url: recording.audioUrl,
+            recording_id: recording._id,
+            source: 'all_recordings',
+          });
+        } catch (_) {}
         const songData = {
           id: recording._id,
           uri: recording.audioUrl,

@@ -27,6 +27,7 @@ import moEngageService from '../../../services/moengageService';
 import branch from 'react-native-branch';
 import {trackBranchLogin} from '../../../utils/branchUtils';
 import {trackMoEngageUserLogin} from '../../../utils/moengageUtils';
+import mixpanelAnalytics from '../../../utils/mixpanelAnalytics';
 
 const LoginScreen = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -120,6 +121,11 @@ const LoginScreen = () => {
 
   const handlePhoneLogin = () => {
     console.log('Phone login button pressed');
+    try {
+      mixpanelAnalytics.trackEvent('user_registration_initiated', {
+        login_method: 'Mobile',
+      });
+    } catch (_) {}
     // Navigate to phone input screen
     navigation.navigate(ROUTE_NAME.PhoneInput);
   };
@@ -214,6 +220,13 @@ const LoginScreen = () => {
           dispatch(setUser({isLoggedIn: true}));
           console.log('No user data, but set isLoggedIn=true');
         }
+
+        // Identify user in Mixpanel and set profile
+        try {
+          await mixpanelAnalytics.ensureMixpanelUserIdentified(
+            res?.data?.user || res?.data,
+          );
+        } catch (_) {}
 
         // Track login (Enhanced MoEngage + Branch)
         try {
@@ -314,6 +327,13 @@ const LoginScreen = () => {
           console.log('No user data, but set isLoggedIn=true');
         }
 
+        // Identify user in Mixpanel and set profile
+        try {
+          await mixpanelAnalytics.ensureMixpanelUserIdentified(
+            res?.data?.user || res?.data,
+          );
+        } catch (_) {}
+
         // Track login (Enhanced MoEngage + Branch)
         try {
           // Use enhanced MoEngage tracking
@@ -378,6 +398,12 @@ const LoginScreen = () => {
     }
 
     try {
+      // Mixpanel: login initiated
+      try {
+        mixpanelAnalytics.trackEvent('user_registration_initiated', {
+          login_method: 'Google',
+        });
+      } catch (_) {}
       // Track the button click in analytics
       analyticsUtils.trackButtonClick('google_login', {
         screen: 'login',
@@ -492,6 +518,12 @@ const LoginScreen = () => {
     }
 
     try {
+      // Mixpanel: login initiated
+      try {
+        mixpanelAnalytics.trackEvent('user_registration_initiated', {
+          login_method: 'Apple',
+        });
+      } catch (_) {}
       // Track the button click in analytics
       analyticsUtils.trackButtonClick('apple_login', {
         screen: 'login',

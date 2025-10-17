@@ -6,6 +6,7 @@ import CView from '../../core/View';
 import getStyles from './style';
 import ROUTE_NAME from '../../../../navigator/config/routeName';
 import useCredits from '../../../../hooks/useCredits';
+import mixpanelAnalytics from '../../../../utils/mixpanelAnalytics';
 
 const HeaderRight = ({mode}) => {
   const styles = getStyles(mode);
@@ -33,10 +34,22 @@ const HeaderRight = ({mode}) => {
   }, [refreshCredits]);
 
   const openDrawer = () => {
+    mixpanelAnalytics.trackEvent('button_clicked', {
+      screen: 'header',
+      button_text: 'Open Drawer',
+      button_id: 'hdr_open_drawer_btn',
+      timestamp: Date.now(),
+    });
     navigation.openDrawer();
   };
 
   const handleCreditPress = () => {
+    mixpanelAnalytics.trackEvent('button_clicked', {
+      screen: 'header',
+      button_text: 'Open Subscription Screen',
+      button_id: 'hdr_open_sub_btn',
+      timestamp: Date.now(),
+    });
     navigation.navigate(ROUTE_NAME.RecurringSubscriptionScreen);
   };
 

@@ -161,6 +161,7 @@ const appImages = {
   newMicIcon: require('../../../assets/images/icons/newMicIcon.png'),
   soundIcon: require('../../../assets/images/icons/sound.png'),
   microphoneIcon: require('../../../assets/images/icons/microphone.png'),
+  emptyLibraryIcon: require('../../../assets/images/icons/emptyLibraryIcon.png'),
 };
 
 export default appImages;

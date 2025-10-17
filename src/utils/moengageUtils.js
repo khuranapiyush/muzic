@@ -68,6 +68,15 @@ export const ensureMoEngageUserIdentified = async () => {
       firstName: user.firstName,
       lastName: user.lastName,
       phoneNumber: user.phoneNumber,
+      // Capture Google ID if present in stored user payloads
+      googleId:
+        user.googleId ||
+        user.google_id ||
+        user.googleID ||
+        user?.user?.googleId ||
+        user?.user?.google_id ||
+        user?.user?.googleID ||
+        user?.user?.id, // sometimes providers nest under user
       platform: Platform.OS,
       app_version: '2.0.0',
       last_login: new Date().toISOString(),
@@ -184,6 +193,13 @@ export const trackMoEngageUserLogin = async (
         userData.mobile ||
         userData.phone ||
         userData.user?.phoneNumber,
+      // Capture Google ID if present in provider payloads
+      googleId:
+        userData.googleId ||
+        userData.google_id ||
+        userData.user?.googleId ||
+        userData.user?.google_id ||
+        userData.user?.id, // some SDKs put provider id here
       method: loginMethod,
       platform: Platform.OS,
       app_version: '2.0.0',

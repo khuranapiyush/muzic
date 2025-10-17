@@ -39,6 +39,7 @@ import {
 } from '../../../../stores/slices/player';
 import {selectCreditsPerSong} from '../../../../stores/selector';
 import analyticsUtils from '../../../../utils/analytics';
+import mixpanelAnalytics from '../../../../utils/mixpanelAnalytics';
 import facebookEvents from '../../../../utils/facebookEvents';
 import moEngageService from '../../../../services/moengageService';
 
@@ -97,13 +98,8 @@ const CoverCreationScreen = () => {
     refreshCredits();
   }, [refreshCredits]);
 
-  // Remove pagination states - cleaned up unused variables
-  // Removed page state (unused)
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  // Removed hasMoreData state (unused)
-  const PAGE_SIZE = 9; // Number of items to load per page
 
-  // Removed unused retrying state to satisfy linter
   const retryAttempts = useRef(0);
 
   // Add refresh state
@@ -220,6 +216,14 @@ const CoverCreationScreen = () => {
         // Make the API request to the url-to-voice endpoint
         const apiUrl = `${config.API_BASE_URL}/v1/integration/url-to-voice`;
 
+        mixpanelAnalytics.trackEvent('button_clicked', {
+          screen: 'ai_generator',
+          cover_url: link,
+          voice_type: isUsingMyVocal ? 'user_vocal' : 'sample_catalog',
+          voice_id: requestData.voiceModelId,
+          timestamp: Date.now(),
+        });
+
         fetcher
           .post(apiUrl, requestData, {
             headers: {
@@ -250,6 +254,21 @@ const CoverCreationScreen = () => {
               voice_id: requestData.voiceModelId,
               timestamp: Date.now(),
             });
+
+            // Mixpanel: cover_created with title, cover_url and thumbnail (if available)
+            try {
+              const selectedSample = sampleVoice?.find?.(
+                v => v?.id === selectedVoiceId,
+              );
+              const coverThumb = isUsingMyVocal
+                ? null
+                : selectedSample?.imageUrl || null;
+              mixpanelAnalytics.trackEvent('cover_created', {
+                cover_title: songTitle || 'My Cover',
+                cover_url: link,
+                cover_thumbnail_url: coverThumb,
+              });
+            } catch (_) {}
 
             // Track song creation with Facebook Events + MoEngage + Branch
             try {
@@ -374,7 +393,7 @@ const CoverCreationScreen = () => {
         'Content-Type': 'application/json',
         ...(token ? {Authorization: `Bearer ${token}`} : {}),
       };
-
+      setIsLoadingMore(true);
       setIsLoadingRecordings(true);
       const response = await fetcher.get(
         `${config.API_BASE_URL}/v1/voice-recordings/user/${userId}`,
@@ -387,11 +406,11 @@ const CoverCreationScreen = () => {
     {
       onSuccess: response => {
         if (response) {
-          // Log API response to understand data structure
           const recordings = response.data?.data || response.data || [];
           setUserRecordings(recordings);
           setRecordingsLoaded(true);
           setIsLoadingRecordings(false);
+          setIsLoadingMore(false);
         } else {
           console.warn(
             'Invalid or empty response from library API:',
@@ -417,7 +436,6 @@ const CoverCreationScreen = () => {
     },
   );
 
-  // Update the handleRefresh function to reset pagination and properly refresh data
   const handleRefresh = useCallback(async () => {
     if (isRefreshing) {
       return;
@@ -438,7 +456,7 @@ const CoverCreationScreen = () => {
       // Run refreshes in parallel for faster loading
       const promises = [
         // Reload voice models
-        getVoiceSamples(1, false),
+        // getVoiceSamples(1, false),
         // Refresh credits
         refreshCredits(),
       ];
@@ -463,7 +481,7 @@ const CoverCreationScreen = () => {
     }
   }, [
     checkNetworkConnectivity,
-    getVoiceSamples,
+    // getVoiceSamples,
     refreshCredits,
     userId,
     isRefreshing,
@@ -476,7 +494,7 @@ const CoverCreationScreen = () => {
         setIsLoadingMore(true);
 
         const response = await fetcher.get(
-          `${config.API_BASE_URL}/v1/kits/voice-models?page=${pageNum}&limit=${PAGE_SIZE}`,
+          `${config.API_BASE_URL}/vocal-samples`,
         );
 
         const newData = response.data?.data || [];
@@ -493,7 +511,7 @@ const CoverCreationScreen = () => {
         setIsLoadingMore(false);
       }
     },
-    [PAGE_SIZE],
+    [],
   );
 
   useEffect(() => {
@@ -536,7 +554,7 @@ const CoverCreationScreen = () => {
   };
 
   const VocalCard = ({recording}) => {
-    const isSelected = !isUsingMyVocal && selectedVoiceId === recording.id;
+    const isSelected = !isUsingMyVocal && selectedVoiceId === recording._id;
     const isCurrentlyPlaying =
       currentSong && currentSong.id === recording.id && isPlaying;
     const [imageError, setImageError] = useState(false);
@@ -548,10 +566,16 @@ const CoverCreationScreen = () => {
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={() => {
+          mixpanelAnalytics.trackEvent('vocal_card_clicked', {
+            card_name: 'my_vocals',
+            card_id: 'cover_vocal_card',
+            recording_id: recording?._id,
+            recording_name: recording?.title || 'My Voice',
+          });
           if (isSelected) {
             setSelectedVoiceId(null);
           } else {
-            setSelectedVoiceId(recording.id);
+            setSelectedVoiceId(recording._id);
             setIsUsingMyVocal(false);
             setSelectedRecordingFile(null);
           }
@@ -595,9 +619,7 @@ const CoverCreationScreen = () => {
           </View>
         </View>
         <Text style={[styles.cardText, isSelected && styles.selectedCardText]}>
-          {recording.title?.length > 15
-            ? recording.title.substring(0, 9) + '...'
-            : recording.title || 'Voice'}
+          {recording.genre}
         </Text>
       </TouchableOpacity>
     );
@@ -660,6 +682,15 @@ const CoverCreationScreen = () => {
               setSelectedRecordingFile(recording);
               setSelectedVoiceId(null);
             }
+
+            try {
+              mixpanelAnalytics.trackEvent('recording_card_clicked', {
+                card_name: 'recordings',
+                card_id: 'cover_recording_card',
+                recording_id: recording?._id,
+                recording_name: recording?.name || 'My Voice',
+              });
+            } catch (_) {}
           }}
           style={[
             styles.myVocalCard,
@@ -713,6 +744,15 @@ const CoverCreationScreen = () => {
                   Alert.alert('Error', 'Invalid audio file URL format');
                   return;
                 }
+
+                try {
+                  mixpanelAnalytics.trackEvent('recording_played', {
+                    recording_duration: recording.duration || 0,
+                    recording_url: audioUrl,
+                    recording_id: recording._id,
+                    source: 'ai_cover',
+                  });
+                } catch (_) {}
 
                 const songData = {
                   id: recording._id,
@@ -868,7 +908,7 @@ const CoverCreationScreen = () => {
 
             {/* Vocals Section */}
             <View style={styles.listContainer}>
-              {sampleVoice.length === 0 && !isLoadingMore ? (
+              {isLoadingMore ? (
                 <View style={styles.loaderContainer}>
                   <ActivityIndicator size="large" color="#F4A460" />
                   <Text style={styles.loadingText}>Loading voices...</Text>
@@ -878,7 +918,7 @@ const CoverCreationScreen = () => {
                   data={sampleVoice}
                   ListHeaderComponent={MyVocalsSection}
                   renderItem={({item}) => <VocalCard recording={item} />}
-                  keyExtractor={item => item.id.toString()}
+                  keyExtractor={item => item._id}
                   numColumns={3}
                   contentContainerStyle={[styles.vocalsContainerGrid]}
                   showsVerticalScrollIndicator={true}
@@ -1694,7 +1734,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     transform: [{rotate: '90deg'}],
   },
-  // Delete Bottom Sheet Styles
   deleteModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',

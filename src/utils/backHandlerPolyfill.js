@@ -25,4 +25,11 @@ BackHandler.addEventListener = (eventName, handler) => {
 // Note: removeEventListener is deprecated in React Native 0.65+
 // Components should use the subscription.remove() method instead
 
+// Some libraries still call BackHandler.removeEventListener; provide a safe no-op
+if (typeof BackHandler.removeEventListener !== 'function') {
+  BackHandler.removeEventListener = () => {
+    // no-op for backward compatibility; listeners should call subscription.remove()
+  };
+}
+
 export default BackHandler;

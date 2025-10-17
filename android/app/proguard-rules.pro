@@ -122,6 +122,10 @@
 -keep class io.branch.** { *; }
 -dontwarn io.branch.**
 
+# Google Ads Identifier / Play Services Ads Identifier
+-keep class com.google.android.gms.ads.identifier.** { *; }
+-dontwarn com.google.android.gms.ads.identifier.**
+
 # Facebook SDK - Fix logPurchase and ImageMetaData crashes
 -keep class com.facebook.** { *; }
 -keep interface com.facebook.** { *; }

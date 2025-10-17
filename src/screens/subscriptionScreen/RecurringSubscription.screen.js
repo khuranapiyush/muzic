@@ -22,6 +22,7 @@ import {selectCreditsPerSong} from '../../stores/selector';
 import {useNavigation} from '@react-navigation/native';
 import {NativeModules} from 'react-native';
 import analyticsUtils from '../../utils/analytics';
+import mixpanelAnalytics from '../../utils/mixpanelAnalytics';
 import facebookEvents from '../../utils/facebookEvents';
 import {
   trackBranchPurchase,
@@ -54,6 +55,8 @@ const RecurringSubscriptionScreen = () => {
   const listenerAttached = useRef(false);
   const processedPurchaseIds = useRef(new Set());
   const isAlertOpen = useRef(false);
+  // Track last plan id we sent to Mixpanel to avoid duplicate subscription_plan_selected events
+  const lastTrackedPlanIdRef = useRef(null);
   // keep latest functions in refs so listeners are stable
   const verifySubscriptionRef = useRef(null);
   const onPurchaseErrorRef = useRef(null);
@@ -318,6 +321,50 @@ const RecurringSubscriptionScreen = () => {
             transaction_id: transactionId,
             source: 'recurring_subscription_screen',
           });
+
+          // Mixpanel - event + revenue (fire-and-forget)
+          try {
+            const planMapping = {
+              subplan_1: 'X',
+              subplan_2: 'Y',
+              subplan_3: 'Z',
+            };
+            const planId =
+              planMapping[purchase?.productId] || purchase?.productId;
+            const planDuration = Platform.select({
+              ios: 'Monthly',
+              android: 'Monthly',
+            });
+            const ts = new Date();
+            const two = n => String(n).padStart(2, '0');
+            const subscriptionTs = `${two(ts.getDate())}_${two(
+              ts.getMonth() + 1,
+            )}_${String(ts.getFullYear()).slice(-2)} ${two(
+              ts.getHours(),
+            )}:${two(ts.getMinutes())}`;
+
+            mixpanelAnalytics.trackEvent('purchase_completed', {
+              product_id: purchase?.productId,
+              plan_id: planId,
+              plan_duration: planDuration,
+              subscription_start_timestamp: subscriptionTs,
+              plan_price: amount,
+              payment_type: Platform.OS === 'ios' ? 'Apple' : 'Google',
+              amount,
+              currency,
+              transaction_id: transactionId,
+              platform: Platform.OS,
+              source: 'recurring_subscription_screen',
+            });
+            if (typeof amount === 'number' && amount > 0) {
+              mixpanelAnalytics.trackRevenue(amount, {
+                currency,
+                product_type: 'subscription',
+                product_id: purchase?.productId,
+                transaction_id: transactionId,
+              });
+            }
+          } catch (_) {}
         } catch (e) {
           // Do not block user on analytics failure
           console.warn('Branch purchase tracking failed:', e?.message || e);
@@ -623,6 +670,14 @@ const RecurringSubscriptionScreen = () => {
             platform: Platform.OS,
           },
         );
+        // Mixpanel event for initiation (fire-and-forget)
+        mixpanelAnalytics.trackEvent('subscription_initiated', {
+          product_id: selectedId,
+          platform: Platform.OS,
+          source: 'recurring_subscription_screen',
+          button_text: 'Continue',
+          button_id: 'cont_sub_btn',
+        });
         // Facebook custom event for initiation
         facebookEvents.logCustomEvent('subscription_purchase_initiated', {
           product_id: selectedId,
@@ -917,7 +972,36 @@ const RecurringSubscriptionScreen = () => {
                     key={p.productId}
                     product={p}
                     selected={selected}
-                    onPress={() => setSelectedId(!selected ? p.productId : '')}
+                    onPress={() => {
+                      // Only track when selecting a new plan (not deselecting or re-selecting the same)
+                      const nextId = !selected ? p.productId : '';
+                      setSelectedId(nextId);
+                      if (
+                        !selected &&
+                        nextId &&
+                        lastTrackedPlanIdRef.current !== nextId
+                      ) {
+                        try {
+                          const cardTitle = (
+                            p?.title || 'Subscription'
+                          ).replace('(MakeMySong - AI Music & Songs)', '');
+                          const planMapping = {
+                            subplan_1: 'X',
+                            subplan_2: 'Y',
+                            subplan_3: 'Z',
+                          };
+                          mixpanelAnalytics.trackEvent(
+                            'subscription_plan_selected',
+                            {
+                              card_title: cardTitle,
+                              plan_id: planMapping[p.productId] || p.productId,
+                              product_id: p.productId,
+                            },
+                          );
+                          lastTrackedPlanIdRef.current = nextId;
+                        } catch (_) {}
+                      }
+                    }}
                     hasDiscount={hasDiscount}
                     discount={discount}
                     originalPrice={originalPrice}

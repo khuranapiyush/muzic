@@ -111,6 +111,7 @@ export const MOENGAGE_CONFIG = {
     APP_VERSION: 'appVersion',
     PLATFORM: 'platform',
     PUSH_ENABLED: 'pushEnabled',
+    GOOGLE_ID: 'googleId',
   },
 
   // Campaign trigger events for targeted messaging

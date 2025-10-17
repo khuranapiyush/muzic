@@ -43,6 +43,7 @@
     "react-native-device-info": "^14.0.4",
     "react-native-elements": "^3.4.3",
     "react-native-fbsdk-next": "^13.4.1",
+    "mixpanel-react-native": "^3.1.2",
     "react-native-fs": "^2.20.0",
     "react-native-gesture-handler": "^2.24.0",
     "react-native-get-random-values": "^1.11.0",

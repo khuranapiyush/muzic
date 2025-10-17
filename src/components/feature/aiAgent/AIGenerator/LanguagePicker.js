@@ -16,6 +16,7 @@ import getStyles from './AIGenerator.styles';
 import LinearGradient from 'react-native-linear-gradient';
 import appImages from '../../../../resource/images';
 import CView from '../../../common/core/View';
+import mixpanelAnalytics from '../../../../utils/mixpanelAnalytics';
 
 const LanguagePicker = ({
   value,
@@ -37,6 +38,13 @@ const LanguagePicker = ({
       'Telugu',
       'Kannada',
       'Malayalam',
+      'Bengali',
+      'Bhojpuri',
+      'Urdu',
+      'Marathi',
+      'Gujarati',
+      'Arabic',
+      'Sinhala',
     ],
     [],
   );
@@ -114,6 +122,13 @@ const LanguagePicker = ({
                     key={lang}
                     activeOpacity={0.9}
                     onPress={() => {
+                      try {
+                        mixpanelAnalytics.trackEvent('dropdown_clicked', {
+                          dropdown_id: 'lng_drp',
+                          dropdown_option: lang,
+                          dropdown_option_id: lang.toLowerCase(),
+                        });
+                      } catch (_) {}
                       onChange && onChange(lang);
                     }}
                     style={optionStyles.optionRow}>

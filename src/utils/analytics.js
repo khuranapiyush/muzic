@@ -6,6 +6,7 @@ import {
   setAnalyticsCollectionEnabled,
 } from '@react-native-firebase/analytics';
 import {getApp} from '@react-native-firebase/app';
+import mixpanelAnalytics from './mixpanelAnalytics';
 
 // Flag for debugging analytics - set to true to see log messages
 const DEBUG_ANALYTICS = __DEV__;
@@ -45,7 +46,13 @@ const logAnalyticsEvent = (eventName, params) => {
 
     const app = getApp();
     const analytics = getAnalytics(app);
-    return logEvent(analytics, eventName, analyticsParams);
+    // Fan-out to Firebase
+    logEvent(analytics, eventName, analyticsParams);
+    // Fan-out to Mixpanel (fire-and-forget)
+    try {
+      mixpanelAnalytics.trackEvent(eventName, analyticsParams);
+    } catch (_) {}
+    return Promise.resolve();
   } catch (error) {
     // Silent fail for analytics errors, never block app functionality
     console.log(`Failed to log event ${eventName}:`, error);
@@ -58,10 +65,14 @@ export const trackScreenView = async (screenName, screenClass) => {
   try {
     const app = getApp();
     const analytics = getAnalytics(app);
-    return await logScreenView(analytics, {
+    const result = await logScreenView(analytics, {
       screen_name: screenName,
       screen_class: screenClass,
     });
+    try {
+      mixpanelAnalytics.trackEvent('screen_viewed', {screen_name: screenName});
+    } catch (_) {}
+    return result;
   } catch (error) {
     // Fallback to generic event if modular call fails for any reason
     return logAnalyticsEvent('screen_view', {
@@ -115,7 +126,8 @@ export const trackSongPromptCreation = (promptText, params = {}) => {
 
 // Track AI Cover URL paste
 export const trackAiCoverUrlPaste = (urlType, params = {}) => {
-  return logAnalyticsEvent('ai_cover_url_paste', {
+  return logAnalyticsEvent('button_clicked', {
+    name: 'ai_cover_url_paste',
     url_type: urlType,
     ...params,
   });
@@ -128,7 +140,7 @@ export const trackAddNewRecording = params => {
 
 // Track start recording
 export const trackStartRecording = (recordingType, params = {}) => {
-  return logAnalyticsEvent('start_recording', {
+  return logAnalyticsEvent('recording_started', {
     recording_type: recordingType,
     ...params,
   });

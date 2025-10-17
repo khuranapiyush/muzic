@@ -56,7 +56,7 @@ const SongCard = ({
           </Text>
           <Text style={styles.duration}>{formatTime(duration)} mins</Text>
         </View>
-        <TouchableOpacity style={styles.playButton}>
+        <TouchableOpacity style={styles.playButton} onPress={onPress}>
           <View style={styles.playIconContainer}>
             <Image
               source={

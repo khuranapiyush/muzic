@@ -26,10 +26,10 @@ const getStyles = theme => {
       fontWeight: 'bold',
     },
     modalContent: {
-      backgroundColor: Colors[theme].appBg,
+      // backgroundColor: Colors[theme].appBg,
       padding: 20,
       borderRadius: 10,
-      elevation: 5,
+      // elevation: 5,
       marginHorizontal: 16,
     },
     modalLogoContainer: {

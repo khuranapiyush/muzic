@@ -506,14 +506,7 @@ export const checkBranchStatus = async () => {
     const latestParams = await branch.getLatestReferringParams();
 
     // Check if we're in test mode (iOS only - Android uses manifest)
-    const isTestMode = __DEV__; // This will be true for debug builds
-
-    console.log('🔍 Branch Status Check:');
-    console.log('- Tracking Disabled:', isDisabled);
-    console.log('- Platform:', Platform.OS);
-    console.log('- Is Debug Build:', __DEV__);
-    console.log('- Is Test Mode:', isTestMode);
-    console.log('- Latest Params:', latestParams);
+    const isTestMode = __DEV__;
 
     console.log(
       '🎯 Dashboard Environment:',

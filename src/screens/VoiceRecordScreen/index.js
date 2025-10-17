@@ -312,7 +312,7 @@ const VoiceRecordScreen = ({navigation}) => {
       });
 
       // Track vocal recording event
-      analyticsUtils.trackCustomEvent('vocal_recorded', {
+      analyticsUtils.trackCustomEvent('recording_successful', {
         screen: 'voice_record_screen',
         duration_ms: duration,
         file_size: fileStats.size,
@@ -323,7 +323,7 @@ const VoiceRecordScreen = ({navigation}) => {
 
       // Track with Facebook Events
       try {
-        facebookEvents.logCustomEvent('vocal_recorded', {
+        facebookEvents.logCustomEvent('recording_successful', {
           screen: 'voice_record_screen',
           duration_ms: duration,
           recording_id: uploadResponse?._id || 'unknown',
@@ -781,7 +781,7 @@ const VoiceRecordScreen = ({navigation}) => {
 
       // Track recording start with Facebook Events
       try {
-        facebookEvents.logCustomEvent('start_recording', {
+        facebookEvents.logCustomEvent('recording_started', {
           recording_type: 'vocal',
           screen: 'voice_record_screen',
           microphone_access: permissionsGranted,

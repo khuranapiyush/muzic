@@ -17,6 +17,7 @@ import ROUTE_NAME from '../../../../navigator/config/routeName';
 import * as RNIap from 'react-native-iap';
 import {getDefaultProductId} from '../../../../api/config';
 import CText from '../../../common/core/Text';
+import mixpanelAnalytics from '../../../../utils/mixpanelAnalytics';
 
 const PRICE_MULTIPLIERS = {
   payment_101: 1.5,
@@ -115,6 +116,12 @@ const PromoModal = ({visible, onClose}) => {
     };
 
     if (visible) {
+      try {
+        // Paywall viewed event
+        mixpanelAnalytics.trackEvent('paywall_viewed', {
+          screen_name: 'PromoBanner',
+        });
+      } catch (_) {}
       fetchProductDetails();
     }
   }, [visible]);
@@ -168,7 +175,16 @@ const PromoModal = ({visible, onClose}) => {
             playWhenInactive={false}
           />
 
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => {
+              try {
+                mixpanelAnalytics.trackEvent('paywall_crossed', {
+                  screen_name: 'PromoBanner',
+                });
+              } catch (_) {}
+              onClose();
+            }}>
             <Image
               source={appImages.closeIcon}
               style={styles.closeButtonIcon}
